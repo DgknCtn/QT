@@ -156,10 +156,8 @@ export default async function MenteeDetailPage({ params }: { params: Promise<{ u
                 </div>
                 <form action={deleteMentorNote.bind(null, note.id, uid)}>
                   <button type="submit" title="Sil"
-                    className="p-1.5 rounded transition-colors shrink-0 mt-0.5"
-                    style={{ color: "var(--color-text-muted)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted)")}>
+                    className="p-1.5 rounded transition-colors shrink-0 mt-0.5 hover:text-red-500"
+                    style={{ color: "var(--color-text-muted)" }}>
                     <Trash2 size={13} />
                   </button>
                 </form>
