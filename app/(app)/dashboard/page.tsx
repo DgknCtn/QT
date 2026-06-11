@@ -156,23 +156,87 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Status row — 4 cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-start">
+        {/* Today's Prep */}
         <StatCard
           label="Today's Prep"
           value={todayPrep ? (todayPrep.goNoGoStatus ?? "—") : "—"}
           sub={todayPrep ? todayPrep.htfBias ?? "No bias" : "Not started"}
         />
+
+        {/* This Week */}
         <StatCard
           label="This Week"
           value={activeWeekTrades.length}
           sub={weekWR != null ? `${weekWR}% win rate` : "0 trades"}
         />
+
+        {/* Today's Bias */}
+        <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Bias</p>
+            <TrendingUp size={14} style={{ color: "var(--color-text-muted)" }} />
+          </div>
+          {todayPrep ? (
+            <>
+              <p className="text-2xl font-bold mb-1" style={{ color: todayPrep.htfBias === "LONG" ? "var(--color-long)" : todayPrep.htfBias === "SHORT" ? "var(--color-short)" : "var(--color-text-muted)" }}>
+                {todayPrep.htfBias ?? "NEUTRAL"}
+              </p>
+              <p className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
+                {todayPrep.triad?.replace(/_/g, " ")} · {todayPrep.session?.replace(/_/g, " ")}
+              </p>
+              <div className="pt-2 border-t" style={{ borderColor: "var(--color-bg-border)" }}>
+                <GoNoGoBadge status={todayPrep.goNoGoStatus} />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-2xl font-bold mb-1" style={{ color: "var(--color-text-muted)" }}>—</p>
+              <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>No daily prep yet</p>
+            </>
+          )}
+        </div>
+
+        {/* Today's Events */}
+        <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Events</p>
+            <AlertTriangle size={14} style={{ color: "var(--color-text-muted)" }} />
+          </div>
+          {todayEvents.length === 0 ? (
+            <div className="space-y-1">
+              <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No events</p>
+              <Link href="/calendar" className="text-xs" style={{ color: "var(--color-accent)" }}>Add →</Link>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {todayEvents.slice(0, 3).map((ev) => {
+                const isRisky = ["HIGH_RISK", "NO_TRADE_WINDOW"].includes(ev.userRiskTag ?? "") || ev.impact === "HIGH";
+                return (
+                  <div key={ev.id} className="flex items-center gap-2">
+                    <span className="text-xs font-mono w-10 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                      {format(new Date(ev.dateTime), "HH:mm")}
+                    </span>
+                    {isRisky && <Ban size={10} style={{ color: "var(--color-danger)" }} />}
+                    <span className="text-xs truncate" style={{ color: isRisky ? "var(--color-danger)" : "var(--color-text-secondary)" }}>
+                      {ev.currency} {ev.eventName}
+                    </span>
+                  </div>
+                );
+              })}
+              {todayEvents.length > 3 && (
+                <Link href="/calendar" className="text-xs" style={{ color: "var(--color-accent)" }}>
+                  +{todayEvents.length - 3} more →
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Rolling stats */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Last 10 win rate */}
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Son 10 Trade WR</p>
           <p className="text-2xl font-black" style={{ color: last10WR != null && last10WR >= 50 ? "#34c97e" : last10WR != null && last10WR >= 40 ? "#f59e0b" : "var(--color-text-primary)" }}>
@@ -182,8 +246,6 @@ export default async function DashboardPage() {
             {last10.length < 10 ? `${last10.length}/10 trade` : `${last10Wins}W / ${last10.length - last10Wins}L`}
           </p>
         </div>
-
-        {/* Last 10 net R */}
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Son 10 Net R</p>
           <p className="text-2xl font-black" style={{ color: last10NetR > 0 ? "#34c97e" : last10NetR < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
@@ -266,74 +328,6 @@ export default async function DashboardPage() {
 
       {/* Market Clock Panel */}
       <MarketClockPanel />
-
-      {/* Main cards row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Bias card */}
-        <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Bias</p>
-            <TrendingUp size={14} style={{ color: "var(--color-text-muted)" }} />
-          </div>
-          {todayPrep ? (
-            <>
-              <p className="text-2xl font-bold mb-1" style={{ color: todayPrep.htfBias === "LONG" ? "var(--color-long)" : todayPrep.htfBias === "SHORT" ? "var(--color-short)" : "var(--color-text-muted)" }}>
-                {todayPrep.htfBias ?? "NEUTRAL"}
-              </p>
-              <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
-                {todayPrep.triad?.replace(/_/g, " ")} · {todayPrep.session?.replace(/_/g, " ")}
-              </p>
-              <div className="pt-3 border-t" style={{ borderColor: "var(--color-bg-border)" }}>
-                <GoNoGoBadge status={todayPrep.goNoGoStatus} />
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-2xl font-bold mb-1" style={{ color: "var(--color-text-muted)" }}>—</p>
-              <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>No daily prep yet</p>
-              <div className="pt-3 border-t" style={{ borderColor: "var(--color-bg-border)" }}>
-                <GoNoGoBadge status={null} />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* News card */}
-        <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Events</p>
-            <AlertTriangle size={14} style={{ color: "var(--color-text-muted)" }} />
-          </div>
-          {todayEvents.length === 0 ? (
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No events</p>
-              <Link href="/calendar" className="text-xs" style={{ color: "var(--color-accent)" }}>Add news events →</Link>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {todayEvents.slice(0, 4).map((ev) => {
-                const isRisky = ["HIGH_RISK", "NO_TRADE_WINDOW"].includes(ev.userRiskTag ?? "") || ev.impact === "HIGH";
-                return (
-                  <div key={ev.id} className="flex items-center gap-2">
-                    <span className="text-xs font-mono w-10 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
-                      {format(new Date(ev.dateTime), "HH:mm")}
-                    </span>
-                    {isRisky && <Ban size={10} style={{ color: "var(--color-danger)" }} />}
-                    <span className="text-xs truncate" style={{ color: isRisky ? "var(--color-danger)" : "var(--color-text-secondary)" }}>
-                      {ev.currency} {ev.eventName}
-                    </span>
-                  </div>
-                );
-              })}
-              {todayEvents.length > 4 && (
-                <Link href="/calendar" className="text-xs" style={{ color: "var(--color-accent)" }}>
-                  +{todayEvents.length - 4} more →
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Recent preps */}
       <div>
