@@ -2,19 +2,25 @@
 
 import { useState, useEffect } from "react";
 
-const INSTRUMENTS: Record<string, { label: string; dollarPerPoint: number; tickSize: number; dollarPerTick: number; type: "futures" | "forex" }> = {
-  NQ:      { label: "NQ  (Nasdaq Futures)",    dollarPerPoint: 20,   tickSize: 0.25, dollarPerTick: 5,     type: "futures" },
-  ES:      { label: "ES  (S&P 500 Futures)",   dollarPerPoint: 50,   tickSize: 0.25, dollarPerTick: 12.5,  type: "futures" },
-  YM:      { label: "YM  (Dow Futures)",       dollarPerPoint: 5,    tickSize: 1,    dollarPerTick: 5,     type: "futures" },
-  RTY:     { label: "RTY (Russell Futures)",   dollarPerPoint: 50,   tickSize: 0.10, dollarPerTick: 5,     type: "futures" },
-  MNQ:     { label: "MNQ (Micro Nasdaq)",      dollarPerPoint: 2,    tickSize: 0.25, dollarPerTick: 0.5,   type: "futures" },
-  MES:     { label: "MES (Micro S&P)",         dollarPerPoint: 5,    tickSize: 0.25, dollarPerTick: 1.25,  type: "futures" },
-  MYM:     { label: "MYM (Micro Dow)",         dollarPerPoint: 0.5,  tickSize: 1,    dollarPerTick: 0.5,   type: "futures" },
-  M2K:     { label: "M2K (Micro Russell)",     dollarPerPoint: 5,    tickSize: 0.10, dollarPerTick: 0.5,   type: "futures" },
-  EURUSD:  { label: "EUR/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,   type: "forex" },
-  GBPUSD:  { label: "GBP/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,   type: "forex" },
-  AUDUSD:  { label: "AUD/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,   type: "forex" },
-  USDJPY:  { label: "USD/JPY",                 dollarPerPoint: 10,   tickSize: 0.01,   dollarPerTick: 1,   type: "forex" },
+const INSTRUMENTS: Record<string, { label: string; dollarPerPoint: number; tickSize: number; dollarPerTick: number; type: "futures" | "forex" | "crypto"; unit?: string }> = {
+  NQ:      { label: "NQ  (Nasdaq Futures)",    dollarPerPoint: 20,   tickSize: 0.25,   dollarPerTick: 5,     type: "futures" },
+  ES:      { label: "ES  (S&P 500 Futures)",   dollarPerPoint: 50,   tickSize: 0.25,   dollarPerTick: 12.5,  type: "futures" },
+  YM:      { label: "YM  (Dow Futures)",       dollarPerPoint: 5,    tickSize: 1,      dollarPerTick: 5,     type: "futures" },
+  RTY:     { label: "RTY (Russell Futures)",   dollarPerPoint: 50,   tickSize: 0.10,   dollarPerTick: 5,     type: "futures" },
+  MNQ:     { label: "MNQ (Micro Nasdaq)",      dollarPerPoint: 2,    tickSize: 0.25,   dollarPerTick: 0.5,   type: "futures" },
+  MES:     { label: "MES (Micro S&P)",         dollarPerPoint: 5,    tickSize: 0.25,   dollarPerTick: 1.25,  type: "futures" },
+  MYM:     { label: "MYM (Micro Dow)",         dollarPerPoint: 0.5,  tickSize: 1,      dollarPerTick: 0.5,   type: "futures" },
+  M2K:     { label: "M2K (Micro Russell)",     dollarPerPoint: 5,    tickSize: 0.10,   dollarPerTick: 0.5,   type: "futures" },
+  EURUSD:  { label: "EUR/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,     type: "forex" },
+  GBPUSD:  { label: "GBP/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,     type: "forex" },
+  AUDUSD:  { label: "AUD/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,     type: "forex" },
+  USDJPY:  { label: "USD/JPY",                 dollarPerPoint: 10,   tickSize: 0.01,   dollarPerTick: 1,     type: "forex" },
+  BTC:     { label: "BTC (Bitcoin)",           dollarPerPoint: 1,    tickSize: 1,      dollarPerTick: 1,     type: "crypto", unit: "BTC" },
+  ETH:     { label: "ETH (Ethereum)",          dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "ETH" },
+  SOL:     { label: "SOL (Solana)",            dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "SOL" },
+  BNB:     { label: "BNB",                     dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "BNB" },
+  XRP:     { label: "XRP (Ripple)",            dollarPerPoint: 1,    tickSize: 0.0001, dollarPerTick: 0.0001, type: "crypto", unit: "XRP" },
+  AVAX:    { label: "AVAX (Avalanche)",        dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "AVAX" },
 };
 
 const QUICK_RISKS = [0.5, 1, 1.5, 2];
@@ -52,6 +58,15 @@ export default function RiskCalculatorPage() {
     !isNaN(entryNum)   && entryNum > 0 &&
     !isNaN(stopNum)    && stopNum > 0 &&
     entryNum !== stopNum;
+
+  const isCrypto = inst.type === "crypto";
+  const tickDecimals = (inst.tickSize.toString().split(".")[1] ?? "").length;
+  const contractDecimals = isCrypto ? 4 : 2;
+  const rTargetDecimals = isCrypto
+    ? Math.max(2, tickDecimals)
+    : instrument === "EURUSD" || instrument === "GBPUSD" || instrument === "AUDUSD"
+      ? 5
+      : instrument === "USDJPY" ? 3 : 2;
 
   let riskDollar = 0;
   let pointsToStop = 0;
@@ -155,6 +170,11 @@ export default function RiskCalculatorPage() {
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </optgroup>
+            <optgroup label="Crypto (Spot)">
+              {Object.entries(INSTRUMENTS).filter(([, v]) => v.type === "crypto").map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </optgroup>
           </select>
           <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
             {inst.dollarPerPoint}$/puan · tick: {inst.tickSize} · tick değeri: ${inst.dollarPerTick}
@@ -223,15 +243,20 @@ export default function RiskCalculatorPage() {
 
           {/* Contract result — hero */}
           <div className="rounded-xl p-4 text-center" style={{ background: "rgba(99,102,241,0.1)", border: "1px solid var(--color-accent)" }}>
-            <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Hesaplanan Kontrat</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              {isCrypto ? "Hesaplanan Miktar" : "Hesaplanan Kontrat"}
+            </p>
             <p className="text-4xl font-black font-mono" style={{ color: "var(--color-accent)" }}>
-              {fmt(contracts, 2)}
+              {fmt(contracts, contractDecimals)}
             </p>
             <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-              → <strong style={{ color: "var(--color-text-primary)" }}>{contractsFloor} tam kontrat</strong>
-              {" "}(aşağı yuvarlandı)
+              {isCrypto ? (
+                <>→ <strong style={{ color: "var(--color-text-primary)" }}>{fmt(contracts, 4)} {inst.unit ?? "birim"}</strong></>
+              ) : (
+                <>→ <strong style={{ color: "var(--color-text-primary)" }}>{contractsFloor} tam kontrat</strong>{" "}(aşağı yuvarlandı)</>
+              )}
             </p>
-            {contractsFloor === 0 && contracts > 0 && (
+            {!isCrypto && contractsFloor === 0 && contracts > 0 && (
               <p className="text-xs mt-2" style={{ color: "#f59e0b" }}>
                 ⚠ Minimum 1 kontrat için hesap bakiyeni veya risk%'ini artır
               </p>
@@ -246,10 +271,10 @@ export default function RiskCalculatorPage() {
                 <div key={label} className="rounded-lg px-3 py-2 text-center" style={{ background: "var(--color-bg-surface)" }}>
                   <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</p>
                   <p className="text-sm font-semibold font-mono" style={{ color: "var(--color-text-primary)" }}>
-                    {fmt(price, instrument === "EURUSD" || instrument === "GBPUSD" || instrument === "AUDUSD" ? 5 : instrument === "USDJPY" ? 3 : 2)}
+                    {fmt(price, rTargetDecimals)}
                   </p>
                   <p className="text-xs" style={{ color: "#34c97e" }}>
-                    +${fmt(Math.abs(price - entryNum) * inst.dollarPerPoint * contractsFloor)}
+                    +${fmt(Math.abs(price - entryNum) * inst.dollarPerPoint * (isCrypto ? contracts : contractsFloor))}
                   </p>
                 </div>
               ))}

@@ -32,8 +32,8 @@ export function TopBar() {
 
   return (
     <header
-      className="flex items-center justify-between px-6 py-3 border-b shrink-0"
-      style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
+      className="flex items-center justify-between px-6 border-b shrink-0"
+      style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)", height: 56 }}
     >
       <h1 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
         {title}

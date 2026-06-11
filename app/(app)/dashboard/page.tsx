@@ -7,7 +7,6 @@ import {
   TrendingUp,
   AlertTriangle,
   Ban,
-  BarChart3,
   Wallet,
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
@@ -403,27 +402,6 @@ export default async function DashboardPage() {
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div>
-        <p className="text-xs font-medium mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
-          Quick Actions
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Link href="/daily-prep/new" className="qa-card">
-            <ClipboardList size={14} style={{ color: "var(--color-accent)" }} />
-            New Daily Prep
-          </Link>
-          <Link href="/journal/new" className="qa-card">
-            <TrendingUp size={14} style={{ color: "var(--color-accent)" }} />
-            Log Trade
-          </Link>
-          <Link href="/weekly-review" className="qa-card">
-            <BarChart3 size={14} style={{ color: "var(--color-accent)" }} />
-            Weekly Review
-          </Link>
         </div>
       </div>
 

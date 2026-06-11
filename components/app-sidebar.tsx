@@ -13,33 +13,44 @@ import {
   Settings,
   TrendingUp,
   GraduationCap,
-  BookMarked,
   Wallet,
   Target,
   Calculator,
-  ClipboardCheck,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-const NAV_ITEMS = [
-  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/daily-prep", label: "Daily Prep",  icon: ClipboardList },
-  { href: "/journal",    label: "Journal",     icon: BookOpen },
-  { href: "/calendar",   label: "Calendar",    icon: Calendar },
-  { href: "/setups",     label: "Setups",      icon: TrendingUp },
-  { href: "/knowledge",  label: "Knowledge",   icon: GraduationCap },
-  { href: "/analytics",  label: "Analytics",   icon: BarChart3 },
-  { href: "/accounts",   label: "Accounts",    icon: Wallet },
-  { href: "/goals",            label: "Goals",      icon: Target },
-  { href: "/playbook",        label: "Playbook",       icon: BookMarked },
-  { href: "/weekly-review",   label: "Haftalık Review", icon: ClipboardCheck },
-  { href: "/risk-calculator", label: "Risk Calc",       icon: Calculator },
-  { href: "/mentorship",      label: "Mentorship",  icon: GraduationCap },
-  { href: "/settings",   label: "Settings",    icon: Settings },
-] as const;
+const NAV_GROUPS = [
+  {
+    label: "Home",
+    items: [
+      { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
+      { href: "/daily-prep", label: "Daily Prep",  icon: ClipboardList },
+      { href: "/journal",    label: "Journal",     icon: BookOpen },
+      { href: "/calendar",   label: "Calendar",    icon: Calendar },
+    ],
+  },
+  {
+    label: "Analyze",
+    items: [
+      { href: "/analytics",  label: "Analytics",  icon: BarChart3 },
+      { href: "/accounts",   label: "Accounts",   icon: Wallet },
+      { href: "/goals",      label: "Goals",      icon: Target },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
+      { href: "/risk-calculator", label: "Risk Calc",  icon: Calculator },
+      { href: "/setups",          label: "Setups",     icon: TrendingUp },
+      { href: "/knowledge",       label: "Knowledge",  icon: GraduationCap },
+      { href: "/mentorship",      label: "Mentorship", icon: GraduationCap },
+      { href: "/settings",        label: "Settings",   icon: Settings },
+    ],
+  },
+];
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -106,37 +117,61 @@ export function AppSidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 space-y-0.5" style={{ padding: collapsed ? "12px 8px" : "12px 8px" }}>
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={collapsed ? label : undefined}
-              className="flex items-center rounded-lg text-sm font-medium transition-colors"
-              style={{
-                gap: collapsed ? 0 : 12,
-                padding: collapsed ? "8px 0" : "8px 12px",
-                justifyContent: collapsed ? "center" : "flex-start",
-                color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                background: active ? "var(--color-bg-hover)" : "transparent",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = "var(--color-bg-surface)";
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = active ? "var(--color-bg-hover)" : "transparent";
-              }}
-            >
-              <Icon
-                size={16}
-                style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)", flexShrink: 0 }}
-              />
-              {!collapsed && label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto" style={{ padding: "8px 8px" }}>
+        {NAV_GROUPS.map(({ label: groupLabel, items }, groupIdx) => (
+          <div key={groupLabel}>
+            {collapsed ? (
+              groupIdx > 0 && (
+                <div className="my-2 mx-1 border-t" style={{ borderColor: "var(--color-bg-border)" }} />
+              )
+            ) : (
+              <p
+                className="px-3 mb-1"
+                style={{
+                  marginTop: groupIdx > 0 ? 12 : 4,
+                  fontSize: "0.65rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--color-text-muted)",
+                  fontWeight: 500,
+                }}
+              >
+                {groupLabel}
+              </p>
+            )}
+            {items.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  title={collapsed ? label : undefined}
+                  className="flex items-center rounded-lg text-sm font-medium transition-colors"
+                  style={{
+                    gap: collapsed ? 0 : 12,
+                    padding: collapsed ? "8px 0" : "8px 12px",
+                    justifyContent: collapsed ? "center" : "flex-start",
+                    color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                    background: active ? "var(--color-bg-hover)" : "transparent",
+                    marginBottom: 2,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = "var(--color-bg-surface)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = active ? "var(--color-bg-hover)" : "transparent";
+                  }}
+                >
+                  <Icon
+                    size={16}
+                    style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)", flexShrink: 0 }}
+                  />
+                  {!collapsed && label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Footer */}
@@ -162,7 +197,7 @@ export function AppSidebar() {
           }}
         >
           {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          {!collapsed && <span className="text-sm">Daralt</span>}
+          {!collapsed && <span className="text-sm">Hide</span>}
         </button>
 
         {/* Logout */}
