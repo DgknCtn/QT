@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 import { JournalFilters } from "./journal-filters";
+import { ExportCsvButton } from "./export-csv-button";
 
 async function getUser() {
   const supabase = await createClient();
@@ -114,13 +115,16 @@ export default async function JournalPage({
             </div>
           ))}
         </div>
-        <Link
-          href="/journal/new"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-          style={{ background: "var(--color-accent)", color: "#fff" }}
-        >
-          <Plus size={12} /> Log Trade
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportCsvButton trades={trades} />
+          <Link
+            href="/journal/new"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ background: "var(--color-accent)", color: "#fff" }}
+          >
+            <Plus size={12} /> Log Trade
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

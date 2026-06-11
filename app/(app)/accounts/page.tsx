@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Wallet } from "lucide-react";
+import { Plus, Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { AccountCard } from "./account-card";
@@ -15,9 +15,19 @@ export default async function AccountsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // Get today's P&L from the most recent equity log for each account
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // Multi-account summary
+  const activeAccounts = accounts.filter((a) => a.status === "ACTIVE");
+  const totalEquity    = activeAccounts.reduce((s, a) => s + a.currentEquity, 0);
+  const totalStart     = activeAccounts.reduce((s, a) => s + a.startingBalance, 0);
+  const totalProfit    = totalEquity - totalStart;
+  const totalProfitPct = totalStart > 0 ? (totalProfit / totalStart) * 100 : 0;
+  const todayPnlTotal  = activeAccounts.reduce((s, a) => {
+    const log = a.equityLogs.find((l) => l.date >= today);
+    return s + (log?.pnlToday ?? 0);
+  }, 0);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -26,7 +36,7 @@ export default async function AccountsPage() {
         <div>
           <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Funded Accounts</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {accounts.length} hesap · {accounts.filter((a) => a.status === "ACTIVE").length} aktif
+            {accounts.length} hesap · {activeAccounts.length} aktif
           </p>
         </div>
         <Link
@@ -37,6 +47,47 @@ export default async function AccountsPage() {
           <Plus size={14} /> Hesap Ekle
         </Link>
       </div>
+
+      {/* Combined summary */}
+      {activeAccounts.length > 1 && (
+        <div className="rounded-xl border p-5" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "var(--color-text-muted)" }}>
+            Toplam Özet ({activeAccounts.length} aktif hesap)
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Toplam Equity</p>
+              <p className="text-xl font-black font-mono" style={{ color: "var(--color-text-primary)" }}>
+                ${totalEquity.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Toplam Kar/Zarar</p>
+              <p className="text-xl font-black font-mono flex items-center gap-1"
+                style={{ color: totalProfit >= 0 ? "#34c97e" : "#ef4444" }}>
+                {totalProfit >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                {totalProfit >= 0 ? "+" : ""}${Math.abs(totalProfit).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: totalProfit >= 0 ? "#34c97e" : "#ef4444" }}>
+                {totalProfitPct >= 0 ? "+" : ""}{totalProfitPct.toFixed(2)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Bugünkü P&L</p>
+              <p className="text-xl font-black font-mono"
+                style={{ color: todayPnlTotal > 0 ? "#34c97e" : todayPnlTotal < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
+                {todayPnlTotal >= 0 ? "+" : ""}${Math.abs(todayPnlTotal).toFixed(0)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Başlangıç Bakiye</p>
+              <p className="text-xl font-black font-mono" style={{ color: "var(--color-text-secondary)" }}>
+                ${totalStart.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Empty state */}
       {accounts.length === 0 && (
