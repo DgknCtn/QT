@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { requestMenteeAccess } from "./actions";
-import { BookOpen, FileText, Video, Link2, Image as ImgIcon, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
+import { BookOpen, FileText, Video, Link2, Image as ImgIcon, ChevronRight, Clock, CheckCircle2, MessageSquare } from "lucide-react";
+import { format } from "date-fns";
 
 export default async function MentorshipPage() {
   const supabase = await createClient();
@@ -99,8 +100,8 @@ export default async function MentorshipPage() {
     );
   }
 
-  // ACTIVE mentee: show courses + resources
-  const [courses, resources] = await Promise.all([
+  // ACTIVE mentee: show courses + resources + mentor notes
+  const [courses, resources, mentorNotes] = await Promise.all([
     prisma.course.findMany({
       where: { isPublished: true },
       orderBy: { order: "asc" },
@@ -118,6 +119,10 @@ export default async function MentorshipPage() {
       },
     }),
     prisma.resource.findMany({ orderBy: { order: "asc" }, take: 6 }),
+    prisma.mentorNote.findMany({
+      where: { menteeId: user!.id },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   const resourceIcon = (type: string) => {
@@ -175,6 +180,33 @@ export default async function MentorshipPage() {
           </div>
         )}
       </div>
+
+      {/* Mentor Notes */}
+      {mentorNotes.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <MessageSquare size={14} style={{ color: "var(--color-accent)" }} />
+            <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
+              Mentor Notları
+            </h2>
+            <span className="text-xs px-1.5 py-0.5 rounded ml-1"
+              style={{ background: "var(--color-bg-surface)", color: "var(--color-text-muted)" }}>
+              {mentorNotes.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {mentorNotes.map((note) => (
+              <div key={note.id} className="rounded-xl border px-4 py-3"
+                style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--color-text-primary)" }}>{note.content}</p>
+                <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>
+                  {format(new Date(note.createdAt), "dd MMM yyyy, HH:mm")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick resources */}
       {resources.length > 0 && (

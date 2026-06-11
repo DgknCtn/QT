@@ -38,6 +38,7 @@ model User {
   menteeProfile    MenteeProfile?
   playbookEntries  PlaybookEntry[]
   weeklyReviews    WeeklyReview[]
+  mentorNotes      MentorNote[]
 
   @@map("users")
 }
@@ -769,6 +770,17 @@ model MenteeProfile {
   progress LessonProgress[]
 
   @@map("mentee_profiles")
+}
+
+model MentorNote {
+  id        String   @id @default(cuid())
+  menteeId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  mentee User @relation(fields: [menteeId], references: [id], onDelete: Cascade)
+
+  @@map("mentor_notes")
 }
 
 model Course {

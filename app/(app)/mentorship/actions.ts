@@ -197,6 +197,22 @@ export async function deleteResource(id: string) {
   revalidatePath("/mentorship/resources");
 }
 
+// ─── Mentor Notes ─────────────────────────────────────────────────────────
+
+export async function addMentorNote(menteeId: string, formData: FormData) {
+  await requireAdmin();
+  const content = (formData.get("content") as string)?.trim();
+  if (!content) return;
+  await prisma.mentorNote.create({ data: { menteeId, content } });
+  revalidatePath(`/mentorship/admin/mentees/${menteeId}`);
+}
+
+export async function deleteMentorNote(noteId: string, menteeId: string) {
+  await requireAdmin();
+  await prisma.mentorNote.delete({ where: { id: noteId } });
+  revalidatePath(`/mentorship/admin/mentees/${menteeId}`);
+}
+
 // ─── Admin: set user role ──────────────────────────────────────────────────
 
 export async function setAdminRole(targetUserId: string) {
