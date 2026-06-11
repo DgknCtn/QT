@@ -24,21 +24,36 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-const NAV_ITEMS = [
-  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/daily-prep", label: "Daily Prep",  icon: ClipboardList },
-  { href: "/journal",    label: "Journal",     icon: BookOpen },
-  { href: "/calendar",   label: "Calendar",    icon: Calendar },
-  { href: "/setups",     label: "Setups",      icon: TrendingUp },
-  { href: "/knowledge",  label: "Knowledge",   icon: GraduationCap },
-  { href: "/analytics",  label: "Analytics",   icon: BarChart3 },
-  { href: "/accounts",   label: "Accounts",    icon: Wallet },
-  { href: "/goals",            label: "Goals",      icon: Target },
-  { href: "/playbook",        label: "Playbook",       icon: BookMarked },
-  { href: "/weekly-review",   label: "Haftalık Review", icon: ClipboardCheck },
-  { href: "/risk-calculator", label: "Risk Calc",       icon: Calculator },
-  { href: "/mentorship",      label: "Mentorship",  icon: GraduationCap },
-  { href: "/settings",   label: "Settings",    icon: Settings },
+const NAV_GROUPS = [
+  {
+    label: "Ana",
+    items: [
+      { href: "/dashboard",  label: "Dashboard",   icon: LayoutDashboard },
+      { href: "/daily-prep", label: "Daily Prep",   icon: ClipboardList },
+      { href: "/journal",    label: "Journal",      icon: BookOpen },
+      { href: "/calendar",   label: "Calendar",     icon: Calendar },
+    ],
+  },
+  {
+    label: "Analiz",
+    items: [
+      { href: "/analytics",     label: "Analytics",       icon: BarChart3 },
+      { href: "/accounts",      label: "Accounts",        icon: Wallet },
+      { href: "/goals",         label: "Goals",           icon: Target },
+      { href: "/playbook",      label: "Playbook",        icon: BookMarked },
+      { href: "/weekly-review", label: "Haftalık Review", icon: ClipboardCheck },
+    ],
+  },
+  {
+    label: "Araçlar",
+    items: [
+      { href: "/risk-calculator", label: "Risk Calc",   icon: Calculator },
+      { href: "/setups",          label: "Setups",      icon: TrendingUp },
+      { href: "/knowledge",       label: "Knowledge",   icon: GraduationCap },
+      { href: "/mentorship",      label: "Mentorship",  icon: GraduationCap },
+      { href: "/settings",        label: "Settings",    icon: Settings },
+    ],
+  },
 ] as const;
 
 export function AppSidebar() {
@@ -66,7 +81,7 @@ export function AppSidebar() {
     router.push("/login");
   }
 
-  const w = mounted ? (collapsed ? 56 : 224) : 224;
+  const w = mounted ? (collapsed ? 56 : 220) : 220;
 
   return (
     <aside
@@ -81,74 +96,110 @@ export function AppSidebar() {
     >
       {/* Brand */}
       <div
-        className="flex items-center border-b shrink-0"
+        className="flex items-center border-b shrink-0 relative overflow-hidden"
         style={{
           borderColor: "var(--color-bg-border)",
           height: 56,
-          padding: collapsed ? "0 12px" : "0 16px",
+          padding: collapsed ? "0 16px" : "0 16px",
           justifyContent: collapsed ? "center" : "flex-start",
           gap: collapsed ? 0 : 10,
         }}
       >
+        {/* subtle accent glow behind logo */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(135deg, rgba(79,142,247,0.07) 0%, transparent 60%)",
+          pointerEvents: "none",
+        }} />
         <Image
           src="/qtlogo.png"
           alt="QT"
-          width={28}
-          height={28}
+          width={26}
+          height={26}
           className="rounded-md shrink-0"
-          style={{ filter: "invert(1)" }}
+          style={{ filter: "invert(1)", position: "relative" }}
         />
         {!collapsed && (
-          <span className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>
+          <span className="text-sm font-semibold tracking-tight truncate" style={{ color: "var(--color-text-primary)", position: "relative" }}>
             QT Workspace
           </span>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 space-y-0.5" style={{ padding: collapsed ? "12px 8px" : "12px 8px" }}>
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={collapsed ? label : undefined}
-              className="flex items-center rounded-lg text-sm font-medium transition-colors"
-              style={{
-                gap: collapsed ? 0 : 12,
-                padding: collapsed ? "8px 0" : "8px 12px",
-                justifyContent: collapsed ? "center" : "flex-start",
-                color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                background: active ? "var(--color-bg-hover)" : "transparent",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = "var(--color-bg-surface)";
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = active ? "var(--color-bg-hover)" : "transparent";
-              }}
-            >
-              <Icon
-                size={16}
-                style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)", flexShrink: 0 }}
-              />
-              {!collapsed && label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto" style={{ padding: "10px 6px" }}>
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={group.label} style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? 4 : 0 }}>
+            {/* Group label */}
+            {!collapsed && (
+              <p
+                className="text-[10px] font-semibold uppercase tracking-widest px-2 mb-1"
+                style={{ color: "var(--color-text-muted)", marginTop: gi === 0 ? 2 : 10 }}
+              >
+                {group.label}
+              </p>
+            )}
+            {collapsed && gi > 0 && (
+              <div style={{ height: 1, background: "var(--color-bg-border)", margin: "8px 4px" }} />
+            )}
+
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  title={collapsed ? label : undefined}
+                  className="flex items-center rounded-lg text-[13px] font-medium transition-colors relative"
+                  style={{
+                    gap: collapsed ? 0 : 10,
+                    padding: collapsed ? "7px 0" : "6px 10px",
+                    justifyContent: collapsed ? "center" : "flex-start",
+                    color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                    background: active ? "var(--color-bg-hover)" : "transparent",
+                    marginBottom: 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = "var(--color-bg-surface)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  {/* Active left accent bar */}
+                  {active && !collapsed && (
+                    <span style={{
+                      position: "absolute",
+                      left: 0, top: "20%", bottom: "20%",
+                      width: 3,
+                      borderRadius: 2,
+                      background: "var(--color-accent)",
+                    }} />
+                  )}
+                  <Icon
+                    size={15}
+                    style={{
+                      color: active ? "var(--color-accent)" : "var(--color-text-muted)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  {!collapsed && label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Footer */}
-      <div className="shrink-0 border-t" style={{ borderColor: "var(--color-bg-border)", padding: "8px" }}>
-        {/* Collapse toggle */}
+      <div className="shrink-0 border-t" style={{ borderColor: "var(--color-bg-border)", padding: "6px" }}>
         <button
           onClick={toggle}
           title={collapsed ? "Genişlet" : "Daralt"}
           className="w-full flex items-center rounded-lg transition-colors mb-1"
           style={{
-            gap: collapsed ? 0 : 12,
-            padding: collapsed ? "8px 0" : "8px 12px",
+            gap: collapsed ? 0 : 10,
+            padding: collapsed ? "7px 0" : "7px 10px",
             justifyContent: collapsed ? "center" : "flex-start",
             color: "var(--color-text-muted)",
           }}
@@ -161,18 +212,17 @@ export function AppSidebar() {
             e.currentTarget.style.color = "var(--color-text-muted)";
           }}
         >
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          {!collapsed && <span className="text-sm">Daralt</span>}
+          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          {!collapsed && <span className="text-[13px]">Daralt</span>}
         </button>
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
           title={collapsed ? "Sign out" : undefined}
-          className="w-full flex items-center rounded-lg text-sm transition-colors"
+          className="w-full flex items-center rounded-lg text-[13px] transition-colors"
           style={{
-            gap: collapsed ? 0 : 12,
-            padding: collapsed ? "8px 0" : "8px 12px",
+            gap: collapsed ? 0 : 10,
+            padding: collapsed ? "7px 0" : "7px 10px",
             justifyContent: collapsed ? "center" : "flex-start",
             color: "var(--color-text-muted)",
           }}
@@ -185,7 +235,7 @@ export function AppSidebar() {
             e.currentTarget.style.background = "transparent";
           }}
         >
-          <LogOut size={16} style={{ flexShrink: 0 }} />
+          <LogOut size={15} style={{ flexShrink: 0 }} />
           {!collapsed && "Sign out"}
         </button>
       </div>

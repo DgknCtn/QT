@@ -154,40 +154,38 @@ export default async function JournalPage({
           )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {trades.map((trade) => {
             const mistakeTags = trade.tags.filter((tt) => tt.tag.category === "MISTAKE").map((tt) => tt.tag.name);
             const positiveTags = trade.tags.filter((tt) => tt.tag.category === "POSITIVE").map((tt) => tt.tag.name);
+            const dirColor = trade.direction === "LONG" ? "var(--color-long)" : trade.direction === "SHORT" ? "var(--color-short)" : "var(--color-bg-border)";
             return (
               <Link
                 key={trade.id}
                 href={`/journal/${trade.id}`}
-                className="block rounded-xl border p-4 transition-colors"
-                style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
+                className="card card-hover block p-4 overflow-hidden"
+                style={{ borderLeft: `3px solid ${dirColor}` }}
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
+                    <span className="text-xs font-mono" style={{ color: "var(--color-text-muted)" }}>
                       {format(new Date(trade.date), "MMM d")}
                     </span>
-                    <span
-                      className="text-sm font-bold"
-                      style={{ color: trade.direction === "LONG" ? "var(--color-long)" : "var(--color-short)" }}
-                    >
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: `${dirColor}18`, color: dirColor }}>
                       {trade.direction}
                     </span>
-                    <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+                    <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
                       {trade.instrument}
                     </span>
                     <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                       {trade.session?.replace("_", " ")} · {trade.setupType}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <GradeBadge grade={trade.processGrade} />
                     {trade.rResult !== null && (
                       <span
-                        className="text-sm font-bold"
+                        className="text-sm font-bold font-mono"
                         style={{ color: (trade.rResult ?? 0) >= 0 ? "var(--color-success)" : "var(--color-danger)" }}
                       >
                         {(trade.rResult ?? 0) >= 0 ? "+" : ""}{trade.rResult?.toFixed(1)}R
@@ -198,7 +196,7 @@ export default async function JournalPage({
                 </div>
 
                 {(mistakeTags.length > 0 || positiveTags.length > 0) && (
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="flex flex-wrap gap-1 mt-1.5">
                     {mistakeTags.slice(0, 3).map((t) => (
                       <span key={t} className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,0.1)", color: "var(--color-danger)" }}>{t}</span>
                     ))}

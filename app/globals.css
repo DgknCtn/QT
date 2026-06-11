@@ -5,15 +5,15 @@
   --font-mono: var(--font-geist-mono);
 
   /* Dark-first color tokens */
-  --color-bg-base:      #0d0d0f;
-  --color-bg-elevated:  #141417;
-  --color-bg-surface:   #1a1a1f;
-  --color-bg-hover:     #222228;
-  --color-bg-border:    #2a2a32;
+  --color-bg-base:      #0a0a0d;
+  --color-bg-elevated:  #131318;
+  --color-bg-surface:   #1c1c23;
+  --color-bg-hover:     #242430;
+  --color-bg-border:    #2e2e3a;
 
-  --color-text-primary:   #f0f0f3;
-  --color-text-secondary: #9090a0;
-  --color-text-muted:     #5a5a6a;
+  --color-text-primary:   #eeeef2;
+  --color-text-secondary: #8888a0;
+  --color-text-muted:     #52526a;
 
   --color-accent:        #4f8ef7;
   --color-accent-dim:    #1e3a6e;
@@ -27,6 +27,13 @@
 
   --color-long:  #34c97e;
   --color-short: #ef4444;
+
+  /* Elevation & shape */
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-hover:  0 4px 16px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-accent: 0 0 0 1px rgba(79,142,247,0.35), 0 4px 16px rgba(79,142,247,0.12);
+  --radius-card:   14px;
+  --radius-badge:  6px;
 }
 
 :root {
@@ -46,7 +53,26 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Step label in forms */
+/* ── Card elevation ──────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+/* ── Result badges ──────────────────────────────────────────────────────── */
+.badge-win  { background: rgba(52,201,126,0.14); color: #34c97e; }
+.badge-loss { background: rgba(239,68,68,0.14);  color: #ef4444; }
+.badge-be   { background: rgba(245,158,11,0.14); color: #f59e0b; }
+.badge-partial { background: rgba(79,142,247,0.14); color: #4f8ef7; }
+.badge-neutral { background: rgba(144,144,160,0.12); color: #8888a0; }
+
+/* ── Step label in forms ────────────────────────────────────────────────── */
 .step-label {
   display: block;
   font-size: 0.75rem;
@@ -54,52 +80,55 @@ body {
   color: var(--color-text-secondary);
 }
 
-/* Quick action card hover */
+/* ── Quick action card ──────────────────────────────────────────────────── */
 .qa-card {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
   border: 1px solid var(--color-bg-border);
   font-size: 0.875rem;
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
-  transition: border-color 150ms, color 150ms;
+  transition: border-color 150ms, color 150ms, box-shadow 150ms;
+  box-shadow: var(--shadow-card);
 }
 .qa-card:hover {
   border-color: var(--color-accent);
   color: var(--color-text-primary);
+  box-shadow: var(--shadow-accent);
 }
 
-/* Reusable field input */
+/* ── Field input ────────────────────────────────────────────────────────── */
 .field-input {
   width: 100%;
-  border-radius: 0.5rem;
-  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
   font-size: 0.875rem;
   outline: none;
-  transition: border-color 150ms;
+  transition: border-color 150ms, box-shadow 150ms;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-bg-border);
   color: var(--color-text-primary);
 }
 .field-input:focus {
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
 }
 .field-input option {
   background: var(--color-bg-surface);
 }
 
-/* ── Light theme overrides ────────────────────────────────────────────────── */
+/* ── Light theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
   color-scheme: light;
 
-  --color-bg-base:      #f4f4f7;
+  --color-bg-base:      #f2f2f6;
   --color-bg-elevated:  #ffffff;
-  --color-bg-surface:   #ebebef;
-  --color-bg-hover:     #e2e2e8;
-  --color-bg-border:    #d4d4de;
+  --color-bg-surface:   #e8e8ee;
+  --color-bg-hover:     #dddde6;
+  --color-bg-border:    #cdcdd8;
 
   --color-text-primary:   #0d0d0f;
   --color-text-secondary: #4a4a5a;
@@ -117,6 +146,10 @@ body {
 
   --color-long:  #16a34a;
   --color-short: #dc2626;
+
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-hover:  0 4px 16px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-accent: 0 0 0 1px rgba(59,126,240,0.3), 0 4px 16px rgba(59,126,240,0.1);
 }
 
 [data-theme="light"] .field-input {
@@ -128,8 +161,12 @@ body {
   background: #ffffff;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+[data-theme="light"] .badge-win  { background: rgba(22,163,74,0.12);  color: #16a34a; }
+[data-theme="light"] .badge-loss { background: rgba(220,38,38,0.12);  color: #dc2626; }
+[data-theme="light"] .badge-be   { background: rgba(217,119,6,0.12);  color: #d97706; }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-bg-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--color-bg-border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }

@@ -13,14 +13,15 @@ interface Props {
 
 function ProgressBar({ value, max, color, danger = false }: { value: number; max: number; color: string; danger?: boolean }) {
   const pct = Math.min(max > 0 ? (value / max) * 100 : 0, 100);
-  // For danger bars (loss/drawdown): red at 90%, amber at 70%
-  // For target bars (profit): keep original color, green at 100%
   const bg = danger
     ? (pct >= 90 ? "#ef4444" : pct >= 70 ? "#f59e0b" : color)
     : (pct >= 100 ? "#34c97e" : color);
   return (
     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-bg-border)" }}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: bg }} />
+      <div
+        className="h-full rounded-full transition-all"
+        style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${bg}99, ${bg})` }}
+      />
     </div>
   );
 }
@@ -57,13 +58,23 @@ export function AccountCard({ account, todayPnl }: Props) {
   const isWarning     = dailyUsedPct >= 0.7 || totalUsedPct >= 0.7;
   const isAtRisk      = dailyUsedPct >= 0.9 || totalUsedPct >= 0.9;
 
+  const phaseGradient =
+    account.phase === 3
+      ? "linear-gradient(135deg, transparent 75%, rgba(234,179,8,0.08))"
+      : account.phase === 2
+      ? "linear-gradient(135deg, transparent 75%, rgba(52,201,126,0.07))"
+      : "linear-gradient(135deg, transparent 75%, rgba(99,102,241,0.07))";
+
   return (
     <div
-      className="rounded-xl border p-5 space-y-4 relative overflow-hidden"
+      className="rounded-xl p-5 space-y-4 relative overflow-hidden"
       style={{
-        background: "var(--color-bg-elevated)",
-        borderColor: isAtRisk ? "#ef4444" : isWarning ? "#f59e0b" : "var(--color-bg-border)",
-        boxShadow: isAtRisk ? "0 0 0 1px #ef4444" : isWarning ? "0 0 0 1px #f59e0b" : undefined,
+        background: `${phaseGradient}, var(--color-bg-elevated)`,
+        boxShadow: isAtRisk
+          ? "0 0 0 1px #ef4444, var(--shadow-card)"
+          : isWarning
+          ? "0 0 0 1px #f59e0b, var(--shadow-card)"
+          : "var(--shadow-card)",
       }}
     >
       {/* Header */}
@@ -83,7 +94,7 @@ export function AccountCard({ account, todayPnl }: Props) {
           <h2 className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>{account.firmName}</h2>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-mono font-bold" style={{ color: "var(--color-text-primary)" }}>
+          <p className="text-3xl font-mono font-black" style={{ color: "var(--color-text-primary)" }}>
             ${account.currentEquity.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-sm flex items-center justify-end gap-1 mt-0.5" style={{ color: profit >= 0 ? "#34c97e" : "#ef4444" }}>
@@ -94,7 +105,7 @@ export function AccountCard({ account, todayPnl }: Props) {
       </div>
 
       {/* Phase stepper */}
-      <div className="flex items-center gap-1 text-xs">
+      <div className="flex items-center gap-2">
         {[
           { label: "Phase 1", step: 1 },
           { label: "Phase 2", step: 2 },
@@ -103,15 +114,28 @@ export function AccountCard({ account, todayPnl }: Props) {
           const done   = account.phase > step;
           const active = account.phase === step;
           return (
-            <div key={step} className="flex items-center gap-1">
-              {i > 0 && <div className="w-6 h-px" style={{ background: done ? "#34c97e" : "var(--color-bg-border)" }} />}
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                style={{
-                  background: done ? "rgba(52,201,126,0.15)" : active ? "rgba(99,102,241,0.15)" : "var(--color-bg-surface)",
-                  color: done ? "#34c97e" : active ? "var(--color-accent)" : "var(--color-text-muted)",
-                  border: `1px solid ${done ? "#34c97e" : active ? "var(--color-accent)" : "var(--color-bg-border)"}`,
+            <div key={step} className="flex items-center gap-2">
+              {i > 0 && (
+                <div style={{ flex: 1, height: 1, width: 20, background: done ? "#34c97e" : "var(--color-bg-border)", transition: "background 300ms" }} />
+              )}
+              <div className="flex items-center gap-1.5">
+                {/* Circle indicator */}
+                <div style={{
+                  width: 22, height: 22, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  background: done ? "#34c97e" : active ? "var(--color-accent)" : "var(--color-bg-surface)",
+                  color: done || active ? "#fff" : "var(--color-text-muted)",
+                  border: `2px solid ${done ? "#34c97e" : active ? "var(--color-accent)" : "var(--color-bg-border)"}`,
+                  transition: "all 300ms",
                 }}>
-                {done && "✓ "}{label}
+                  {done ? "✓" : step}
+                </div>
+                <span className="text-xs font-medium" style={{
+                  color: done ? "#34c97e" : active ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                }}>
+                  {label}
+                </span>
               </div>
             </div>
           );

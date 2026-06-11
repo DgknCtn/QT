@@ -12,12 +12,18 @@ import {
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
 
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function StatCard({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: string }) {
   return (
-    <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-      <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-      <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{value}</p>
-      {sub && <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{sub}</p>}
+    <div className="card p-5 relative overflow-hidden">
+      <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+      <p className="text-3xl font-black font-mono leading-none" style={{ color: accent ?? "var(--color-text-primary)" }}>{value}</p>
+      {sub && <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>{sub}</p>}
+      {accent && (
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 2,
+          background: `linear-gradient(90deg, ${accent}, transparent)`,
+        }} />
+      )}
     </div>
   );
 }
@@ -204,66 +210,67 @@ export default async function DashboardPage() {
           label="Today's Prep"
           value={todayPrep ? (todayPrep.goNoGoStatus ?? "—") : "—"}
           sub={todayPrep ? todayPrep.htfBias ?? "No bias" : "Not started"}
+          accent={todayPrep?.goNoGoStatus === "GO" ? "#34c97e" : todayPrep?.goNoGoStatus === "NO_GO" ? "#ef4444" : undefined}
         />
         <StatCard
           label="This Week"
           value={activeWeekTrades.length}
           sub={weekWR != null ? `${weekWR}% win rate` : "0 trades"}
+          accent="#4f8ef7"
         />
         <StatCard
           label="Avg Process"
           value={avgScore ?? "—"}
           sub="this week"
+          accent="#6366f1"
         />
       </div>
 
       {/* Streak & rolling stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Daily Prep streak */}
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Daily Prep Serisi</p>
-          <p className="text-2xl font-black" style={{ color: prepStreak >= 5 ? "#34c97e" : prepStreak >= 2 ? "#f59e0b" : "var(--color-text-primary)" }}>
-            {prepStreak}
-            <span className="text-sm font-normal ml-1" style={{ color: "var(--color-text-muted)" }}>gün</span>
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {prepStreak === 0 ? "Bugün prep yap" : prepStreak >= 5 ? "🔥 Harika!" : "Devam et"}
-          </p>
-        </div>
-
-        {/* Plan followed streak */}
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Plan Serisi</p>
-          <p className="text-2xl font-black" style={{ color: planStreak >= 5 ? "#34c97e" : planStreak >= 2 ? "#6366f1" : "var(--color-text-primary)" }}>
-            {planStreak}
-            <span className="text-sm font-normal ml-1" style={{ color: "var(--color-text-muted)" }}>trade</span>
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {planStreak === 0 ? "Ardışık planı takip et" : planStreak >= 5 ? "💪 Disiplin!" : "Plan'da kal"}
-          </p>
-        </div>
-
-        {/* Last 10 win rate */}
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Son 10 Trade WR</p>
-          <p className="text-2xl font-black" style={{ color: last10WR != null && last10WR >= 50 ? "#34c97e" : last10WR != null && last10WR >= 40 ? "#f59e0b" : "var(--color-text-primary)" }}>
-            {last10WR != null ? `${last10WR}%` : "—"}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {last10.length < 10 ? `${last10.length}/10 trade` : `${last10Wins}W / ${last10.length - last10Wins}L`}
-          </p>
-        </div>
-
-        {/* Last 10 net R */}
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Son 10 Net R</p>
-          <p className="text-2xl font-black" style={{ color: last10NetR > 0 ? "#34c97e" : last10NetR < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
-            {last10.length > 0 ? `${last10NetR >= 0 ? "+" : ""}${last10NetR.toFixed(1)}R` : "—"}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {last10NetPnl !== 0 ? `${last10NetPnl >= 0 ? "+" : ""}$${Math.abs(last10NetPnl).toFixed(0)}` : "son 10 trade"}
-          </p>
-        </div>
+        {[
+          {
+            label: "Prep Serisi",
+            value: prepStreak,
+            unit: "gün",
+            color: prepStreak >= 5 ? "#34c97e" : prepStreak >= 2 ? "#f59e0b" : "var(--color-text-primary)",
+            sub: prepStreak === 0 ? "Bugün prep yap" : prepStreak >= 5 ? "🔥 Harika!" : "Devam et",
+          },
+          {
+            label: "Plan Serisi",
+            value: planStreak,
+            unit: "trade",
+            color: planStreak >= 5 ? "#34c97e" : planStreak >= 2 ? "#6366f1" : "var(--color-text-primary)",
+            sub: planStreak === 0 ? "Ardışık plan takip et" : planStreak >= 5 ? "💪 Disiplin!" : "Plan'da kal",
+          },
+          {
+            label: "Son 10 WR",
+            value: last10WR != null ? `${last10WR}%` : "—",
+            unit: "",
+            color: last10WR != null && last10WR >= 50 ? "#34c97e" : last10WR != null && last10WR >= 40 ? "#f59e0b" : "var(--color-text-primary)",
+            sub: last10.length < 10 ? `${last10.length}/10 trade` : `${last10Wins}W · ${last10.length - last10Wins}L`,
+          },
+          {
+            label: "Son 10 Net R",
+            value: last10.length > 0 ? `${last10NetR >= 0 ? "+" : ""}${last10NetR.toFixed(1)}R` : "—",
+            unit: "",
+            color: last10NetR > 0 ? "#34c97e" : last10NetR < 0 ? "#ef4444" : "var(--color-text-primary)",
+            sub: last10NetPnl !== 0 ? `${last10NetPnl >= 0 ? "+" : ""}$${Math.abs(last10NetPnl).toFixed(0)}` : "son 10 trade",
+          },
+        ].map(({ label, value, unit, color, sub }) => (
+          <div
+            key={label}
+            className="card p-4 relative overflow-hidden"
+            style={{ borderLeft: `3px solid ${color}` }}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+            <p className="text-2xl font-black font-mono leading-none" style={{ color }}>
+              {value}
+              {unit && <span className="text-sm font-normal ml-1" style={{ color: "var(--color-text-muted)" }}>{unit}</span>}
+            </p>
+            <p className="text-xs mt-1.5" style={{ color: "var(--color-text-muted)" }}>{sub}</p>
+          </div>
+        ))}
       </div>
 
       {/* Funded Account widget */}
