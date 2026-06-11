@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
 import { deleteAccount } from "./actions";
-import type { FundedAccount, EquityLog } from "@/app/generated/prisma/client";
+import type { FundedAccount, EquityLog } from "@prisma/client";
 
 interface Props {
   account: FundedAccount & { equityLogs: EquityLog[] };

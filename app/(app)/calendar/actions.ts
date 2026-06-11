@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { EventRiskTag } from "@/app/generated/prisma/client";
+import type { EventRiskTag } from "@prisma/client";
 
 async function ensureUser(userId: string) {
   const supabase = await createClient();

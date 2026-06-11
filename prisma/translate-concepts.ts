@@ -2,7 +2,7 @@
  * Translates concept cards to Turkish.
  * Run: npx dotenv-cli -e .env -- npx tsx prisma/translate-concepts.ts
  */
-import { PrismaClient } from "../app/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DIRECT_URL } },

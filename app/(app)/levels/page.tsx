@@ -3,7 +3,7 @@ import { Plus, Layers, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { DeleteLevelButton, ToggleStatusButton } from "./level-actions-client";
-import type { LevelStatus } from "@/app/generated/prisma/client";
+import type { LevelStatus } from "@prisma/client";
 
 const TYPE_LABELS: Record<string, string> = {
   TYO: "TYO", TMO: "TMO", TWO: "TWO", TDO: "TDO", TSO: "TSO", TMSO: "TMSO",

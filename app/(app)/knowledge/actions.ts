@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import type { ConceptCategory, ConfidenceLevel } from "@/app/generated/prisma/client";
+import type { ConceptCategory, ConfidenceLevel } from "@prisma/client";
 
 export async function saveConcept(form: FormData): Promise<string> {
   const id = form.get("id") as string | null;

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { deleteLevel, toggleLevelStatus } from "./actions";
-import type { LevelStatus } from "@/app/generated/prisma/client";
+import type { LevelStatus } from "@prisma/client";
 
 export function DeleteLevelButton({ levelId }: { levelId: string }) {
   const [pending, startTransition] = useTransition();

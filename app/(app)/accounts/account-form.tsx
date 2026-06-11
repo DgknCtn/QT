@@ -3,7 +3,7 @@
 import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveAccount } from "./actions";
-import type { FundedAccount } from "@/app/generated/prisma/client";
+import type { FundedAccount } from "@prisma/client";
 
 const STATUSES = ["ACTIVE", "PASSED", "FAILED", "REVIEW"] as const;
 

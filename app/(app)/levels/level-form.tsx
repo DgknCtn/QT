@@ -3,7 +3,7 @@
 import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveLevel } from "./actions";
-import type { Level } from "@/app/generated/prisma/client";
+import type { Level } from "@prisma/client";
 
 const MARKET_GROUPS = ["INDICES", "FOREX", "CRYPTO"] as const;
 const TIMEFRAMES    = ["MONTHLY", "WEEKLY", "DAILY", "H4", "H1", "M90", "M15", "M5", "M1"] as const;

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import type { LevelType, LevelStatus, MarketGroup, Timeframe } from "@/app/generated/prisma/client";
+import type { LevelType, LevelStatus, MarketGroup, Timeframe } from "@prisma/client";
 
 async function ensureUser(userId: string, email: string) {
   await prisma.user.upsert({
