@@ -1,0 +1,363 @@
+import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
+import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
+// ─── helpers ───────────────────────────────────────────────────────────────
+
+type Trade = Awaited<ReturnType<typeof loadTrades>>[number];
+
+async function loadTrades(userId: string) {
+  return prisma.trade.findMany({
+    where: { userId },
+    orderBy: { date: "desc" },
+    take: 200,
+    include: { tags: { include: { tag: true } } },
+  });
+}
+
+function winRate(trades: Trade[]) {
+  const active = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
+  if (!active.length) return null;
+  return Math.round((active.filter((t) => t.result === "WIN").length / active.length) * 100);
+}
+
+function avgR(trades: Trade[]) {
+  const active = trades.filter((t) => t.rResult != null);
+  if (!active.length) return null;
+  return (active.reduce((s, t) => s + (t.rResult ?? 0), 0) / active.length).toFixed(2);
+}
+
+function avgProcessScore(trades: Trade[]) {
+  const scored = trades.filter((t) => t.processScore != null);
+  if (!scored.length) return null;
+  return (scored.reduce((s, t) => s + (t.processScore ?? 0), 0) / scored.length).toFixed(1);
+}
+
+function groupBy<T>(arr: T[], key: (t: T) => string): Record<string, T[]> {
+  return arr.reduce<Record<string, T[]>>((acc, t) => {
+    const k = key(t);
+    (acc[k] ??= []).push(t);
+    return acc;
+  }, {});
+}
+
+function statsFor(trades: Trade[]) {
+  const active = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
+  const wins = active.filter((t) => t.result === "WIN").length;
+  const wr = active.length ? Math.round((wins / active.length) * 100) : null;
+  const rTrades = trades.filter((t) => t.rResult != null);
+  const ar = rTrades.length
+    ? (rTrades.reduce((s, t) => s + (t.rResult ?? 0), 0) / rTrades.length).toFixed(1)
+    : null;
+  return { count: active.length, wins, wr, ar };
+}
+
+// ─── components ────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, sub }: { label: string; value: string | number | null; sub?: string }) {
+  return (
+    <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+      <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+      <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{value ?? "—"}</p>
+      {sub && <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{sub}</p>}
+    </div>
+  );
+}
+
+function MiniBar({ pct, color }: { pct: number; color: string }) {
+  return (
+    <div className="h-1.5 rounded-full w-full overflow-hidden" style={{ background: "var(--color-bg-border)" }}>
+      <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: color }} />
+    </div>
+  );
+}
+
+function BreakdownTable({
+  title, rows,
+}: {
+  title: string;
+  rows: { label: string; count: number; wr: number | null; ar: string | null }[];
+}) {
+  const maxCount = Math.max(...rows.map((r) => r.count), 1);
+  return (
+    <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+      <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>{title}</h3>
+      <div className="space-y-2.5">
+        {rows.map((row) => (
+          <div key={row.label}>
+            <div className="flex justify-between mb-1 text-xs">
+              <span style={{ color: "var(--color-text-secondary)" }}>{row.label}</span>
+              <span style={{ color: "var(--color-text-muted)" }}>
+                {row.count} trades · WR {row.wr != null ? `${row.wr}%` : "—"} · Avg R {row.ar ?? "—"}
+              </span>
+            </div>
+            <MiniBar pct={(row.count / maxCount) * 100} color="var(--color-accent)" />
+          </div>
+        ))}
+        {rows.length === 0 && (
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>No data yet</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── page ──────────────────────────────────────────────────────────────────
+
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string }>;
+}) {
+  const sp = await searchParams;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!dbUser) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="rounded-xl border flex flex-col items-center justify-center py-16 gap-3"
+          style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>No trades yet. Log your first trade to see analytics.</p>
+          <Link href="/journal/new" className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "#fff" }}>
+            Log trade
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const trades = await loadTrades(user.id);
+  if (trades.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="rounded-xl border flex flex-col items-center justify-center py-16 gap-3"
+          style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>No trades yet. Log your first trade to see analytics.</p>
+          <Link href="/journal/new" className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "#fff" }}>
+            Log trade
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Overall stats ──
+  const wr = winRate(trades);
+  const ar = avgR(trades);
+  const aps = avgProcessScore(trades);
+  const active = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
+  const totalR = trades.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
+
+  // ── Grade distribution ──
+  const gradeMap = { A_PLUS: 0, B: 0, C: 0, RULE_BREAK: 0, UNREVIEWED: 0 };
+  trades.forEach((t) => { if (t.processGrade) gradeMap[t.processGrade as keyof typeof gradeMap]++; });
+
+  // ── Setup breakdown ──
+  const bySetup = groupBy(trades, (t) => t.setupType ?? "UNKNOWN");
+  const setupRows = Object.entries(bySetup)
+    .map(([label, ts]) => ({ label: label.replace(/_/g, " "), ...statsFor(ts) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  // ── Session breakdown ──
+  const bySession = groupBy(trades, (t) => t.session?.replace(/_/g, " ") ?? "Unknown");
+  const sessionRows = Object.entries(bySession)
+    .map(([label, ts]) => ({ label, ...statsFor(ts) }))
+    .sort((a, b) => b.count - a.count);
+
+  // ── Triad breakdown ──
+  const byTriad = groupBy(trades, (t) => t.triad ?? "Unknown");
+  const triadRows = Object.entries(byTriad)
+    .map(([label, ts]) => ({ label, ...statsFor(ts) }))
+    .sort((a, b) => b.count - a.count);
+
+  // ── Mistake tag frequency ──
+  const mistakeCounts: Record<string, number> = {};
+  trades.forEach((t) =>
+    t.tags
+      .filter((tt) => tt.tag.category === "MISTAKE")
+      .forEach((tt) => { mistakeCounts[tt.tag.name] = (mistakeCounts[tt.tag.name] ?? 0) + 1; })
+  );
+  const topMistakes = Object.entries(mistakeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  const maxMistake = topMistakes[0]?.[1] ?? 1;
+
+  // ── Weekly review ──
+  const weekOffset = parseInt(sp.week ?? "0", 10);
+  const weekStart = startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+  const weekTrades = trades.filter((t) => {
+    const d = new Date(t.date);
+    return d >= weekStart && d <= weekEnd;
+  });
+  const weekStats = statsFor(weekTrades);
+  const weekR = weekTrades.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
+
+  const gradeColor: Record<string, string> = {
+    A_PLUS: "var(--color-success)", B: "var(--color-accent)",
+    C: "var(--color-warning)", RULE_BREAK: "var(--color-danger)",
+    UNREVIEWED: "var(--color-text-muted)",
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-5">
+
+      {/* Overall stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} active trades`} />
+        <StatCard label="Avg R" value={ar} sub={`Total: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
+        <StatCard label="Avg Process Score" value={aps} />
+        <StatCard label="Total Trades" value={trades.length} sub={`${gradeMap.A_PLUS} A+ · ${gradeMap.RULE_BREAK} Rule Breaks`} />
+      </div>
+
+      {/* Grade distribution */}
+      <div className="rounded-xl border p-5" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+        <h3 className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "var(--color-text-muted)" }}>Process Grade Distribution</h3>
+        <div className="flex gap-3">
+          {(["A_PLUS", "B", "C", "RULE_BREAK", "UNREVIEWED"] as const).map((g) => {
+            const count = gradeMap[g];
+            const pct = trades.length ? Math.round((count / trades.length) * 100) : 0;
+            return (
+              <div key={g} className="flex-1 text-center">
+                <div className="rounded-lg p-2 mb-1.5" style={{ background: "var(--color-bg-surface)" }}>
+                  <p className="text-lg font-bold" style={{ color: gradeColor[g] }}>{count}</p>
+                  <p className="text-xs" style={{ color: gradeColor[g] }}>{g.replace("_", "+")}</p>
+                </div>
+                <MiniBar pct={pct} color={gradeColor[g]} />
+                <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>{pct}%</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Breakdowns row */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <BreakdownTable title="By Setup Type" rows={setupRows} />
+        <BreakdownTable title="By Session" rows={sessionRows} />
+      </div>
+      <div className="grid md:grid-cols-2 gap-4">
+        <BreakdownTable title="By Triad" rows={triadRows} />
+
+        {/* Mistake tags */}
+        <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Mistakes</h3>
+          {topMistakes.length === 0 ? (
+            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>No mistakes tagged</p>
+          ) : (
+            <div className="space-y-2.5">
+              {topMistakes.map(([name, count]) => (
+                <div key={name}>
+                  <div className="flex justify-between mb-1 text-xs">
+                    <span style={{ color: "var(--color-danger)" }}>{name}</span>
+                    <span style={{ color: "var(--color-text-muted)" }}>{count}×</span>
+                  </div>
+                  <MiniBar pct={(count / maxMistake) * 100} color="var(--color-danger)" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Weekly Review */}
+      <div className="rounded-xl border p-5 space-y-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+            Weekly Review — {format(weekStart, "MMM d")} to {format(weekEnd, "MMM d, yyyy")}
+          </h3>
+          <div className="flex gap-2">
+            <Link
+              href={`/analytics?week=${weekOffset + 1}`}
+              className="p-1 rounded hover:bg-white/5 transition-colors"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              <ArrowLeft size={14} />
+            </Link>
+            {weekOffset > 0 && (
+              <Link
+                href={`/analytics?week=${weekOffset - 1}`}
+                className="p-1 rounded hover:bg-white/5 transition-colors"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                <ArrowRight size={14} />
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Week stats row */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: "Trades",   value: weekStats.count },
+            { label: "Wins",     value: weekStats.wins },
+            { label: "Win Rate", value: weekStats.wr != null ? `${weekStats.wr}%` : "—" },
+            { label: "Net R",    value: weekR !== 0 ? `${weekR >= 0 ? "+" : ""}${weekR.toFixed(1)}R` : "—" },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-lg p-3" style={{ background: "var(--color-bg-surface)" }}>
+              <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+              <p className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Trade list for the week */}
+        {weekTrades.length === 0 ? (
+          <p className="text-xs py-2" style={{ color: "var(--color-text-muted)" }}>No trades this week.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {weekTrades.map((t) => {
+              const mistakes = t.tags.filter((tt) => tt.tag.category === "MISTAKE");
+              return (
+                <Link
+                  key={t.id}
+                  href={`/journal/${t.id}`}
+                  className="flex items-center justify-between px-3 py-2 rounded-lg"
+                  style={{ background: "var(--color-bg-surface)" }}
+                >
+                  <div className="flex items-center gap-3 text-xs">
+                    <span style={{ color: "var(--color-text-muted)" }}>{format(new Date(t.date), "EEE dd")}</span>
+                    <span style={{ color: t.direction === "LONG" ? "var(--color-long)" : "var(--color-short)" }}>{t.direction}</span>
+                    <span style={{ color: "var(--color-text-secondary)" }}>{t.instrument}</span>
+                    {mistakes.length > 0 && (
+                      <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,0.1)", color: "var(--color-danger)" }}>
+                        {mistakes.length} mistake{mistakes.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    {t.processGrade && (
+                      <span className="font-bold" style={{ color: gradeColor[t.processGrade] ?? "var(--color-text-muted)" }}>
+                        {t.processGrade.replace("_", "+")}
+                      </span>
+                    )}
+                    {t.rResult != null && (
+                      <span className="font-bold" style={{ color: t.rResult >= 0 ? "var(--color-success)" : "var(--color-danger)" }}>
+                        {t.rResult >= 0 ? "+" : ""}{t.rResult.toFixed(1)}R
+                      </span>
+                    )}
+                    <span className="px-1.5 py-0.5 rounded font-bold"
+                      style={{
+                        background: t.result === "WIN" ? "rgba(52,201,126,0.15)" : t.result === "LOSS" ? "rgba(239,68,68,0.15)" : "rgba(144,144,160,0.1)",
+                        color: t.result === "WIN" ? "var(--color-success)" : t.result === "LOSS" ? "var(--color-danger)" : "var(--color-text-muted)",
+                      }}
+                    >
+                      {t.result}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}

@@ -1,0 +1,712 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Models ────────────────────────────────────────────────────────────────
+
+model User {
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  name                String?
+  timezone            String   @default("America/New_York")
+  preferredSessions   String[] @default(["NY_AM"])
+  maxRiskPerTrade     Float    @default(1.0)
+  maxDailyRisk        Float    @default(3.0)
+  defaultMarkets      String[] @default([])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  dailyPreps     DailyPrep[]
+  levels         Level[]
+  dfrs           DFR[]
+  ssmtEvents     SSMTEvent[]
+  confirmations  Confirmation[]
+  trades         Trade[]
+  tags           Tag[]
+  screenshots    Screenshot[]
+  economicEvents EconomicEvent[]
+  fundedAccounts FundedAccount[]
+
+  @@map("users")
+}
+
+model DailyPrep {
+  id                   String            @id @default(cuid())
+  userId               String
+  date                 DateTime          @db.Date
+  session              Session
+  marketGroup          MarketGroup
+  triad                Triad
+  primaryInstrument    String
+  secondaryInstruments String[]          @default([])
+  htfBias              Bias              @default(WAIT)
+  htfBiasConfidence    Confidence        @default(MEDIUM)
+  htfTarget            String?
+  htfInvalidation      String?
+  htfBiasExplanation   String?
+  weeklyPo3State       Po3State          @default(UNKNOWN)
+  dailyPo3State        Po3State          @default(UNKNOWN)
+  mmxmStage            MmxmStage         @default(UNKNOWN)
+  activeCycleWeekly    WeeklyCycle?
+  activeCycleDaily     DailyCycle?
+  active90mCycle       QuarterCycle?
+  activeMicroCycle     QuarterCycle?
+  q1Quality            Q1Quality?
+  expectedBehavior     ExpectedBehavior?
+  mainLiquidityTarget  LiquidityTarget?
+  customLiqTarget      String?
+  trueOpenSummary      Json?
+  dfrSummary           Json?
+  ssmtSummary          Json?
+  confirmationSummary  Json?
+  newsSummary          Json?
+  goNoGoStatus         GoNoGoStatus?
+  goNoGoReason         String?
+  completionScore      Float             @default(0)
+  qualityScore         Float             @default(0)
+  isDraft              Boolean           @default(true)
+  fridayHandling       FridayHandling?
+  biasRevisedFrom      Bias?
+  biasRevisionReason   String?
+  biasRevisionTrigger  String?
+  notes                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  levels        Level[]
+  dfrs          DFR[]
+  ssmtEvents    SSMTEvent[]
+  confirmations Confirmation[]
+  trades        Trade[]
+  screenshots   Screenshot[]
+
+  @@map("daily_preps")
+}
+
+model Level {
+  id            String      @id @default(cuid())
+  userId        String
+  dailyPrepId   String?
+  instrument    String
+  marketGroup   MarketGroup
+  levelType     LevelType
+  price         Float
+  timeframe     Timeframe
+  dateValidFrom DateTime?
+  dateValidTo   DateTime?
+  status        LevelStatus @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
+
+  @@map("levels")
+}
+
+model DFR {
+  id                 String           @id @default(cuid())
+  userId             String
+  dailyPrepId        String?
+  dfrType            DFRType
+  timeframeAlignment Timeframe?
+  q1StartTime        DateTime?
+  q1EndTime          DateTime?
+  t2High             Float?
+  t2Low              Float?
+  t3High             Float?
+  t3Low              Float?
+  dfrHigh            Float?
+  dfrLow             Float?
+  dfrMid             Float?
+  projection1        Float?
+  projection2        Float?
+  projectionNeg1     Float?
+  projectionNeg2     Float?
+  q1Quality          DFRq1Quality?
+  highLowEqualsQ1    ThreeState?
+  dfrQualityScore    Int              @default(0)
+  dfrQualityBand     QualityBand?
+  alignsWithBias     Boolean?
+  nearPriorPoi       Boolean?
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
+
+  @@map("dfrs")
+}
+
+model SSMTEvent {
+  id                String        @id @default(cuid())
+  userId            String
+  dailyPrepId       String?
+  marketGroup       MarketGroup
+  triad             Triad
+  primaryInstrument String
+  ssmtType          SSMTType
+  locationType      SSMTLocation
+  locationPrice     Float?
+  timeframe         Timeframe
+  assetABehavior    String?
+  assetBBehavior    String?
+  assetCBehavior    String?
+  strongAsset       String?
+  weakAsset         String?
+  alignsWithBias    ThreeState?
+  randomSmtFlag     Boolean       @default(false)
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPrep     DailyPrep?     @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
+  confirmations Confirmation[]
+
+  @@map("ssmt_events")
+}
+
+model Confirmation {
+  id               String           @id @default(cuid())
+  userId           String
+  dailyPrepId      String?
+  ssmtEventId      String?
+  confirmationType ConfirmationType
+  timeframe        Timeframe
+  tfAlignmentValid ThreeState?
+  entryRelevance   String?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
+  ssmtEvent SSMTEvent? @relation(fields: [ssmtEventId], references: [id], onDelete: SetNull)
+
+  @@map("confirmations")
+}
+
+model Trade {
+  id              String           @id @default(cuid())
+  userId          String
+  dailyPrepId     String?
+  date            DateTime         @db.Date
+  instrument      String
+  marketGroup     MarketGroup
+  triad           Triad
+  session         Session
+  direction       Direction
+  setupType       SetupType
+  entryModel      EntryModel
+  entryPrice      Float?
+  stopPrice       Float?
+  stopLogic       StopLogic?
+  tp1             Float?
+  tp2             Float?
+  tp3             Float?
+  mainDol         Float?
+  riskPercent     Float?
+  rResult         Float?
+  pnlPoints       Float?
+  pnlCurrency     Float?
+  result          TradeResult
+  processScore    Float?
+  processGrade    ProcessGrade?
+  planFollowed    PlanFollowed?
+  goStatusAtEntry GoStatusAtEntry?
+  nearNews        Boolean          @default(false)
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPrep   DailyPrep?   @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
+  tags        TradeTag[]
+  screenshots Screenshot[]
+
+  @@map("trades")
+}
+
+model Tag {
+  id        String      @id @default(cuid())
+  userId    String
+  name      String
+  category  TagCategory
+  createdAt DateTime    @default(now())
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades TradeTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model TradeTag {
+  tradeId String
+  tagId   String
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([tradeId, tagId])
+  @@map("trade_tags")
+}
+
+model Screenshot {
+  id             String         @id @default(cuid())
+  userId         String
+  tradeId        String?
+  dailyPrepId    String?
+  conceptId      String?
+  fileUrl        String
+  screenshotType ScreenshotType
+  notes          String?
+  createdAt      DateTime       @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trade     Trade?     @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
+  concept   Concept?   @relation(fields: [conceptId], references: [id], onDelete: SetNull)
+
+  @@map("screenshots")
+}
+
+model Concept {
+  id                 String          @id @default(cuid())
+  title              String
+  category           ConceptCategory
+  definition         String?
+  whyItMatters       String?
+  whenToUse          String?
+  whenNotToUse       String?
+  requiredConditions String?
+  commonMistakes     String?
+  checklistQuestions String[]        @default([])
+  userNotes          String?
+  confidenceLevel    ConfidenceLevel @default(NEW)
+  isSystemConcept    Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  screenshots Screenshot[]
+
+  @@map("concepts")
+}
+
+model EconomicEvent {
+  id                   String        @id @default(cuid())
+  userId               String
+  dateTime             DateTime
+  currency             String
+  eventName            String
+  impact               EventImpact
+  source               EventSource   @default(MANUAL)
+  userRiskTag          EventRiskTag?
+  noTradeBeforeMinutes Int?
+  noTradeAfterMinutes  Int?
+  notes                String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("economic_events")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────
+
+enum Session {
+  LONDON
+  NY_AM
+  NY_PM
+  ASIA
+}
+
+enum MarketGroup {
+  INDICES
+  FOREX
+  CRYPTO
+}
+
+enum Triad {
+  NQ_ES_YM
+  EU_GU_DXY
+  BTC_ETH_TOTAL3
+}
+
+enum Bias {
+  LONG
+  SHORT
+  NEUTRAL
+  WAIT
+}
+
+enum Confidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Po3State {
+  ACCUMULATION
+  MANIPULATION
+  DISTRIBUTION
+  X
+  UNKNOWN
+}
+
+enum MmxmStage {
+  ACCUMULATION
+  MANIPULATION
+  DISTRIBUTION
+  REVERSAL
+  CONTINUATION
+  UNKNOWN
+}
+
+enum WeeklyCycle {
+  MONDAY_Q1
+  TUESDAY_Q2
+  WEDNESDAY_Q3
+  THURSDAY_Q4
+  FRIDAY_SPECIAL
+}
+
+enum DailyCycle {
+  ASIA
+  LONDON
+  NY_AM
+  NY_PM
+}
+
+enum QuarterCycle {
+  Q1
+  Q2
+  Q3
+  Q4
+}
+
+enum Q1Quality {
+  TIGHT_RANGE
+  OVEREXTENDED
+  DISTORTED
+  CLEAN_ACCUMULATION
+  UNKNOWN
+}
+
+enum ExpectedBehavior {
+  EXPANSION
+  CONSOLIDATION
+  REVERSAL
+  CONTINUATION
+  WAIT
+}
+
+enum LiquidityTarget {
+  PREV_DAY_HIGH
+  PREV_DAY_LOW
+  PREV_WEEK_HIGH
+  PREV_WEEK_LOW
+  PREV_6H_HIGH
+  PREV_6H_LOW
+  DFR_PROJECTION
+  NWOG_NDOG
+  FVG_IMBALANCE
+  EQUAL_HIGHS_LOWS
+  CUSTOM
+}
+
+enum GoNoGoStatus {
+  GO
+  NO_GO
+  WAIT
+  REVIEW_LATER
+  MISSED_SETUP
+}
+
+enum FridayHandling {
+  SPECIAL
+  SEPARATE_FRACTAL
+  NO_TRADE
+  REVIEW_DAY
+  CUSTOM
+}
+
+enum LevelType {
+  TYO
+  TMO
+  TWO
+  TDO
+  TSO
+  TMSO
+  PREV_HIGH
+  PREV_LOW
+  DFR_HIGH
+  DFR_LOW
+  DFR_MID
+  DFR_PROJECTION
+  FVG
+  OB
+  NWOG
+  NDOG
+  EQUAL_HIGHS
+  EQUAL_LOWS
+  CUSTOM_POI
+  CUSTOM_TOI
+}
+
+enum LevelStatus {
+  ACTIVE
+  INACTIVE
+  REACHED
+}
+
+enum Timeframe {
+  MONTHLY
+  WEEKLY
+  DAILY
+  H4
+  H1
+  M90
+  M15
+  M5
+  M1
+  S15
+  CUSTOM
+}
+
+enum DFRType {
+  MONTHLY
+  WEEKLY
+  DAILY_ADFR
+  M90
+  CUSTOM
+}
+
+enum DFRq1Quality {
+  CONSOLIDATION
+  EXPANSION
+  MIXED
+  UNKNOWN
+}
+
+enum ThreeState {
+  YES
+  NO
+  UNSURE
+}
+
+enum QualityBand {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SSMTType {
+  STANDARD_SSMT
+  HSSMT
+  ISSMT
+  SD
+  SMTF
+  PG
+  OC_DIVERGENCE
+  OTHER
+}
+
+enum SSMTLocation {
+  PREV_QUARTER_HIGH
+  PREV_QUARTER_LOW
+  PREV_DAY_HIGH
+  PREV_DAY_LOW
+  PREV_6H_HIGH_LOW
+  DFR_HIGH_LOW
+  DFR_PROJECTION
+  TRUE_OPEN
+  NWOG_NDOG
+  OTHER
+}
+
+enum ConfirmationType {
+  PSP
+  PRC
+  SMTF
+  PG
+  OC_DIVERGENCE
+  CISD
+  FVG_REACTION
+  SD_REFINEMENT
+  NONE
+}
+
+enum Direction {
+  LONG
+  SHORT
+}
+
+enum SetupType {
+  REVERSAL
+  CONTINUATION
+  EXPANSION
+  RETRACEMENT
+  MISSED
+  CUSTOM
+}
+
+enum EntryModel {
+  MARKET
+  LIMIT
+  CISD_AFTER_CONFIRMATION
+  FVG_GAP_REACTION
+  PRC_CONTINUATION
+  PSP_AGGRESSIVE
+  SMTF_PG_CONTINUATION
+  SD_REFINEMENT
+  NO_ENTRY
+}
+
+enum StopLogic {
+  SWING_HIGH_LOW
+  PRC_HIGH_LOW
+  GAP_FVG_INVALIDATION
+  DFR_INVALIDATION
+  STRUCTURAL_INVALIDATION
+  OTHER
+}
+
+enum TradeResult {
+  WIN
+  LOSS
+  BE
+  PARTIAL
+  MISSED
+  NO_TRADE
+}
+
+enum ProcessGrade {
+  A_PLUS
+  B
+  C
+  RULE_BREAK
+  UNREVIEWED
+}
+
+enum PlanFollowed {
+  YES
+  NO
+  PARTIAL
+}
+
+enum GoStatusAtEntry {
+  GO
+  NO_GO_BUT_ENTERED
+  WAIT_BUT_ENTERED
+  NO_CHECKLIST
+}
+
+enum TagCategory {
+  MISTAKE
+  POSITIVE
+  CUSTOM
+}
+
+enum ScreenshotType {
+  HTF_CONTEXT
+  ENTRY
+  EXIT
+  MISSED_SETUP
+  REVIEW
+}
+
+enum ConceptCategory {
+  QT_BASICS
+  TRUE_OPENS
+  SSMT_CORRELATION
+  CONFIRMATION
+  DFR
+  BIAS_NARRATIVE
+  RISK_EXECUTION
+}
+
+enum ConfidenceLevel {
+  NEW
+  LEARNING
+  PRACTICING
+  COMFORTABLE
+  MASTERED
+}
+
+enum EventImpact {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum EventSource {
+  MANUAL
+  API
+}
+
+enum EventRiskTag {
+  IGNORE
+  WATCH
+  HIGH_RISK
+  NO_TRADE_WINDOW
+  DATA_HIGH_LOW_RELEVANT
+}
+
+// ─── Funded Account ────────────────────────────────────────────────────────────
+
+model FundedAccount {
+  id              String        @id @default(cuid())
+  userId          String
+  firmName        String
+  phase           Int           @default(1)
+  accountId       String?
+  startingBalance Float
+  currentEquity   Float
+  profitTarget    Float
+  maxDailyLoss    Float
+  maxTotalLoss    Float
+  status          AccountStatus @default(ACTIVE)
+  startDate       DateTime
+  endDate         DateTime?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  equityLogs EquityLog[]
+
+  @@map("funded_accounts")
+}
+
+model EquityLog {
+  id        String        @id @default(cuid())
+  accountId String
+  date      DateTime      @default(now())
+  equity    Float
+  pnlToday  Float?
+  note      String?
+
+  account FundedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("equity_logs")
+}
+
+enum AccountStatus {
+  ACTIVE
+  PASSED
+  FAILED
+  REVIEW
+}

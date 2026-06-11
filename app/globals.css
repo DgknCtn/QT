@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Dark-first color tokens */
+  --color-bg-base:      #0d0d0f;
+  --color-bg-elevated:  #141417;
+  --color-bg-surface:   #1a1a1f;
+  --color-bg-hover:     #222228;
+  --color-bg-border:    #2a2a32;
+
+  --color-text-primary:   #f0f0f3;
+  --color-text-secondary: #9090a0;
+  --color-text-muted:     #5a5a6a;
+
+  --color-accent:        #4f8ef7;
+  --color-accent-dim:    #1e3a6e;
+  --color-success:       #34c97e;
+  --color-warning:       #f59e0b;
+  --color-danger:        #ef4444;
+
+  --color-go:    #34c97e;
+  --color-nogo:  #ef4444;
+  --color-wait:  #f59e0b;
+
+  --color-long:  #34c97e;
+  --color-short: #ef4444;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: dark;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+* {
+  border-color: var(--color-bg-border);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Step label in forms */
+.step-label {
+  display: block;
+  font-size: 0.75rem;
+  margin-bottom: 0.375rem;
+  color: var(--color-text-secondary);
+}
+
+/* Quick action card hover */
+.qa-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-bg-border);
+  font-size: 0.875rem;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  transition: border-color 150ms, color 150ms;
+}
+.qa-card:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+/* Reusable field input */
+.field-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 150ms;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-bg-border);
+  color: var(--color-text-primary);
+}
+.field-input:focus {
+  border-color: var(--color-accent);
+}
+.field-input option {
+  background: var(--color-bg-surface);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-bg-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
