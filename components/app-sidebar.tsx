@@ -13,6 +13,7 @@ import {
   Settings,
   TrendingUp,
   GraduationCap,
+  BookMarked,
   Wallet,
   Target,
   LogOut,
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { href: "/accounts",   label: "Accounts",    icon: Wallet },
   { href: "/goals",       label: "Goals",       icon: Target },
   { href: "/mentorship", label: "Mentorship",  icon: GraduationCap },
+  { href: "/notion",     label: "Notion",      icon: BookMarked },
   { href: "/settings",   label: "Settings",    icon: Settings },
 ] as const;
 

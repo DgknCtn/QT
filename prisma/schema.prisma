@@ -838,3 +838,15 @@ model Resource {
 
   @@map("resources")
 }
+
+model NotionPage {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  category  String?
+  emoji     String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("notion_pages")
+}
