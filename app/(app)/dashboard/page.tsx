@@ -11,15 +11,6 @@ import {
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
 
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-      <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-      <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{value}</p>
-      {sub && <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{sub}</p>}
-    </div>
-  );
-}
 
 function GoNoGoBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>No prep today</span>;
@@ -156,26 +147,23 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Status row — 4 cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-start">
+      {/* Row 1: Today's Prep · Today's Bias · Today's Events */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Today's Prep */}
-        <StatCard
-          label="Today's Prep"
-          value={todayPrep ? (todayPrep.goNoGoStatus ?? "—") : "—"}
-          sub={todayPrep ? todayPrep.htfBias ?? "No bias" : "Not started"}
-        />
-
-        {/* This Week */}
-        <StatCard
-          label="This Week"
-          value={activeWeekTrades.length}
-          sub={weekWR != null ? `${weekWR}% win rate` : "0 trades"}
-        />
+        <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs mb-2 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Prep</p>
+          <p className="text-2xl font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>
+            {todayPrep ? (todayPrep.goNoGoStatus ?? "—") : "—"}
+          </p>
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            {todayPrep ? (todayPrep.htfBias ?? "No bias") : "Not started"}
+          </p>
+        </div>
 
         {/* Today's Bias */}
         <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Bias</p>
+            <p className="text-xs uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Bias</p>
             <TrendingUp size={14} style={{ color: "var(--color-text-muted)" }} />
           </div>
           {todayPrep ? (
@@ -201,7 +189,7 @@ export default async function DashboardPage() {
         {/* Today's Events */}
         <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Events</p>
+            <p className="text-xs uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Events</p>
             <AlertTriangle size={14} style={{ color: "var(--color-text-muted)" }} />
           </div>
           {todayEvents.length === 0 ? (
@@ -235,11 +223,18 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Rolling stats */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Row 2: This Week · Son 10 WR · Son 10 Net R */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Son 10 Trade WR</p>
-          <p className="text-2xl font-black" style={{ color: last10WR != null && last10WR >= 50 ? "#34c97e" : last10WR != null && last10WR >= 40 ? "#f59e0b" : "var(--color-text-primary)" }}>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>This Week</p>
+          <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{activeWeekTrades.length}</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+            {weekWR != null ? `${weekWR}% win rate` : "0 trades"}
+          </p>
+        </div>
+        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Son 10 Trade WR</p>
+          <p className="text-2xl font-bold" style={{ color: last10WR != null && last10WR >= 50 ? "#34c97e" : last10WR != null && last10WR >= 40 ? "#f59e0b" : "var(--color-text-primary)" }}>
             {last10WR != null ? `${last10WR}%` : "—"}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
@@ -247,8 +242,8 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Son 10 Net R</p>
-          <p className="text-2xl font-black" style={{ color: last10NetR > 0 ? "#34c97e" : last10NetR < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Son 10 Net R</p>
+          <p className="text-2xl font-bold" style={{ color: last10NetR > 0 ? "#34c97e" : last10NetR < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
             {last10.length > 0 ? `${last10NetR >= 0 ? "+" : ""}${last10NetR.toFixed(1)}R` : "—"}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
