@@ -30,7 +30,8 @@ export function MarketClockCompact() {
       {/* TZ toggle */}
       <button
         onClick={toggleTz}
-        title={`Switch to ${displayTz === "ET" ? "TR" : "ET"} time\nET: ${etTime} · TR: ${trTime}`}
+        title={mounted ? `Switch to ${displayTz === "ET" ? "TR" : "ET"} time\nET: ${etTime} · TR: ${trTime}` : undefined}
+        suppressHydrationWarning
         className="flex flex-col items-center px-1.5 py-1 rounded border text-xs font-bold leading-none gap-0.5 transition-colors"
         style={{
           background: "var(--color-bg-surface)",
