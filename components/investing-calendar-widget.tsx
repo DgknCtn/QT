@@ -19,7 +19,7 @@ export function InvestingCalendarWidget() {
     script.async = true;
     script.innerHTML = JSON.stringify({
       colorTheme:    "dark",
-      isTransparent: true,
+      isTransparent: false,
       width:         "100%",
       height:        "600",
       locale:        "tr",
