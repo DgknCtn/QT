@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
+import { NotificationSettings } from "./notification-settings";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -14,6 +15,7 @@ export default async function SettingsPage() {
         initialMaxRisk={user?.user_metadata?.maxRiskPerTrade ?? 1.0}
         initialMaxDaily={user?.user_metadata?.maxDailyRisk ?? 3.0}
       />
+      <NotificationSettings />
     </div>
   );
 }
