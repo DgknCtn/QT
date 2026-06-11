@@ -37,6 +37,7 @@ model User {
   monthlyGoals   MonthlyGoal[]
   menteeProfile    MenteeProfile?
   playbookEntries  PlaybookEntry[]
+  weeklyReviews    WeeklyReview[]
 
   @@map("users")
 }
@@ -851,6 +852,26 @@ model NotionPage {
   createdAt DateTime @default(now())
 
   @@map("notion_pages")
+}
+
+// ─── Weekly Review ────────────────────────────────────────────────────────────
+
+model WeeklyReview {
+  id            String   @id @default(cuid())
+  userId        String
+  weekStart     DateTime @db.Date
+  wentWell      String?
+  toImprove     String?
+  nextFocus     String?
+  commitment    String?
+  overallRating Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@map("weekly_reviews")
 }
 
 // ─── Playbook ─────────────────────────────────────────────────────────────────
