@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfDay, endOfDay } from "date-fns";
 import {
   ClipboardList,
   TrendingUp,
@@ -76,10 +76,6 @@ export default async function DashboardPage() {
   const activeWeekTrades = weekTrades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
   const weekWins = activeWeekTrades.filter((t) => t.result === "WIN").length;
   const weekWR = activeWeekTrades.length > 0 ? Math.round((weekWins / activeWeekTrades.length) * 100) : null;
-  const avgScore = weekTrades.filter((t) => t.processScore != null).length > 0
-    ? (weekTrades.reduce((s, t) => s + (t.processScore ?? 0), 0) / weekTrades.filter((t) => t.processScore != null).length).toFixed(1)
-    : null;
-
   // Active funded accounts
   const activeAccounts = dbUser
     ? await prisma.fundedAccount.findMany({
@@ -89,43 +85,6 @@ export default async function DashboardPage() {
         take: 3,
       }).catch(() => [])
     : [];
-
-  // Streak: Daily Prep — consecutive days with at least one prep
-  const prepStreakDays = dbUser
-    ? await prisma.dailyPrep.findMany({
-        where: { userId: user!.id, date: { gte: subDays(now, 60) } },
-        select: { date: true },
-        orderBy: { date: "desc" },
-      }).catch(() => [])
-    : [];
-
-  let prepStreak = 0;
-  {
-    const daySet = new Set(prepStreakDays.map((p) => format(new Date(p.date), "yyyy-MM-dd")));
-    let cursor = new Date(now);
-    // allow today to be missing (don't break streak if today's prep not done yet)
-    if (!daySet.has(format(cursor, "yyyy-MM-dd"))) cursor = subDays(cursor, 1);
-    while (daySet.has(format(cursor, "yyyy-MM-dd"))) {
-      prepStreak++;
-      cursor = subDays(cursor, 1);
-    }
-  }
-
-  // Streak: Plan Followed — consecutive trades (most recent first) where planFollowed = YES
-  const planTrades = dbUser
-    ? await prisma.trade.findMany({
-        where: { userId: user!.id, planFollowed: { not: null } },
-        select: { planFollowed: true },
-        orderBy: { date: "desc" },
-        take: 30,
-      }).catch(() => [])
-    : [];
-
-  let planStreak = 0;
-  for (const t of planTrades) {
-    if (t.planFollowed === "YES") planStreak++;
-    else break;
-  }
 
   // Last 10 trades rolling stats
   const last10 = dbUser
@@ -198,7 +157,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Quick stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard
           label="Today's Prep"
           value={todayPrep ? (todayPrep.goNoGoStatus ?? "—") : "—"}
@@ -209,39 +168,10 @@ export default async function DashboardPage() {
           value={activeWeekTrades.length}
           sub={weekWR != null ? `${weekWR}% win rate` : "0 trades"}
         />
-        <StatCard
-          label="Avg Process"
-          value={avgScore ?? "—"}
-          sub="this week"
-        />
       </div>
 
-      {/* Streak & rolling stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Daily Prep streak */}
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Daily Prep Serisi</p>
-          <p className="text-2xl font-black" style={{ color: prepStreak >= 5 ? "#34c97e" : prepStreak >= 2 ? "#f59e0b" : "var(--color-text-primary)" }}>
-            {prepStreak}
-            <span className="text-sm font-normal ml-1" style={{ color: "var(--color-text-muted)" }}>gün</span>
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {prepStreak === 0 ? "Bugün prep yap" : prepStreak >= 5 ? "🔥 Harika!" : "Devam et"}
-          </p>
-        </div>
-
-        {/* Plan followed streak */}
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Plan Serisi</p>
-          <p className="text-2xl font-black" style={{ color: planStreak >= 5 ? "#34c97e" : planStreak >= 2 ? "#6366f1" : "var(--color-text-primary)" }}>
-            {planStreak}
-            <span className="text-sm font-normal ml-1" style={{ color: "var(--color-text-muted)" }}>trade</span>
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {planStreak === 0 ? "Ardışık planı takip et" : planStreak >= 5 ? "💪 Disiplin!" : "Plan'da kal"}
-          </p>
-        </div>
-
+      {/* Rolling stats */}
+      <div className="grid grid-cols-2 gap-3">
         {/* Last 10 win rate */}
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>Son 10 Trade WR</p>
