@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useTransition } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import { Search, SlidersHorizontal, X, Clock } from "lucide-react";
 
 interface FilterValues {
   instrument?: string;
@@ -14,18 +14,51 @@ interface FilterValues {
   search?: string;
 }
 
-const RESULTS   = ["WIN", "LOSS", "BE", "PARTIAL", "MISSED", "NO_TRADE"];
-const SESSIONS  = ["ASIA", "LONDON", "NY_AM", "NY_PM", "NY_LUNCH", "OVERNIGHT"];
+const RESULTS    = ["WIN", "LOSS", "BE", "PARTIAL", "MISSED", "NO_TRADE"];
+const SESSIONS   = ["ASIA", "LONDON", "NY_AM", "NY_PM", "NY_LUNCH", "OVERNIGHT"];
 const DIRECTIONS = ["LONG", "SHORT"];
+const HISTORY_KEY = "qt-journal-filter-history";
+const MAX_HISTORY = 6;
+
+function filterLabel(v: FilterValues): string {
+  const parts: string[] = [];
+  if (v.search)     parts.push(v.search);
+  if (v.instrument) parts.push(v.instrument);
+  if (v.result)     parts.push(v.result);
+  if (v.direction)  parts.push(v.direction);
+  if (v.session)    parts.push(v.session.replace("_", " "));
+  if (v.dateFrom || v.dateTo) parts.push(`${v.dateFrom ?? ""}→${v.dateTo ?? ""}`);
+  return parts.join(" · ");
+}
+
+function hasMeaningfulValue(v: FilterValues) {
+  return Object.values(v).some(Boolean);
+}
+
+function loadHistory(): FilterValues[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function saveToHistory(v: FilterValues) {
+  const label = filterLabel(v);
+  const existing = loadHistory();
+  const filtered = existing.filter((e) => filterLabel(e) !== label);
+  const next = [v, ...filtered].slice(0, MAX_HISTORY);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+}
 
 export function JournalFilters({ initialValues }: { initialValues: FilterValues }) {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
+
   const [expanded, setExpanded] = useState(
     !!(initialValues.result || initialValues.session || initialValues.direction || initialValues.dateFrom || initialValues.dateTo)
   );
-
   const [vals, setVals] = useState<FilterValues>({
     instrument: initialValues.instrument ?? "",
     result:     initialValues.result ?? "",
@@ -35,18 +68,45 @@ export function JournalFilters({ initialValues }: { initialValues: FilterValues 
     dateTo:     initialValues.dateTo ?? "",
     search:     initialValues.search ?? "",
   });
+  const [history, setHistory] = useState<FilterValues[]>([]);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
+
+  function applyVals(next: FilterValues) {
+    setVals(next);
+    const params = new URLSearchParams();
+    Object.entries(next).forEach(([k, v]) => { if (v) params.set(k, v); });
+    startTransition(() => { router.push(`${pathname}?${params.toString()}`); });
+
+    if (hasMeaningfulValue(next)) {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        saveToHistory(next);
+        setHistory(loadHistory());
+      }, 1500);
+    }
+  }
 
   function update(key: keyof FilterValues, value: string) {
-    const next = { ...vals, [key]: value };
-    setVals(next);
+    applyVals({ ...vals, [key]: value });
+  }
 
-    const params = new URLSearchParams();
-    Object.entries(next).forEach(([k, v]) => {
-      if (v) params.set(k, v);
+  function applyPreset(preset: FilterValues) {
+    applyVals({
+      instrument: preset.instrument ?? "",
+      result:     preset.result ?? "",
+      session:    preset.session ?? "",
+      direction:  preset.direction ?? "",
+      dateFrom:   preset.dateFrom ?? "",
+      dateTo:     preset.dateTo ?? "",
+      search:     preset.search ?? "",
     });
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
+    if (preset.result || preset.session || preset.direction || preset.dateFrom || preset.dateTo) {
+      setExpanded(true);
+    }
   }
 
   function clear() {
@@ -65,12 +125,9 @@ export function JournalFilters({ initialValues }: { initialValues: FilterValues 
     padding: "6px 10px",
     outline: "none",
     width: "100%",
-  };
+  } as React.CSSProperties;
 
-  const selectStyle = {
-    ...inputStyle,
-    cursor: "pointer",
-  };
+  const selectStyle = { ...inputStyle, cursor: "pointer" } as React.CSSProperties;
 
   return (
     <div className="rounded-xl border p-3 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
@@ -108,6 +165,35 @@ export function JournalFilters({ initialValues }: { initialValues: FilterValues 
         )}
       </div>
 
+      {/* Recent filter history */}
+      {history.length > 0 && !hasAny && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Clock size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
+          {history.map((h, i) => (
+            <button
+              key={i}
+              onClick={() => applyPreset(h)}
+              className="px-2 py-0.5 rounded-md text-xs transition-colors"
+              style={{
+                background: "var(--color-bg-surface)",
+                color: "var(--color-text-secondary)",
+                border: "1px solid var(--color-bg-border)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--color-accent)";
+                e.currentTarget.style.color = "var(--color-text-primary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--color-bg-border)";
+                e.currentTarget.style.color = "var(--color-text-secondary)";
+              }}
+            >
+              {filterLabel(h)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Advanced filters */}
       {expanded && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -115,7 +201,7 @@ export function JournalFilters({ initialValues }: { initialValues: FilterValues 
             <label className="text-xs mb-1 block" style={{ color: "var(--color-text-muted)" }}>Enstrüman</label>
             <input
               type="text"
-              placeholder="BTCUSD, EURUSD..."
+              placeholder="NQ, ES, EURUSD..."
               value={vals.instrument}
               onChange={(e) => update("instrument", e.target.value)}
               style={inputStyle}
