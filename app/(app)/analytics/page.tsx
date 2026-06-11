@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download } from "lucide-react";
 import { CumulativeRChart } from "./cumulative-r-chart";
+import { PnlHeatmap } from "./pnl-heatmap";
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -52,7 +53,8 @@ function statsFor(trades: Trade[]) {
   const ar = rTrades.length
     ? (rTrades.reduce((s, t) => s + (t.rResult ?? 0), 0) / rTrades.length).toFixed(1)
     : null;
-  return { count: active.length, wins, wr, ar };
+  const totalPnl = trades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
+  return { count: active.length, wins, wr, ar, totalPnl };
 }
 
 // ─── components ────────────────────────────────────────────────────────────
@@ -110,7 +112,7 @@ function BreakdownTable({
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; heatmapYear?: string; heatmapMonth?: string }>;
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
@@ -153,6 +155,7 @@ export default async function AnalyticsPage({
   const aps = avgProcessScore(trades);
   const active = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
   const totalR = trades.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
+  const totalPnl = trades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
 
   // ── Cumulative R curve (chronological order) ──
   const chronoTrades = [...trades].reverse(); // oldest first
@@ -207,6 +210,25 @@ export default async function AnalyticsPage({
     .map(([label, ts]) => ({ label, ...statsFor(ts) }))
     .sort((a, b) => b.count - a.count);
 
+  // ── Instrument breakdown (Feature 3) ──
+  const byInstrument = groupBy(trades, (t) => t.instrument);
+  const instrumentRows = Object.entries(byInstrument)
+    .map(([instrument, ts]) => {
+      const s = statsFor(ts);
+      return {
+        instrument,
+        count: ts.length,
+        activeCount: s.count,
+        wins: s.wins,
+        wr: s.wr,
+        ar: s.ar,
+        totalPnl: s.totalPnl,
+        longs: ts.filter((t) => t.direction === "LONG").length,
+        shorts: ts.filter((t) => t.direction === "SHORT").length,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
+
   // ── Mistake tag frequency ──
   const mistakeCounts: Record<string, number> = {};
   trades.forEach((t) =>
@@ -230,21 +252,59 @@ export default async function AnalyticsPage({
   const weekStats = statsFor(weekTrades);
   const weekR = weekTrades.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
 
+  // ── P&L Heatmap (Feature 2) ──
+  const now = new Date();
+  const hmYear  = parseInt(sp.heatmapYear  ?? String(now.getFullYear()), 10);
+  const hmMonth = parseInt(sp.heatmapMonth ?? String(now.getMonth() + 1), 10);
+
+  const heatmapDays: Record<string, { pnl: number; count: number }> = {};
+  trades.forEach((t) => {
+    const d = new Date(t.date);
+    if (d.getFullYear() === hmYear && d.getMonth() + 1 === hmMonth) {
+      const key = format(d, "yyyy-MM-dd");
+      if (!heatmapDays[key]) heatmapDays[key] = { pnl: 0, count: 0 };
+      heatmapDays[key].pnl   += t.pnlCurrency ?? 0;
+      heatmapDays[key].count += 1;
+    }
+  });
+  const heatmapData = Object.entries(heatmapDays).map(([date, v]) => ({ date, ...v }));
+
+  // Prev/next month links
+  const prevHmDate = new Date(hmYear, hmMonth - 2, 1);
+  const nextHmDate = new Date(hmYear, hmMonth, 1);
+  const prevHmLink = `/analytics?heatmapYear=${prevHmDate.getFullYear()}&heatmapMonth=${prevHmDate.getMonth() + 1}`;
+  const nextHmLink = `/analytics?heatmapYear=${nextHmDate.getFullYear()}&heatmapMonth=${nextHmDate.getMonth() + 1}`;
+  const isCurrentMonth = hmYear === now.getFullYear() && hmMonth === now.getMonth() + 1;
+
   const gradeColor: Record<string, string> = {
     A_PLUS: "var(--color-success)", B: "var(--color-accent)",
     C: "var(--color-warning)", RULE_BREAK: "var(--color-danger)",
     UNREVIEWED: "var(--color-text-muted)",
   };
 
+  const monthNames = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+
   return (
     <div className="max-w-4xl mx-auto space-y-5">
+
+      {/* Header with CSV export */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>Analytics</h1>
+        <a
+          href="/api/trades/export"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border"
+          style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)", color: "var(--color-text-secondary)" }}
+        >
+          <Download size={12} /> CSV İndir
+        </a>
+      </div>
 
       {/* Overall stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} active trades`} />
         <StatCard label="Avg R" value={ar} sub={`Total: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
         <StatCard label="Avg Process Score" value={aps} />
-        <StatCard label="Total Trades" value={trades.length} sub={`${gradeMap.A_PLUS} A+ · ${gradeMap.RULE_BREAK} Rule Breaks`} />
+        <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${trades.length} toplam trade`} />
       </div>
 
       {/* Streak + Cumulative R */}
@@ -279,6 +339,73 @@ export default async function AnalyticsPage({
           ) : (
             <p className="text-xs py-6 text-center" style={{ color: "var(--color-text-muted)" }}>En az 2 R değeri olan trade gerekli</p>
           )}
+        </div>
+      </div>
+
+      {/* P&L Heatmap Calendar (Feature 2) */}
+      <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+            P&L Takvimi
+          </h3>
+          <div className="flex items-center gap-3">
+            <Link href={prevHmLink} className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
+              <ArrowLeft size={14} />
+            </Link>
+            <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+              {monthNames[hmMonth - 1]} {hmYear}
+            </span>
+            {!isCurrentMonth && (
+              <Link href={nextHmLink} className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
+                <ArrowRight size={14} />
+              </Link>
+            )}
+          </div>
+        </div>
+        <PnlHeatmap days={heatmapData} year={hmYear} month={hmMonth} />
+      </div>
+
+      {/* Instrument Performance (Feature 3) */}
+      <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+        <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Enstrüman Analizi</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr style={{ color: "var(--color-text-muted)" }}>
+                <th className="text-left pb-2 pr-4">Enstrüman</th>
+                <th className="text-right pb-2 px-3">Trade</th>
+                <th className="text-right pb-2 px-3">WR %</th>
+                <th className="text-right pb-2 px-3">Avg R</th>
+                <th className="text-right pb-2 px-3">Net P&L</th>
+                <th className="text-right pb-2 px-3">Long/Short</th>
+              </tr>
+            </thead>
+            <tbody>
+              {instrumentRows.map((row) => (
+                <tr key={row.instrument} className="border-t" style={{ borderColor: "var(--color-bg-border)" }}>
+                  <td className="py-2 pr-4 font-semibold" style={{ color: "var(--color-text-primary)" }}>{row.instrument}</td>
+                  <td className="py-2 px-3 text-right" style={{ color: "var(--color-text-secondary)" }}>{row.activeCount}</td>
+                  <td className="py-2 px-3 text-right font-medium" style={{ color: (row.wr ?? 0) >= 50 ? "#34c97e" : "#ef4444" }}>
+                    {row.wr != null ? `${row.wr}%` : "—"}
+                  </td>
+                  <td className="py-2 px-3 text-right" style={{ color: parseFloat(row.ar ?? "0") >= 0 ? "#34c97e" : "#ef4444" }}>
+                    {row.ar != null ? `${parseFloat(row.ar) >= 0 ? "+" : ""}${row.ar}R` : "—"}
+                  </td>
+                  <td className="py-2 px-3 text-right font-medium" style={{ color: row.totalPnl >= 0 ? "#34c97e" : "#ef4444" }}>
+                    {row.totalPnl >= 0 ? "+" : ""}${Math.abs(row.totalPnl).toFixed(0)}
+                  </td>
+                  <td className="py-2 px-3 text-right" style={{ color: "var(--color-text-muted)" }}>
+                    <span style={{ color: "var(--color-long)" }}>{row.longs}L</span>
+                    {" / "}
+                    <span style={{ color: "var(--color-short)" }}>{row.shorts}S</span>
+                  </td>
+                </tr>
+              ))}
+              {instrumentRows.length === 0 && (
+                <tr><td colSpan={6} className="py-4 text-center" style={{ color: "var(--color-text-muted)" }}>Henüz data yok</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

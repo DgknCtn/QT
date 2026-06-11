@@ -13,6 +13,7 @@ import {
   TrendingUp,
   GraduationCap,
   Wallet,
+  Target,
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { href: "/knowledge",     label: "Knowledge",     icon: GraduationCap },
   { href: "/analytics",     label: "Analytics",     icon: BarChart3 },
   { href: "/accounts",      label: "Accounts",      icon: Wallet },
+  { href: "/goals",         label: "Goals",         icon: Target },
   { href: "/settings",      label: "Settings",      icon: Settings },
 ] as const;
 

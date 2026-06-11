@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, BookOpen } from "lucide-react";
 import { format } from "date-fns";
+import { JournalFilters } from "./journal-filters";
 
 async function getUser() {
   const supabase = await createClient();
@@ -39,27 +40,62 @@ function GradeBadge({ grade }: { grade: string | null }) {
   return <span className="text-xs font-bold" style={{ color: c }}>{grade.replace("_", "+")}</span>;
 }
 
-export default async function JournalPage() {
+export default async function JournalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    instrument?: string;
+    result?: string;
+    session?: string;
+    direction?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+  }>;
+}) {
+  const sp = await searchParams;
   const user = await getUser();
   if (!user) return null;
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
 
+  // Build filter where clause
+  const where: Record<string, unknown> = { userId: user.id };
+  if (sp.instrument) where.instrument = sp.instrument;
+  if (sp.result)     where.result     = sp.result;
+  if (sp.session)    where.session    = sp.session;
+  if (sp.direction)  where.direction  = sp.direction;
+  if (sp.dateFrom || sp.dateTo) {
+    where.date = {};
+    if (sp.dateFrom) (where.date as Record<string, unknown>).gte = new Date(sp.dateFrom);
+    if (sp.dateTo)   (where.date as Record<string, unknown>).lte = new Date(sp.dateTo + "T23:59:59");
+  }
+  if (sp.search) {
+    where.OR = [
+      { instrument: { contains: sp.search, mode: "insensitive" } },
+      { notes:      { contains: sp.search, mode: "insensitive" } },
+    ];
+  }
+
   const trades = dbUser
     ? await prisma.trade.findMany({
-        where: { userId: user.id },
+        where,
         orderBy: { date: "desc" },
-        take: 50,
+        take: 100,
         include: { tags: { include: { tag: true } } },
       })
     : [];
 
-  const wins   = trades.filter((t) => t.result === "WIN").length;
-  const losses = trades.filter((t) => t.result === "LOSS").length;
-  const total  = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result)).length;
+  // Stats for filtered set
+  const activeTrades = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
+  const wins   = activeTrades.filter((t) => t.result === "WIN").length;
+  const total  = activeTrades.length;
   const avgR   = total > 0
-    ? (trades.reduce((s, t) => s + (t.rResult ?? 0), 0) / total).toFixed(2)
+    ? (activeTrades.reduce((s, t) => s + (t.rResult ?? 0), 0) / total).toFixed(2)
     : "—";
+  const totalPnl = trades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
+
+  const hasFilters = !!(sp.instrument || sp.result || sp.session || sp.direction || sp.dateFrom || sp.dateTo || sp.search);
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -67,9 +103,10 @@ export default async function JournalPage() {
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
           {[
-            { label: "Trades",   value: total },
+            { label: "Trade",    value: total },
             { label: "Win Rate", value: total > 0 ? `${Math.round((wins / total) * 100)}%` : "—" },
             { label: "Avg R",    value: avgR },
+            { label: "Net P&L",  value: `${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}` },
           ].map(({ label, value }) => (
             <div key={label}>
               <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</p>
@@ -86,6 +123,16 @@ export default async function JournalPage() {
         </Link>
       </div>
 
+      {/* Filters */}
+      <JournalFilters initialValues={sp} />
+
+      {hasFilters && (
+        <div className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+          <span>{trades.length} sonuç bulundu</span>
+          <Link href="/journal" style={{ color: "var(--color-accent)" }}>Filtreleri temizle →</Link>
+        </div>
+      )}
+
       {/* Trade list */}
       {trades.length === 0 ? (
         <div
@@ -93,10 +140,14 @@ export default async function JournalPage() {
           style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
         >
           <BookOpen size={32} style={{ color: "var(--color-text-muted)" }} />
-          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>No trades logged yet</p>
-          <Link href="/journal/new" className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "#fff" }}>
-            Log your first trade
-          </Link>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+            {hasFilters ? "Filtreye uyan trade bulunamadı" : "Henüz trade eklenmedi"}
+          </p>
+          {!hasFilters && (
+            <Link href="/journal/new" className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "#fff" }}>
+              İlk trade&apos;i ekle
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
