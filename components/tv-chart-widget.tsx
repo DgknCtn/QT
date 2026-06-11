@@ -41,6 +41,8 @@ export function TvChartWidget({ instrument, interval = "60", height = 400, compa
 
     const innerDiv = document.createElement("div");
     innerDiv.id = widgetId.current;
+    innerDiv.style.height = `${height}px`;
+    innerDiv.style.width = "100%";
     container.appendChild(innerDiv);
 
     const script = document.createElement("script");
@@ -49,7 +51,8 @@ export function TvChartWidget({ instrument, interval = "60", height = 400, compa
     script.onload = () => {
       if (typeof (window as any).TradingView === "undefined") return;
       new (window as any).TradingView.widget({
-        autosize:          true,
+        autosize:          false,
+        width:             container.offsetWidth || "100%",
         height,
         symbol,
         interval,
