@@ -75,6 +75,7 @@ export async function saveTrade(
       riskPercent: form.riskPercent ? parseFloat(form.riskPercent as string) : null,
       rResult: form.rResult ? parseFloat(form.rResult as string) : null,
       pnlPoints: form.pnlPoints ? parseFloat(form.pnlPoints as string) : null,
+      pnlCurrency: form.pnlCurrency ? parseFloat(form.pnlCurrency as string) : null,
       result: e(form.result as string) ?? "NO_TRADE",
       processScore: score,
       processGrade: grade as "A_PLUS" | "B" | "C" | "RULE_BREAK" | "UNREVIEWED",

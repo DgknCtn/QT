@@ -52,6 +52,7 @@ export function TradeForm({ userId, recentPreps }: { userId: string; recentPreps
     riskPercent: "",
     rResult: "",
     pnlPoints: "",
+    pnlCurrency: "",
     result: "",
     dailyPrepId: "",
     planFollowed: "",
@@ -228,6 +229,10 @@ export function TradeForm({ userId, recentPreps }: { userId: string; recentPreps
           <div>
             <label className="step-label">PnL Points</label>
             <input type="number" step="0.25" value={form.pnlPoints} onChange={(e) => upd("pnlPoints", e.target.value)} placeholder="—" className="field-input" />
+          </div>
+          <div>
+            <label className="step-label">PnL ($)</label>
+            <input type="number" step="0.01" value={form.pnlCurrency} onChange={(e) => upd("pnlCurrency", e.target.value)} placeholder="e.g. 250 or -120" className="field-input" />
           </div>
           <div>
             <label className="step-label">Link to Daily Prep</label>
