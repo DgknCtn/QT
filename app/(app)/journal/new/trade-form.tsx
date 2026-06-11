@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { saveTrade } from "./actions";
+import { updateTrade } from "@/app/(app)/journal/[id]/actions";
 import { uploadScreenshot } from "@/lib/supabase/storage";
 import { format } from "date-fns";
 
@@ -22,22 +23,57 @@ const POSITIVE_TAGS = [
 type Prep = { id: string; date: Date; triad: string; htfBias: string; goNoGoStatus: string | null };
 type ScreenshotEntry = { file: File; preview: string; type: string };
 
+type InitialData = {
+  date: string;
+  instrument: string;
+  marketGroup: string;
+  triad: string;
+  session: string;
+  direction: string;
+  setupType: string;
+  entryModel: string;
+  entryPrice: string;
+  stopPrice: string;
+  tp1: string; tp2: string; tp3: string;
+  riskPercent: string;
+  rResult: string;
+  pnlPoints: string;
+  pnlCurrency: string;
+  result: string;
+  dailyPrepId: string;
+  planFollowed: string;
+  goStatusAtEntry: string;
+  notes: string;
+  mistakeTags: string[];
+  positiveTags: string[];
+};
+
 const SCREENSHOT_TYPES = ["HTF_CONTEXT", "ENTRY", "EXIT", "MISSED_SETUP", "REVIEW"];
 const SCREENSHOT_LABELS: Record<string, string> = {
   HTF_CONTEXT: "HTF Context", ENTRY: "Entry", EXIT: "Exit",
   MISSED_SETUP: "Missed Setup", REVIEW: "Review",
 };
 
-export function TradeForm({ userId, recentPreps }: { userId: string; recentPreps: Prep[] }) {
+export function TradeForm({
+  userId,
+  recentPreps,
+  initialData,
+  tradeId,
+}: {
+  userId: string;
+  recentPreps: Prep[];
+  initialData?: InitialData;
+  tradeId?: string;
+}) {
   const router = useRouter();
-  const [mode, setMode] = useState<"quick" | "full">("quick");
+  const [mode, setMode] = useState<"quick" | "full">(initialData ? "full" : "quick");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [screenshots, setScreenshots] = useState<ScreenshotEntry[]>([]);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(initialData ?? {
     date: format(new Date(), "yyyy-MM-dd"),
     instrument: "",
     marketGroup: "",
@@ -91,14 +127,18 @@ export function TradeForm({ userId, recentPreps }: { userId: string; recentPreps
     setSaving(true);
     setError("");
     try {
-      // Upload screenshots first
       const uploadedUrls: { url: string; type: string }[] = [];
       for (const sc of screenshots) {
         const url = await uploadScreenshot(sc.file, userId);
         uploadedUrls.push({ url, type: sc.type });
       }
-      await saveTrade(userId, form, uploadedUrls);
-      router.push("/journal");
+      if (tradeId) {
+        await updateTrade(tradeId, userId, form, uploadedUrls);
+        router.push(`/journal/${tradeId}`);
+      } else {
+        await saveTrade(userId, form, uploadedUrls);
+        router.push("/journal");
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -381,7 +421,7 @@ export function TradeForm({ userId, recentPreps }: { userId: string; recentPreps
         <button type="button" onClick={handleSubmit} disabled={saving}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-opacity"
           style={{ background: "var(--color-accent)", color: "#fff" }}>
-          {saving ? "Saving…" : "Save Trade"}
+          {saving ? "Saving…" : tradeId ? "Güncelle" : "Save Trade"}
         </button>
         <button type="button" onClick={() => router.back()}
           className="px-4 py-2.5 rounded-xl text-sm border transition-colors"

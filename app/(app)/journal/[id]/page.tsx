@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { TvChartWidget } from "@/components/tv-chart-widget";
 import { DeleteTradeButton } from "./delete-button";
 
@@ -38,7 +38,16 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
         <Link href="/journal" className="inline-flex items-center gap-1.5 text-xs hover:underline" style={{ color: "var(--color-text-muted)" }}>
           <ArrowLeft size={12} /> Journal&apos;a Dön
         </Link>
-        <DeleteTradeButton tradeId={trade.id} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/journal/${trade.id}/edit`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
+            style={{ borderColor: "var(--color-bg-border)", color: "var(--color-text-muted)", background: "var(--color-bg-elevated)" }}
+          >
+            <Pencil size={11} /> Düzenle
+          </Link>
+          <DeleteTradeButton tradeId={trade.id} />
+        </div>
       </div>
 
       {/* Header */}
