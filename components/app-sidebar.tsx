@@ -16,6 +16,7 @@ import {
   BookMarked,
   Wallet,
   Target,
+  Calculator,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -31,8 +32,9 @@ const NAV_ITEMS = [
   { href: "/knowledge",  label: "Knowledge",   icon: GraduationCap },
   { href: "/analytics",  label: "Analytics",   icon: BarChart3 },
   { href: "/accounts",   label: "Accounts",    icon: Wallet },
-  { href: "/goals",       label: "Goals",       icon: Target },
-  { href: "/mentorship", label: "Mentorship",  icon: GraduationCap },
+  { href: "/goals",            label: "Goals",       icon: Target },
+  { href: "/risk-calculator", label: "Risk Calc",  icon: Calculator },
+  { href: "/mentorship",      label: "Mentorship",  icon: GraduationCap },
   { href: "/settings",   label: "Settings",    icon: Settings },
 ] as const;
 
