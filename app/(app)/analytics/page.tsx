@@ -257,14 +257,23 @@ export default async function AnalyticsPage({
   const hmYear  = parseInt(sp.heatmapYear  ?? String(now.getFullYear()), 10);
   const hmMonth = parseInt(sp.heatmapMonth ?? String(now.getMonth() + 1), 10);
 
-  const heatmapDays: Record<string, { pnl: number; count: number }> = {};
+  const heatmapDays: Record<string, { pnl: number; count: number; trades: { id: string; instrument: string; direction: string | null; result: string | null; pnlCurrency: number | null; rResult: number | null; session: string | null }[] }> = {};
   trades.forEach((t) => {
     const d = new Date(t.date);
     if (d.getFullYear() === hmYear && d.getMonth() + 1 === hmMonth) {
       const key = format(d, "yyyy-MM-dd");
-      if (!heatmapDays[key]) heatmapDays[key] = { pnl: 0, count: 0 };
+      if (!heatmapDays[key]) heatmapDays[key] = { pnl: 0, count: 0, trades: [] };
       heatmapDays[key].pnl   += t.pnlCurrency ?? 0;
       heatmapDays[key].count += 1;
+      heatmapDays[key].trades.push({
+        id: t.id,
+        instrument: t.instrument,
+        direction: t.direction ?? null,
+        result: t.result ?? null,
+        pnlCurrency: t.pnlCurrency ?? null,
+        rResult: t.rResult ?? null,
+        session: t.session ?? null,
+      });
     }
   });
   const heatmapData = Object.entries(heatmapDays).map(([date, v]) => ({ date, ...v }));

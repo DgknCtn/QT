@@ -698,8 +698,9 @@ model FundedAccount {
   accountId       String?
   startingBalance Float
   currentEquity   Float
-  profitTarget    Float
-  maxDailyLoss    Float
+  profitTarget       Float
+  phase2StartBalance Float?
+  maxDailyLoss       Float
   maxTotalLoss    Float
   status          AccountStatus @default(ACTIVE)
   startDate       DateTime

@@ -51,6 +51,32 @@ export async function deleteAccount(accountId: string) {
   revalidatePath("/accounts");
 }
 
+export async function advancePhase(accountId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const account = await prisma.fundedAccount.findFirst({ where: { id: accountId, userId: user.id } });
+  if (!account) throw new Error("Account not found");
+
+  if (account.phase === 1) {
+    await prisma.fundedAccount.update({
+      where: { id: accountId },
+      data: {
+        phase: 2,
+        phase2StartBalance: account.currentEquity,
+        profitTarget: account.currentEquity * 0.04,
+      },
+    });
+  } else if (account.phase === 2) {
+    await prisma.fundedAccount.update({
+      where: { id: accountId },
+      data: { phase: 3, status: "PASSED" },
+    });
+  }
+  revalidatePath("/accounts");
+}
+
 export async function logEquity(accountId: string, form: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

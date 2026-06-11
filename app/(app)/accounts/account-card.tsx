@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
-import { deleteAccount } from "./actions";
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Trophy } from "lucide-react";
+import { deleteAccount, advancePhase } from "./actions";
 import type { FundedAccount, EquityLog } from "@prisma/client";
 
 interface Props {
@@ -30,10 +30,21 @@ export function AccountCard({ account, todayPnl }: Props) {
 
   const profit   = account.currentEquity - account.startingBalance;
   const profitPct = (profit / account.startingBalance) * 100;
-  const drawdown  = Math.min(profit, 0); // negative = drawdown
+  const drawdown  = Math.min(profit, 0);
   const drawdownAbs = Math.abs(Math.min(drawdown, 0));
 
   const todayLoss = todayPnl !== null && todayPnl < 0 ? Math.abs(todayPnl) : 0;
+
+  // Phase calculations
+  const phase1Target = account.startingBalance * 0.09;
+  const phase1Pct = Math.min((profit / phase1Target) * 100, 100);
+  const phase1Done = profitPct >= 9;
+
+  const p2Base = account.phase2StartBalance ?? account.currentEquity;
+  const phase2Profit = account.currentEquity - p2Base;
+  const phase2Target = p2Base * 0.04;
+  const phase2Pct = Math.min(phase2Target > 0 ? (phase2Profit / phase2Target) * 100 : 0, 100);
+  const phase2Done = account.phase === 2 && phase2Profit / p2Base * 100 >= 4;
 
   const STATUS_COLORS: Record<string, string> = {
     ACTIVE: "#34c97e", PASSED: "#6366f1", FAILED: "#ef4444", REVIEW: "#f59e0b",
@@ -82,8 +93,57 @@ export function AccountCard({ account, todayPnl }: Props) {
         </div>
       </div>
 
+      {/* Phase stepper */}
+      <div className="flex items-center gap-1 text-xs">
+        {[
+          { label: "Phase 1", step: 1 },
+          { label: "Phase 2", step: 2 },
+          { label: "Funded",  step: 3 },
+        ].map(({ label, step }, i) => {
+          const done   = account.phase > step;
+          const active = account.phase === step;
+          return (
+            <div key={step} className="flex items-center gap-1">
+              {i > 0 && <div className="w-6 h-px" style={{ background: done ? "#34c97e" : "var(--color-bg-border)" }} />}
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{
+                  background: done ? "rgba(52,201,126,0.15)" : active ? "rgba(99,102,241,0.15)" : "var(--color-bg-surface)",
+                  color: done ? "#34c97e" : active ? "var(--color-accent)" : "var(--color-text-muted)",
+                  border: `1px solid ${done ? "#34c97e" : active ? "var(--color-accent)" : "var(--color-bg-border)"}`,
+                }}>
+                {done && "✓ "}{label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Risk meters */}
       <div className="space-y-3">
+        {/* Phase progress */}
+        {account.phase === 1 && (
+          <div>
+            <div className="flex justify-between text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              <span>Phase 1 Hedefi (%9)</span>
+              <span style={{ color: phase1Done ? "#34c97e" : "var(--color-text-secondary)" }}>
+                {profit >= 0 ? "+" : ""}${profit.toFixed(0)} / ${phase1Target.toFixed(0)}{phase1Done && " ✓"}
+              </span>
+            </div>
+            <ProgressBar value={Math.max(profit, 0)} max={phase1Target} color="#34c97e" />
+          </div>
+        )}
+        {account.phase === 2 && (
+          <div>
+            <div className="flex justify-between text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              <span>Phase 2 Hedefi (%4)</span>
+              <span style={{ color: phase2Done ? "#34c97e" : "var(--color-text-secondary)" }}>
+                {phase2Profit >= 0 ? "+" : ""}${phase2Profit.toFixed(0)} / ${phase2Target.toFixed(0)}{phase2Done && " ✓"}
+              </span>
+            </div>
+            <ProgressBar value={Math.max(phase2Profit, 0)} max={phase2Target} color="#34c97e" />
+          </div>
+        )}
+
         {/* Profit Target */}
         <div>
           <div className="flex justify-between text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -132,11 +192,35 @@ export function AccountCard({ account, todayPnl }: Props) {
           Risk limitinin %70'ine ulaşıldı — dikkatli ol.
         </div>
       )}
-      {profit >= account.profitTarget && account.status === "ACTIVE" && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium" style={{ background: "#34c97e20", color: "#34c97e" }}>
-          <CheckCircle size={14} />
-          Profit hedefine ulaşıldı! Phase geçişi için hazır.
+      {account.phase === 3 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium" style={{ background: "rgba(234,179,8,0.15)", color: "#eab308" }}>
+          <Trophy size={14} />
+          Tebrikler! Funded hesabına geçtin.
         </div>
+      )}
+      {account.phase === 1 && phase1Done && (
+        <form action={advancePhase.bind(null, account.id)}>
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+            style={{ background: "rgba(52,201,126,0.2)", color: "#34c97e", border: "1px solid #34c97e" }}
+          >
+            <CheckCircle size={14} />
+            Phase 2&apos;ye Geç
+          </button>
+        </form>
+      )}
+      {account.phase === 2 && phase2Done && (
+        <form action={advancePhase.bind(null, account.id)}>
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+            style={{ background: "rgba(234,179,8,0.2)", color: "#eab308", border: "1px solid #eab308" }}
+          >
+            <Trophy size={14} />
+            Funded Ol!
+          </button>
+        </form>
       )}
 
       {/* Actions */}
