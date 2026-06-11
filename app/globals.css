@@ -91,6 +91,43 @@ body {
   background: var(--color-bg-surface);
 }
 
+/* ── Light theme overrides ────────────────────────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg-base:      #f4f4f7;
+  --color-bg-elevated:  #ffffff;
+  --color-bg-surface:   #ebebef;
+  --color-bg-hover:     #e2e2e8;
+  --color-bg-border:    #d4d4de;
+
+  --color-text-primary:   #0d0d0f;
+  --color-text-secondary: #4a4a5a;
+  --color-text-muted:     #8888a0;
+
+  --color-accent:      #3b7ef0;
+  --color-accent-dim:  #dce8fd;
+  --color-success:     #16a34a;
+  --color-warning:     #d97706;
+  --color-danger:      #dc2626;
+
+  --color-go:    #16a34a;
+  --color-nogo:  #dc2626;
+  --color-wait:  #d97706;
+
+  --color-long:  #16a34a;
+  --color-short: #dc2626;
+}
+
+[data-theme="light"] .field-input {
+  background: #ffffff;
+  border-color: var(--color-bg-border);
+  color: var(--color-text-primary);
+}
+[data-theme="light"] .field-input option {
+  background: #ffffff;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

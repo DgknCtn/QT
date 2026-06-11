@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Plus } from "lucide-react";
+import { Bell, Plus, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { MarketClockCompact } from "@/components/market-clock/market-clock-compact";
+import { useTheme } from "@/components/theme-provider";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":  "Dashboard",
@@ -25,7 +26,8 @@ const QUICK_ADD: Record<string, { label: string; href: string }> = {
 
 export function TopBar() {
   const pathname = usePathname();
-  const title = Object.entries(PAGE_TITLES).find(([key]) => pathname === key || pathname.startsWith(key + "/"))?.[1] ?? "";
+  const { theme, toggle } = useTheme();
+  const title    = Object.entries(PAGE_TITLES).find(([key]) => pathname === key || pathname.startsWith(key + "/"))?.[1] ?? "";
   const quickAdd = Object.entries(QUICK_ADD).find(([key]) => pathname === key || pathname.startsWith(key + "/"))?.[1];
 
   return (
@@ -49,6 +51,16 @@ export function TopBar() {
             {quickAdd.label}
           </Link>
         )}
+        <button
+          onClick={toggle}
+          title={theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"}
+          className="p-1.5 rounded-lg transition-colors"
+          style={{ color: "var(--color-text-muted)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-hover)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
         <button
           className="p-1.5 rounded-lg transition-colors"
           style={{ color: "var(--color-text-muted)" }}
