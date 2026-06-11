@@ -5,6 +5,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { TvChartWidget } from "@/components/tv-chart-widget";
+import { DeleteTradeButton } from "./delete-button";
 
 export default async function TradeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,9 +34,12 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="max-w-3xl mx-auto space-y-4">
       {/* Back */}
-      <Link href="/journal" className="inline-flex items-center gap-1.5 text-xs hover:underline" style={{ color: "var(--color-text-muted)" }}>
-        <ArrowLeft size={12} /> Back to Journal
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/journal" className="inline-flex items-center gap-1.5 text-xs hover:underline" style={{ color: "var(--color-text-muted)" }}>
+          <ArrowLeft size={12} /> Journal&apos;a Dön
+        </Link>
+        <DeleteTradeButton tradeId={trade.id} />
+      </div>
 
       {/* Header */}
       <div className="rounded-xl border p-5" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
