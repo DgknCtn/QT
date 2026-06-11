@@ -207,17 +207,65 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
   const MONTH_Q_LABELS = ["", "1. hafta", "2. hafta", "3. hafta", "4. hafta"];
 
   const DOW_NAMES = ["", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
-  // getDay(): 0=Sun,1=Mon,...,6=Sat
-  const dow = etDateObj.getDay();
-  const weekQ = dow === 5 ? 4 : dow === 6 || dow === 0 ? 0 : dow; // Mon=1,Tue=2,Wed=3,Thu=4,Fri→4,Weekend→0
+  const dow = etDateObj.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  const weekQ = dow === 5 ? 4 : dow === 6 || dow === 0 ? 0 : dow;
   const weekLabel = DOW_NAMES[dow] ?? "?";
 
+  // ── Remaining time calculations ──
+
+  // 90 DK remaining
+  const q90RemainingMin = Math.ceil(90 - minutesInQ90);
+  const q90Sub = q90RemainingMin >= 60
+    ? `${Math.floor(q90RemainingMin / 60)}sa ${q90RemainingMin % 60}dk kaldı`
+    : `${q90RemainingMin} dk kaldı`;
+
+  // GÜN (session) remaining — each session = 360 min
+  const sessionRemainingMin = Math.ceil(360 - minutesSinceStart);
+  const günSub = sessionRemainingMin <= 0 ? "Seans bitti" :
+    sessionRemainingMin >= 60
+      ? `${Math.floor(sessionRemainingMin / 60)}sa ${sessionRemainingMin % 60}dk kaldı`
+      : `${sessionRemainingMin} dk kaldı`;
+
+  // HAFTA remaining — until Friday 18:00 ET
+  let haftaSub: string;
+  if (dow === 6 || dow === 0) {
+    haftaSub = "Hafta sonu";
+  } else {
+    // Minutes since Monday 00:00 ET
+    const minFromMon = (dow - 1) * 24 * 60 + et.h * 60 + et.min;
+    const fridayCloseFromMon = 4 * 24 * 60 + 18 * 60; // Mon=0, Fri=4 days later at 18:00
+    const weekRemainingMin = Math.ceil(fridayCloseFromMon - minFromMon);
+    if (weekRemainingMin <= 0) {
+      haftaSub = "Hafta kapandı";
+    } else if (weekRemainingMin >= 24 * 60) {
+      const d = Math.floor(weekRemainingMin / (24 * 60));
+      const h = Math.floor((weekRemainingMin % (24 * 60)) / 60);
+      haftaSub = h > 0 ? `${d}g ${h}sa kaldı` : `${d} gün kaldı`;
+    } else {
+      const h = Math.floor(weekRemainingMin / 60);
+      const m = weekRemainingMin % 60;
+      haftaSub = h > 0 ? `${h}sa ${m}dk kaldı` : `${m} dk kaldı`;
+    }
+  }
+
+  // AY remaining — days until end of month
+  const lastDayOfMonth = new Date(et.y, et.mo, 0).getDate();
+  const daysLeftMonth = lastDayOfMonth - et.d;
+  const aySub = daysLeftMonth > 0 ? `${daysLeftMonth} gün kaldı` : "Ayın son günü";
+
+  // YIL (quarter) remaining — days until end of current quarter
+  const quarterEndMonth = yearQ * 3; // 3=Mar, 6=Jun, 9=Sep, 12=Dec
+  const quarterEndDate = new Date(et.y, quarterEndMonth, 0); // last day of quarter month
+  const etToday = new Date(et.y, et.mo - 1, et.d);
+  const daysLeftQuarter = Math.ceil((quarterEndDate.getTime() - etToday.getTime()) / 86_400_000);
+  const yilSub = daysLeftQuarter > 0 ? `${daysLeftQuarter} gün kaldı` : "Çeyrek bitiyor";
+
   const cycles: CycleEntry[] = [
-    { key: "YIL",    q: yearQ,   label: YEAR_Q_LABELS[yearQ] ?? "" },
-    { key: "AY",     q: monthQ,  label: MONTH_Q_LABELS[monthQ] ?? "", sub: "ilk tam haftadan" },
-    { key: "HAFTA",  q: weekQ || 1, label: weekLabel },
-    { key: "GÜN",    q: session.dayQ + 1, label: session.name },
-    { key: "90 DK",  q: activeQIndex + 1, label: Q_LABELS[activeQIndex] },
+    { key: "YIL",    q: yearQ,          label: YEAR_Q_LABELS[yearQ] ?? "",      sub: yilSub },
+    { key: "AY",     q: monthQ,         label: MONTH_Q_LABELS[monthQ] ?? "",    sub: aySub },
+    { key: "HAFTA",  q: weekQ || 1,     label: weekLabel,                       sub: haftaSub },
+    { key: "GÜN",    q: session.dayQ + 1, label: session.name,                  sub: günSub },
+    { key: "90 DK",  q: activeQIndex + 1, label: Q_LABELS[activeQIndex],        sub: q90Sub },
     { key: "MİCRO",  q: microIndex + 1,   label: `${microIndex + 1}/4 · ${microEndLabel}`, sub: `${microRemainingMin} dk kaldı` },
   ];
 

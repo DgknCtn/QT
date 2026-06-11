@@ -5,7 +5,6 @@ import { format, startOfWeek, endOfWeek, startOfDay, endOfDay } from "date-fns";
 import {
   ClipboardList,
   TrendingUp,
-  Layers,
   AlertTriangle,
   Ban,
   BarChart3,
@@ -82,11 +81,6 @@ export default async function DashboardPage() {
     ? (weekTrades.reduce((s, t) => s + (t.processScore ?? 0), 0) / weekTrades.filter((t) => t.processScore != null).length).toFixed(1)
     : null;
 
-  // Active levels count
-  const levelCount = dbUser
-    ? await prisma.level.count({ where: { userId: user!.id } }).catch(() => 0)
-    : 0;
-
   // Active funded accounts
   const activeAccounts = dbUser
     ? await prisma.fundedAccount.findMany({
@@ -153,7 +147,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Quick stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard
           label="Today's Prep"
           value={todayPrep ? (todayPrep.goNoGoStatus ?? "—") : "—"}
@@ -169,7 +163,6 @@ export default async function DashboardPage() {
           value={avgScore ?? "—"}
           sub="this week"
         />
-        <StatCard label="Active Levels" value={levelCount} sub="levels" />
       </div>
 
       {/* Funded Account widget */}
@@ -325,10 +318,6 @@ export default async function DashboardPage() {
           <Link href="/journal/new" className="qa-card">
             <TrendingUp size={14} style={{ color: "var(--color-accent)" }} />
             Log Trade
-          </Link>
-          <Link href="/levels/new" className="qa-card">
-            <Layers size={14} style={{ color: "var(--color-accent)" }} />
-            Add Level
           </Link>
           <Link href="/analytics" className="qa-card">
             <BarChart3 size={14} style={{ color: "var(--color-accent)" }} />
