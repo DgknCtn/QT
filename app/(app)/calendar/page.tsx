@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { addDays, subDays } from "date-fns";
 import { CalendarClient } from "./calendar-client";
+import { InvestingCalendarWidget } from "@/components/investing-calendar-widget";
 
 export default async function CalendarPage() {
   const supabase = await createClient();
@@ -10,7 +11,6 @@ export default async function CalendarPage() {
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
 
-  // Show events from -7 days to +30 days
   const events = dbUser
     ? await prisma.economicEvent.findMany({
         where: {
@@ -21,5 +21,23 @@ export default async function CalendarPage() {
       }).catch(() => [])
     : [];
 
-  return <CalendarClient userId={user.id} events={events as any} />;
+  return (
+    <div className="p-6 space-y-8 max-w-5xl">
+      {/* investing.com Economic Calendar */}
+      <div>
+        <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+          Ekonomik Takvim
+        </h2>
+        <InvestingCalendarWidget />
+      </div>
+
+      {/* Manuel olay listesi */}
+      <div>
+        <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+          Olaylarım
+        </h2>
+        <CalendarClient userId={user.id} events={events as any} />
+      </div>
+    </div>
+  );
 }
