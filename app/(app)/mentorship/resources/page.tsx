@@ -10,7 +10,8 @@ export default async function MenteeResourcesPage() {
   if (!user) redirect("/login");
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id }, include: { menteeProfile: true } });
-  if (!dbUser?.menteeProfile || dbUser.menteeProfile.status !== "ACTIVE") redirect("/mentorship");
+  const isAdmin = dbUser?.role === "ADMIN";
+  if (!isAdmin && (!dbUser?.menteeProfile || dbUser.menteeProfile.status !== "ACTIVE")) redirect("/mentorship");
 
   const resources = await prisma.resource.findMany({ orderBy: { order: "asc" } });
 

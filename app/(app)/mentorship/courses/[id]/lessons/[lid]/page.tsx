@@ -12,7 +12,8 @@ export default async function LessonViewerPage({ params }: { params: Promise<{ i
   if (!user) redirect("/login");
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id }, include: { menteeProfile: true } });
-  if (!dbUser?.menteeProfile || dbUser.menteeProfile.status !== "ACTIVE") redirect("/mentorship");
+  const isAdmin = dbUser?.role === "ADMIN";
+  if (!isAdmin && (!dbUser?.menteeProfile || dbUser.menteeProfile.status !== "ACTIVE")) redirect("/mentorship");
 
   const lesson = await prisma.lesson.findUnique({
     where: { id: lid },
