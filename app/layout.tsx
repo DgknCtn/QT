@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "QT Workspace",
   description: "Quarterly Theory Personal Trading Workspace",
+  icons: {
+    icon: "/qtlogo.png",
+    apple: "/qtlogo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
