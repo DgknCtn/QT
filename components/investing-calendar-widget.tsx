@@ -1,25 +1,48 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 export function InvestingCalendarWidget() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "tradingview-widget-container__widget";
+
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-events.js";
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      colorTheme:    "dark",
+      isTransparent: true,
+      width:         "100%",
+      height:        "600",
+      locale:        "tr",
+      importanceFilter: "-1,0,1",
+      countryFilter:  "us,eu,gb,jp,au,nz,ca,ch",
+    });
+
+    container.appendChild(wrapper);
+    container.appendChild(script);
+
+    return () => { container.innerHTML = ""; };
+  }, []);
+
   return (
     <div
+      ref={containerRef}
+      className="tradingview-widget-container"
       style={{
         borderRadius: 12,
         border: "1px solid var(--color-bg-border)",
-        overflow: "auto",
+        overflow: "hidden",
+        minHeight: 600,
       }}
-    >
-      <iframe
-        src="https://sslecal2.investing.com?ecoDayBackground=%23131722&leftColumnColor=%23131722&centralColumnColor=%231e222d&contractLinkColor=%236366f1&borderColor=%23252933&columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=5,22,17,39,72,36,110,43,14,48,56,76,11,37&calType=week&timeZone=55&lang=56"
-        width="100%"
-        height="467"
-        frameBorder={0}
-        // @ts-expect-error — non-standard but supported by investing.com embed
-        allowTransparency="true"
-        marginWidth={0}
-        marginHeight={0}
-        style={{ minWidth: 650, display: "block" }}
-      />
-    </div>
+    />
   );
 }
