@@ -34,7 +34,7 @@ export default async function CalendarPage() {
       {/* Manuel olay listesi */}
       <div>
         <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
-          Olaylarım
+          Events
         </h2>
         <CalendarClient userId={user.id} events={events as any} />
       </div>

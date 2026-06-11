@@ -47,7 +47,6 @@ const NAV_GROUPS = [
       { href: "/setups",          label: "Setups",     icon: TrendingUp },
       { href: "/knowledge",       label: "Knowledge",  icon: GraduationCap },
       { href: "/mentorship",      label: "Mentorship", icon: GraduationCap },
-      { href: "/settings",        label: "Settings",   icon: Settings },
     ],
   },
 ];
@@ -199,6 +198,29 @@ export function AppSidebar() {
           {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           {!collapsed && <span className="text-sm">Hide</span>}
         </button>
+
+        {/* Settings */}
+        <Link
+          href="/settings"
+          title={collapsed ? "Settings" : undefined}
+          className="w-full flex items-center rounded-lg text-sm transition-colors mb-1"
+          style={{
+            gap: collapsed ? 0 : 12,
+            padding: collapsed ? "8px 0" : "8px 12px",
+            justifyContent: collapsed ? "center" : "flex-start",
+            color: pathname === "/settings" ? "var(--color-text-primary)" : "var(--color-text-muted)",
+            background: pathname === "/settings" ? "var(--color-bg-hover)" : "transparent",
+          }}
+          onMouseEnter={(e) => {
+            if (pathname !== "/settings") e.currentTarget.style.background = "var(--color-bg-surface)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = pathname === "/settings" ? "var(--color-bg-hover)" : "transparent";
+          }}
+        >
+          <Settings size={16} style={{ color: pathname === "/settings" ? "var(--color-accent)" : "var(--color-text-muted)", flexShrink: 0 }} />
+          {!collapsed && "Settings"}
+        </Link>
 
         {/* Logout */}
         <button
