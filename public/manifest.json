@@ -1,0 +1,41 @@
+{
+  "name": "QT Workspace",
+  "short_name": "QT",
+  "description": "Quarterly Theory Personal Trading Workspace",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0d0d0f",
+  "theme_color": "#4f8ef7",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/qtlogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/qtlogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Journal",
+      "short_name": "Journal",
+      "description": "Trade journal",
+      "url": "/journal",
+      "icons": [{ "src": "/qtlogo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Daily Prep",
+      "short_name": "Prep",
+      "description": "Daily preparation",
+      "url": "/daily-prep",
+      "icons": [{ "src": "/qtlogo.png", "sizes": "96x96" }]
+    }
+  ]
+}
