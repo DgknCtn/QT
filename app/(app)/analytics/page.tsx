@@ -241,6 +241,18 @@ export default async function AnalyticsPage({
     .slice(0, 10);
   const maxMistake = topMistakes[0]?.[1] ?? 1;
 
+  // ── Positive tag frequency ──
+  const positiveCounts: Record<string, number> = {};
+  trades.forEach((t) =>
+    t.tags
+      .filter((tt) => tt.tag.category === "POSITIVE")
+      .forEach((tt) => { positiveCounts[tt.tag.name] = (positiveCounts[tt.tag.name] ?? 0) + 1; })
+  );
+  const topPositives = Object.entries(positiveCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  const maxPositive = topPositives[0]?.[1] ?? 1;
+
   // ── Weekly review ──
   const weekOffset = parseInt(sp.week ?? "0", 10);
   const weekStart = startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
@@ -466,6 +478,26 @@ export default async function AnalyticsPage({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Positive tags */}
+      <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+        <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Güçlü Yönler</h3>
+        {topPositives.length === 0 ? (
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Henüz pozitif tag eklenmedi</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-x-8 gap-y-2.5">
+            {topPositives.map(([name, count]) => (
+              <div key={name}>
+                <div className="flex justify-between mb-1 text-xs">
+                  <span style={{ color: "var(--color-success)" }}>{name}</span>
+                  <span style={{ color: "var(--color-text-muted)" }}>{count}×</span>
+                </div>
+                <MiniBar pct={(count / maxPositive) * 100} color="var(--color-success)" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Weekly Review */}
