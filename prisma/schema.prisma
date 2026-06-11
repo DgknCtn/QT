@@ -35,7 +35,8 @@ model User {
   economicEvents EconomicEvent[]
   fundedAccounts FundedAccount[]
   monthlyGoals   MonthlyGoal[]
-  menteeProfile  MenteeProfile?
+  menteeProfile    MenteeProfile?
+  playbookEntries  PlaybookEntry[]
 
   @@map("users")
 }
@@ -850,4 +851,26 @@ model NotionPage {
   createdAt DateTime @default(now())
 
   @@map("notion_pages")
+}
+
+// ─── Playbook ─────────────────────────────────────────────────────────────────
+
+model PlaybookEntry {
+  id           String   @id @default(cuid())
+  userId       String
+  title        String
+  category     String
+  description  String?
+  conditions   String[]
+  management   String[]
+  invalidation String[]
+  notes        String?
+  imageUrls    String[] @default([])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("playbook_entries")
 }
