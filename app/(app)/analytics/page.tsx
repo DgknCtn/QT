@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { CumulativeRChart } from "./cumulative-r-chart";
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -153,6 +154,36 @@ export default async function AnalyticsPage({
   const active = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
   const totalR = trades.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
 
+  // ── Cumulative R curve (chronological order) ──
+  const chronoTrades = [...trades].reverse(); // oldest first
+  let cum = 0;
+  const rCurve = chronoTrades
+    .filter((t) => t.rResult != null)
+    .map((t, i) => {
+      cum += t.rResult ?? 0;
+      return {
+        label: `#${i + 1}`,
+        r:     parseFloat((t.rResult ?? 0).toFixed(2)),
+        cumR:  parseFloat(cum.toFixed(2)),
+      };
+    });
+
+  // ── Win/Loss streak ──
+  const streakTrades = active.slice(); // already desc order
+  let currentStreak = 0;
+  let streakType: "WIN" | "LOSS" | null = null;
+  for (const t of streakTrades) {
+    if (t.result === "BE") continue;
+    if (streakType === null) {
+      streakType = t.result as "WIN" | "LOSS";
+      currentStreak = 1;
+    } else if (t.result === streakType) {
+      currentStreak++;
+    } else {
+      break;
+    }
+  }
+
   // ── Grade distribution ──
   const gradeMap = { A_PLUS: 0, B: 0, C: 0, RULE_BREAK: 0, UNREVIEWED: 0 };
   trades.forEach((t) => { if (t.processGrade) gradeMap[t.processGrade as keyof typeof gradeMap]++; });
@@ -214,6 +245,41 @@ export default async function AnalyticsPage({
         <StatCard label="Avg R" value={ar} sub={`Total: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
         <StatCard label="Avg Process Score" value={aps} />
         <StatCard label="Total Trades" value={trades.length} sub={`${gradeMap.A_PLUS} A+ · ${gradeMap.RULE_BREAK} Rule Breaks`} />
+      </div>
+
+      {/* Streak + Cumulative R */}
+      <div className="grid md:grid-cols-3 gap-4">
+        {/* Streak badge */}
+        <div className="rounded-xl border p-5 flex flex-col justify-between" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--color-text-muted)" }}>Güncel Seri</p>
+          {streakType ? (
+            <>
+              <p
+                className="text-5xl font-bold leading-none"
+                style={{ color: streakType === "WIN" ? "#34c97e" : "#ef4444" }}
+              >
+                {currentStreak}
+              </p>
+              <p className="text-sm mt-2 font-medium" style={{ color: streakType === "WIN" ? "#34c97e" : "#ef4444" }}>
+                {streakType === "WIN" ? "🔥 kazanç serisi" : "⚠ kayıp serisi"}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Henüz trade yok</p>
+          )}
+        </div>
+
+        {/* Cumulative R chart */}
+        <div className="md:col-span-2 rounded-xl border p-5" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "var(--color-text-muted)" }}>
+            Kümülatif R Eğrisi · {rCurve.length} trade
+          </p>
+          {rCurve.length > 1 ? (
+            <CumulativeRChart points={rCurve} />
+          ) : (
+            <p className="text-xs py-6 text-center" style={{ color: "var(--color-text-muted)" }}>En az 2 R değeri olan trade gerekli</p>
+          )}
+        </div>
       </div>
 
       {/* Grade distribution */}

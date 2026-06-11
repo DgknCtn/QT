@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
+import { TvChartWidget } from "@/components/tv-chart-widget";
 
 export default async function TradeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -75,6 +76,17 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
             </div>
           ))}
         </div>
+      </div>
+
+      {/* TradingView Chart */}
+      <div className="rounded-xl border overflow-hidden" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+            {trade.instrument} · TradingView Chart
+          </p>
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>H1</span>
+        </div>
+        <TvChartWidget instrument={trade.instrument} interval="60" height={420} />
       </div>
 
       {/* Entry details */}
