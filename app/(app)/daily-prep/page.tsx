@@ -131,10 +131,8 @@ export default async function DailyPrepPage() {
                     <td className="px-4 py-3">
                       <form action={deleteDailyPrep.bind(null, prep.id)}>
                         <button type="submit"
-                          className="p-1.5 rounded transition-colors"
+                          className="p-1.5 rounded transition-colors hover:text-red-500"
                           style={{ color: "var(--color-text-muted)" }}
-                          onMouseEnter={e => (e.currentTarget.style.color = "#ef4444")}
-                          onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-muted)")}
                           title="Sil">
                           <Trash2 size={14} />
                         </button>
