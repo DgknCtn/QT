@@ -59,7 +59,11 @@ export function AppSidebar() {
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
-    if (saved === "true") setCollapsed(true);
+    if (window.innerWidth < 768) {
+      setCollapsed(true);
+    } else if (saved === "true") {
+      setCollapsed(true);
+    }
     setMounted(true);
   }, []);
 

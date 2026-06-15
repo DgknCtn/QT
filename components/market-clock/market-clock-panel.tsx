@@ -73,7 +73,7 @@ export function MarketClockPanel() {
       </div>
 
       {/* Q1–Q4 session boxes */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {session.quarters.map((q, idx) => {
           const isActive = idx === activeQIndex;
           const colors = Q_COLORS[idx as QIndex];
@@ -105,7 +105,7 @@ export function MarketClockPanel() {
       </div>
 
       {/* Cycle hierarchy row */}
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {cycles.map((c) => {
           const qIdx = (c.q - 1) as QIndex;
           const color = CYCLE_Q_COLORS[qIdx] ?? "var(--color-text-muted)";
