@@ -331,10 +331,10 @@ export default async function AnalyticsPage({
       {(() => {
         const PERIODS: { value: Period; label: string }[] = [
           { value: "all",   label: "Tümü" },
+          { value: "week",  label: "Bu Hafta" },
           { value: "month", label: "Bu Ay" },
           { value: "30d",   label: "Son 30 Gün" },
           { value: "90d",   label: "Son 90 Gün" },
-          { value: "week",  label: "Bu Hafta" },
         ];
         return (
           <div className="flex gap-1.5 flex-wrap">
@@ -357,15 +357,9 @@ export default async function AnalyticsPage({
       })()}
 
       {/* Overall stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} trade`} />
         <StatCard label="Avg R" value={ar} sub={`Toplam: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
-        <StatCard
-          label="Max Drawdown"
-          value={mdd > 0 ? `-${mdd.toFixed(1)}R` : "—"}
-          sub="peak-to-trough"
-          valueColor={mdd > 0 ? "var(--color-danger)" : undefined}
-        />
         <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${ft.length} toplam trade`} />
       </div>
 
