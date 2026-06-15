@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Plus, Sun, Moon } from "lucide-react";
+import { Bell, Plus, Sun, Moon, Menu } from "lucide-react";
 import Link from "next/link";
 import { MarketClockCompact } from "@/components/market-clock/market-clock-compact";
 import { useTheme } from "@/components/theme-provider";
@@ -24,7 +24,7 @@ const QUICK_ADD: Record<string, { label: string; href: string }> = {
   "/levels":     { label: "Add Level",  href: "/levels/new" },
 };
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const title    = Object.entries(PAGE_TITLES).find(([key]) => pathname === key || pathname.startsWith(key + "/"))?.[1] ?? "";
@@ -35,9 +35,20 @@ export function TopBar() {
       className="flex items-center justify-between px-4 md:px-6 border-b shrink-0"
       style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)", height: 56 }}
     >
-      <h1 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-        {title}
-      </h1>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-1.5 rounded-lg transition-colors"
+          style={{ color: "var(--color-text-muted)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-hover)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+          <Menu size={16} />
+        </button>
+        <h1 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          {title}
+        </h1>
+      </div>
 
       <div className="flex items-center gap-3">
         <MarketClockCompact />

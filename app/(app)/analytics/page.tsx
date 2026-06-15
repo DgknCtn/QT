@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { format, startOfWeek, endOfWeek, subWeeks, subDays, startOfMonth } from "date-fns";
+import { format, subDays, startOfMonth, startOfWeek } from "date-fns";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Download } from "lucide-react";
 import { CumulativeRChart } from "./cumulative-r-chart";
@@ -260,16 +260,6 @@ export default async function AnalyticsPage({
     .slice(0, 10);
   const maxPositive = topPositives[0]?.[1] ?? 1;
 
-  // ── Weekly review ──
-  const weekOffset = parseInt(sp.week ?? "0", 10);
-  const weekStart = startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-  const weekTrades = trades.filter((t) => {
-    const d = new Date(t.date);
-    return d >= weekStart && d <= weekEnd;
-  });
-  const weekStats = statsFor(weekTrades);
-  const weekR = weekTrades.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
 
   // ── P&L Heatmap (Feature 2) ──
   const now = new Date();
@@ -442,97 +432,6 @@ export default async function AnalyticsPage({
         </div>
       </div>
 
-      {/* Weekly Review */}
-      <div className="rounded-xl border p-5 space-y-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-            Weekly Review — {format(weekStart, "MMM d")} to {format(weekEnd, "MMM d, yyyy")}
-          </h3>
-          <div className="flex gap-2">
-            <Link
-              href={`/analytics?week=${weekOffset + 1}`}
-              className="p-1 rounded hover:bg-white/5 transition-colors"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              <ArrowLeft size={14} />
-            </Link>
-            {weekOffset > 0 && (
-              <Link
-                href={`/analytics?week=${weekOffset - 1}`}
-                className="p-1 rounded hover:bg-white/5 transition-colors"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                <ArrowRight size={14} />
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Week stats row */}
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { label: "Trades",   value: weekStats.count },
-            { label: "Wins",     value: weekStats.wins },
-            { label: "Win Rate", value: weekStats.wr != null ? `${weekStats.wr}%` : "—" },
-            { label: "Net R",    value: weekR !== 0 ? `${weekR >= 0 ? "+" : ""}${weekR.toFixed(1)}R` : "—" },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-lg p-3" style={{ background: "var(--color-bg-surface)" }}>
-              <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-              <p className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Trade list for the week */}
-        {weekTrades.length === 0 ? (
-          <p className="text-xs py-2" style={{ color: "var(--color-text-muted)" }}>No trades this week.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {weekTrades.map((t) => {
-              const mistakes = t.tags.filter((tt) => tt.tag.category === "MISTAKE");
-              return (
-                <Link
-                  key={t.id}
-                  href={`/journal/${t.id}`}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg"
-                  style={{ background: "var(--color-bg-surface)" }}
-                >
-                  <div className="flex items-center gap-3 text-xs">
-                    <span style={{ color: "var(--color-text-muted)" }}>{format(new Date(t.date), "EEE dd")}</span>
-                    <span style={{ color: t.direction === "LONG" ? "var(--color-long)" : "var(--color-short)" }}>{t.direction}</span>
-                    <span style={{ color: "var(--color-text-secondary)" }}>{t.instrument}</span>
-                    {mistakes.length > 0 && (
-                      <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,0.1)", color: "var(--color-danger)" }}>
-                        {mistakes.length} mistake{mistakes.length > 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    {t.processGrade && (
-                      <span className="font-bold" style={{ color: gradeColor[t.processGrade] ?? "var(--color-text-muted)" }}>
-                        {t.processGrade.replace("_", "+")}
-                      </span>
-                    )}
-                    {t.rResult != null && (
-                      <span className="font-bold" style={{ color: t.rResult >= 0 ? "var(--color-success)" : "var(--color-danger)" }}>
-                        {t.rResult >= 0 ? "+" : ""}{t.rResult.toFixed(1)}R
-                      </span>
-                    )}
-                    <span className="px-1.5 py-0.5 rounded font-bold"
-                      style={{
-                        background: t.result === "WIN" ? "rgba(52,201,126,0.15)" : t.result === "LOSS" ? "rgba(239,68,68,0.15)" : "rgba(144,144,160,0.1)",
-                        color: t.result === "WIN" ? "var(--color-success)" : t.result === "LOSS" ? "var(--color-danger)" : "var(--color-text-muted)",
-                      }}
-                    >
-                      {t.result}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
     </div>
   );

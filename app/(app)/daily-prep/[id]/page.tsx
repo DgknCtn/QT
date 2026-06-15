@@ -33,6 +33,12 @@ export default async function DailyPrepDetailPage({ params }: { params: Promise<
 
   if (!prep) notFound();
 
+  const linkedTrades = await prisma.trade.findMany({
+    where: { dailyPrepId: id, userId: user.id },
+    orderBy: { date: "asc" },
+    select: { id: true, instrument: true, direction: true, result: true, rResult: true, pnlCurrency: true, entryPrice: true },
+  });
+
   const gonogo = prep.goNoGoStatus ? GONOGO[prep.goNoGoStatus as keyof typeof GONOGO] : null;
   const newsEvents = (prep.newsSummary as { events?: { eventName: string; time: string; currency: string; impact: string; riskTag: string }[] })?.events ?? [];
 
@@ -169,6 +175,40 @@ export default async function DailyPrepDetailPage({ params }: { params: Promise<
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--color-text-muted)" }}>Notes</p>
           <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>{prep.notes}</p>
+        </div>
+      )}
+
+      {/* Linked Trades */}
+      {linkedTrades.length > 0 && (
+        <div className="rounded-xl border p-4 space-y-2" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Bağlı İşlemler</p>
+          <div className="space-y-1.5">
+            {linkedTrades.map((trade) => {
+              const rColor = trade.result === "WIN" ? "var(--color-success)" : trade.result === "LOSS" ? "var(--color-danger)" : "var(--color-text-muted)";
+              return (
+                <Link
+                  key={trade.id}
+                  href={`/journal/${trade.id}`}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors"
+                  style={{ background: "var(--color-bg-surface)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--color-bg-surface)")}
+                >
+                  <span className="font-bold" style={{ color: "var(--color-text-primary)" }}>{trade.instrument}</span>
+                  <span style={{ color: trade.direction === "LONG" ? "var(--color-long)" : "var(--color-short)" }}>{trade.direction}</span>
+                  {trade.result && <span className="font-semibold" style={{ color: rColor }}>{trade.result}</span>}
+                  {trade.rResult != null && (
+                    <span style={{ color: rColor }}>{trade.rResult > 0 ? "+" : ""}{trade.rResult.toFixed(2)}R</span>
+                  )}
+                  {trade.pnlCurrency != null && (
+                    <span className="ml-auto" style={{ color: rColor }}>
+                      {trade.pnlCurrency > 0 ? "+" : ""}{trade.pnlCurrency.toFixed(2)} USD
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
 

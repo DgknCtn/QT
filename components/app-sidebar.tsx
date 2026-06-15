@@ -44,14 +44,12 @@ const NAV_GROUPS = [
     label: "Tools",
     items: [
       { href: "/risk-calculator", label: "Risk Calc",  icon: Calculator },
-      { href: "/setups",          label: "Setups",     icon: TrendingUp },
-      { href: "/knowledge",       label: "Knowledge",  icon: GraduationCap },
       { href: "/mentorship",      label: "Mentorship", icon: GraduationCap },
     ],
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ mobileOpen = false, onClose }: { mobileOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const router   = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -84,7 +82,9 @@ export function AppSidebar() {
 
   return (
     <aside
-      className="flex flex-col shrink-0 h-full border-r transition-all duration-200"
+      className={`flex flex-col shrink-0 h-full border-r transition-all duration-200
+        fixed inset-y-0 left-0 z-50 md:relative md:translate-x-0
+        ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       style={{
         width: w,
         minWidth: w,
@@ -92,6 +92,7 @@ export function AppSidebar() {
         borderColor: "var(--color-bg-border)",
         overflow: "hidden",
       }}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Brand */}
       <div

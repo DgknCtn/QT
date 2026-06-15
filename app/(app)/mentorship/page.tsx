@@ -125,6 +125,28 @@ export default async function MentorshipPage() {
     }),
   ]);
 
+  // Find first incomplete lesson for "Continue" banner
+  type LessonWithContext = {
+    id: string; title: string;
+    chapterId: string; chapterTitle: string;
+    courseId: string; courseTitle: string;
+  };
+  let firstIncomplete: LessonWithContext | null = null;
+  outer: for (const course of courses) {
+    for (const chapter of course.chapters) {
+      for (const lesson of chapter.lessons) {
+        if (lesson.progress.length === 0) {
+          firstIncomplete = {
+            id: lesson.id, title: lesson.title,
+            chapterId: chapter.id, chapterTitle: chapter.title,
+            courseId: course.id, courseTitle: course.title,
+          };
+          break outer;
+        }
+      }
+    }
+  }
+
   const resourceIcon = (type: string) => {
     switch (type) {
       case "VIDEO":    return <Video size={14} />;
@@ -140,6 +162,30 @@ export default async function MentorshipPage() {
         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Mentorship</h1>
         <p className="text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>Eğitim içerikleri ve kaynaklar</p>
       </div>
+
+      {/* Continue banner */}
+      {firstIncomplete && (
+        <Link
+          href={`/mentorship/courses/${firstIncomplete.courseId}/lessons/${firstIncomplete.id}`}
+          className="flex items-center gap-4 rounded-xl border p-4 transition-colors hover:border-[var(--color-accent)]"
+          style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
+        >
+          <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(99,102,241,0.12)" }}>
+            <BookOpen size={18} style={{ color: "var(--color-accent)" }} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>
+              {firstIncomplete.courseTitle} · {firstIncomplete.chapterTitle}
+            </p>
+            <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>
+              {firstIncomplete.title}
+            </p>
+          </div>
+          <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: "var(--color-accent)", color: "#fff" }}>
+            Devam Et <ChevronRight size={12} />
+          </div>
+        </Link>
+      )}
 
       {/* Courses */}
       <div>

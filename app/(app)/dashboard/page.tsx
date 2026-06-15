@@ -92,6 +92,16 @@ export default async function DashboardPage() {
   const last10NetR   = last10.reduce((s, t) => s + (t.rResult ?? 0), 0);
   const last10NetPnl = last10.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
 
+  // Today's trades P&L
+  const todayTrades = dbUser
+    ? await prisma.trade.findMany({
+        where: { userId: user!.id, date: { gte: todayStart, lte: todayEnd }, result: { notIn: ["NO_TRADE", "MISSED"] } },
+        select: { pnlCurrency: true },
+      }).catch(() => [])
+    : [];
+  const todayPnl = todayTrades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
+  const hasTodayTrades = todayTrades.length > 0;
+
   // Today's economic events
   const todayEvents = dbUser
     ? await prisma.economicEvent.findMany({
@@ -223,8 +233,8 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 2: This Week · Son 10 WR · Son 10 Net R */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Row 2: This Week · Son 10 WR · Son 10 Net R · Bugün P&L */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>This Week</p>
           <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{activeWeekTrades.length}</p>
@@ -248,6 +258,15 @@ export default async function DashboardPage() {
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
             {last10NetPnl !== 0 ? `${last10NetPnl >= 0 ? "+" : ""}$${Math.abs(last10NetPnl).toFixed(0)}` : "son 10 trade"}
+          </p>
+        </div>
+        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Bugün P&amp;L</p>
+          <p className="text-2xl font-bold" style={{ color: hasTodayTrades ? (todayPnl > 0 ? "#34c97e" : todayPnl < 0 ? "#ef4444" : "var(--color-text-primary)") : "var(--color-text-muted)" }}>
+            {hasTodayTrades ? `${todayPnl >= 0 ? "+" : ""}$${Math.abs(todayPnl).toFixed(0)}` : "—"}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+            {hasTodayTrades ? `${todayTrades.length} trade` : "henüz trade yok"}
           </p>
         </div>
       </div>
