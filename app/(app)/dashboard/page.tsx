@@ -243,7 +243,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Son 10 Trade WR</p>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Last 10 Win Rate</p>
           <p className="text-2xl font-bold" style={{ color: last10WR != null && last10WR >= 50 ? "#34c97e" : last10WR != null && last10WR >= 40 ? "#f59e0b" : "var(--color-text-primary)" }}>
             {last10WR != null ? `${last10WR}%` : "—"}
           </p>
@@ -252,7 +252,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Son 10 Net R</p>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Last 10 Net R</p>
           <p className="text-2xl font-bold" style={{ color: last10NetR > 0 ? "#34c97e" : last10NetR < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
             {last10.length > 0 ? `${last10NetR >= 0 ? "+" : ""}${last10NetR.toFixed(1)}R` : "—"}
           </p>
@@ -261,12 +261,12 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Bugün P&amp;L</p>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s P&amp;L</p>
           <p className="text-2xl font-bold" style={{ color: hasTodayTrades ? (todayPnl > 0 ? "#34c97e" : todayPnl < 0 ? "#ef4444" : "var(--color-text-primary)") : "var(--color-text-muted)" }}>
             {hasTodayTrades ? `${todayPnl >= 0 ? "+" : ""}$${Math.abs(todayPnl).toFixed(0)}` : "—"}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {hasTodayTrades ? `${todayTrades.length} trade` : "henüz trade yok"}
+            {hasTodayTrades ? `${todayTrades.length} trade` : "no trades today"}
           </p>
         </div>
       </div>
