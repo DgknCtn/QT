@@ -321,10 +321,9 @@ export default async function AnalyticsPage({
       </div>
 
       {/* Overall stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} active trades`} />
         <StatCard label="Avg R" value={ar} sub={`Total: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
-        <StatCard label="Avg Process Score" value={aps} />
         <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${trades.length} toplam trade`} />
       </div>
 

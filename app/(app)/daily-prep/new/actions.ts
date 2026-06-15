@@ -68,6 +68,51 @@ async function ensureUser(userId: string) {
   });
 }
 
+export async function updateDailyPrep(prepId: string, userId: string, data: PrepFormData): Promise<void> {
+  const completionScore = computeCompletionScore(data);
+
+  await prisma.dailyPrep.updateMany({
+    where: { id: prepId, userId },
+    data: {
+      session: e(data.session) ?? "NY_AM",
+      marketGroup: e(data.marketGroup) ?? "INDICES",
+      triad: e(data.triad) ?? "NQ_ES_YM",
+      primaryInstrument: data.primaryInstrument || "NQ",
+      secondaryInstruments: data.secondaryInstruments,
+      htfBias: e(data.htfBias) ?? "WAIT",
+      htfBiasConfidence: e(data.htfBiasConfidence) ?? "MEDIUM",
+      htfTarget: data.htfTarget || null,
+      htfInvalidation: data.htfInvalidation || null,
+      htfBiasExplanation: data.htfBiasExplanation || null,
+      weeklyPo3State: e(data.weeklyPo3State) ?? "UNKNOWN",
+      dailyPo3State: e(data.dailyPo3State) ?? "UNKNOWN",
+      mmxmStage: e(data.mmxmStage) ?? "UNKNOWN",
+      mainLiquidityTarget: e(data.mainLiquidityTarget) ?? null,
+      customLiqTarget: data.customLiqTarget || null,
+      activeCycleWeekly: e(data.activeCycleWeekly) ?? null,
+      activeCycleDaily: e(data.activeCycleDaily) ?? null,
+      active90mCycle: e(data.active90mCycle) ?? null,
+      activeMicroCycle: e(data.activeMicroCycle) ?? null,
+      q1Quality: e(data.q1Quality) ?? null,
+      expectedBehavior: e(data.expectedBehavior) ?? null,
+      trueOpenSummary: data.trueOpens as object,
+      dfrSummary: data.dfr as object,
+      ssmtSummary: data.ssmt as object,
+      confirmationSummary: data.confirmation as object,
+      newsSummary: { events: data.newsEvents } as object,
+      goNoGoStatus: e(data.goNoGoStatus) ?? null,
+      goNoGoReason: data.goNoGoReason || null,
+      completionScore,
+      isDraft: !data.goNoGoStatus,
+      notes: data.notes || null,
+    },
+  });
+
+  revalidatePath("/daily-prep");
+  revalidatePath("/dashboard");
+  revalidatePath(`/daily-prep/${prepId}`);
+}
+
 export async function saveDailyPrep(userId: string, data: PrepFormData): Promise<void> {
   await ensureUser(userId);
 

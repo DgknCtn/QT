@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
-import { ArrowLeft, CheckCircle2, XCircle, Clock, AlertCircle, MinusCircle } from "lucide-react";
+import { ArrowLeft, Pencil, CheckCircle2, XCircle, Clock, AlertCircle, MinusCircle } from "lucide-react";
 
 const SESSION_LABEL: Record<string, string> = {
   ASIA: "Asia", LONDON: "London", NY_AM: "NY AM", NY_PM: "NY PM",
@@ -55,13 +55,23 @@ export default async function DailyPrepDetailPage({ params }: { params: Promise<
             {prep.triad?.replace(/_/g, " ")} · {SESSION_LABEL[prep.session] ?? prep.session}
           </h2>
         </div>
-        {gonogo && (
-          <div className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold"
-            style={{ background: `${gonogo.color}22`, color: gonogo.color, border: `1px solid ${gonogo.color}44` }}>
-            <gonogo.Icon size={13} />
-            {gonogo.label}
-          </div>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {gonogo && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold"
+              style={{ background: `${gonogo.color}22`, color: gonogo.color, border: `1px solid ${gonogo.color}44` }}>
+              <gonogo.Icon size={13} />
+              {gonogo.label}
+            </div>
+          )}
+          <Link
+            href={`/daily-prep/${id}/edit`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
+            style={{ background: "var(--color-bg-surface)", borderColor: "var(--color-bg-border)", color: "var(--color-text-secondary)" }}
+          >
+            <Pencil size={12} />
+            Düzenle
+          </Link>
+        </div>
       </div>
 
       {/* Market */}

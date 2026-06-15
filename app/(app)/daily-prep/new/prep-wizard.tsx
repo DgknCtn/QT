@@ -12,7 +12,7 @@ import { Step7SSMT } from "./steps/step7-ssmt";
 import { Step8Confirmation } from "./steps/step8-confirmation";
 import { Step9Entry } from "./steps/step9-entry";
 import { Step10GoNoGo } from "./steps/step10-gonogo";
-import { saveDailyPrep, type CalendarEventItem } from "./actions";
+import { saveDailyPrep, updateDailyPrep, type CalendarEventItem } from "./actions";
 import type { PrepFormData } from "./types";
 
 const STEPS = [
@@ -143,8 +143,18 @@ function StepIcon({ status }: { status: "complete" | "partial" | "empty" }) {
   return <Circle size={14} style={{ color: "var(--color-text-muted)" }} />;
 }
 
-export function PrepWizard({ userId, calendarEvents = [] }: { userId: string; calendarEvents?: CalendarEventItem[] }) {
-  const [data, setData] = useState<PrepFormData>(EMPTY_FORM);
+export function PrepWizard({
+  userId,
+  calendarEvents = [],
+  initialData,
+  prepId,
+}: {
+  userId: string;
+  calendarEvents?: CalendarEventItem[];
+  initialData?: PrepFormData;
+  prepId?: string;
+}) {
+  const [data, setData] = useState<PrepFormData>(initialData ?? EMPTY_FORM);
   const [open, setOpen] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -169,7 +179,11 @@ export function PrepWizard({ userId, calendarEvents = [] }: { userId: string; ca
     setSaving(true);
     setError("");
     try {
-      await saveDailyPrep(userId, data);
+      if (prepId) {
+        await updateDailyPrep(prepId, userId, data);
+      } else {
+        await saveDailyPrep(userId, data);
+      }
       setSaved(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -201,7 +215,7 @@ export function PrepWizard({ userId, calendarEvents = [] }: { userId: string; ca
           className="px-4 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-40"
           style={{ background: "var(--color-accent)", color: "#fff" }}
         >
-          {saving ? "Saving…" : saved ? "Saved ✓" : "Save as Draft"}
+          {saving ? "Saving…" : saved ? "Saved ✓" : prepId ? "Update" : "Save as Draft"}
         </button>
       </div>
 
