@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks, subDays, startOfMonth } from "date-fns";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Download } from "lucide-react";
 import { CumulativeRChart } from "./cumulative-r-chart";
@@ -31,10 +31,26 @@ function avgR(trades: Trade[]) {
   return (active.reduce((s, t) => s + (t.rResult ?? 0), 0) / active.length).toFixed(2);
 }
 
-function avgProcessScore(trades: Trade[]) {
-  const scored = trades.filter((t) => t.processScore != null);
-  if (!scored.length) return null;
-  return (scored.reduce((s, t) => s + (t.processScore ?? 0), 0) / scored.length).toFixed(1);
+function maxDrawdownR(chronoRCurve: { cumR: number }[]): number {
+  let peak = -Infinity;
+  let dd = 0;
+  for (const p of chronoRCurve) {
+    if (p.cumR > peak) peak = p.cumR;
+    const cur = peak - p.cumR;
+    if (cur > dd) dd = cur;
+  }
+  return dd;
+}
+
+type Period = "all" | "week" | "month" | "30d" | "90d";
+
+function periodStart(period: Period): Date | null {
+  const now = new Date();
+  if (period === "week")  return startOfWeek(now, { weekStartsOn: 1 });
+  if (period === "month") return startOfMonth(now);
+  if (period === "30d")   return subDays(now, 30);
+  if (period === "90d")   return subDays(now, 90);
+  return null;
 }
 
 function groupBy<T>(arr: T[], key: (t: T) => string): Record<string, T[]> {
@@ -59,11 +75,11 @@ function statsFor(trades: Trade[]) {
 
 // ─── components ────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub }: { label: string; value: string | number | null; sub?: string }) {
+function StatCard({ label, value, sub, valueColor }: { label: string; value: string | number | null; sub?: string; valueColor?: string }) {
   return (
     <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
       <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-      <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{value ?? "—"}</p>
+      <p className="text-2xl font-bold" style={{ color: valueColor ?? "var(--color-text-primary)" }}>{value ?? "—"}</p>
       {sub && <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{sub}</p>}
     </div>
   );
@@ -112,9 +128,10 @@ function BreakdownTable({
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; heatmapYear?: string; heatmapMonth?: string }>;
+  searchParams: Promise<{ week?: string; heatmapYear?: string; heatmapMonth?: string; period?: string }>;
 }) {
   const sp = await searchParams;
+  const period = (sp.period ?? "all") as Period;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -149,16 +166,19 @@ export default async function AnalyticsPage({
     );
   }
 
-  // ── Overall stats ──
-  const wr = winRate(trades);
-  const ar = avgR(trades);
-  const aps = avgProcessScore(trades);
-  const active = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
-  const totalR = trades.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
-  const totalPnl = trades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
+  // ── Period filter ──
+  const pStart = periodStart(period);
+  const ft = pStart ? trades.filter((t) => new Date(t.date) >= pStart) : trades;
 
-  // ── Cumulative R curve (chronological order) ──
-  const chronoTrades = [...trades].reverse(); // oldest first
+  // ── Overall stats (filtered) ──
+  const wr = winRate(ft);
+  const ar = avgR(ft);
+  const active = ft.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
+  const totalR = ft.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
+  const totalPnl = ft.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
+
+  // ── Cumulative R curve (chronological, filtered) ──
+  const chronoTrades = [...ft].reverse();
   let cum = 0;
   const rCurve = chronoTrades
     .filter((t) => t.rResult != null)
@@ -171,47 +191,34 @@ export default async function AnalyticsPage({
       };
     });
 
-  // ── Win/Loss streak ──
-  const streakTrades = active.slice(); // already desc order
-  let currentStreak = 0;
-  let streakType: "WIN" | "LOSS" | null = null;
-  for (const t of streakTrades) {
-    if (t.result === "BE") continue;
-    if (streakType === null) {
-      streakType = t.result as "WIN" | "LOSS";
-      currentStreak = 1;
-    } else if (t.result === streakType) {
-      currentStreak++;
-    } else {
-      break;
-    }
-  }
+  // ── Max drawdown ──
+  const mdd = maxDrawdownR(rCurve);
 
-  // ── Grade distribution ──
+  // ── Grade distribution (filtered) ──
   const gradeMap = { A_PLUS: 0, B: 0, C: 0, RULE_BREAK: 0, UNREVIEWED: 0 };
-  trades.forEach((t) => { if (t.processGrade) gradeMap[t.processGrade as keyof typeof gradeMap]++; });
+  ft.forEach((t) => { if (t.processGrade) gradeMap[t.processGrade as keyof typeof gradeMap]++; });
 
-  // ── Setup breakdown ──
-  const bySetup = groupBy(trades, (t) => t.setupType ?? "UNKNOWN");
+  // ── Setup breakdown (filtered) ──
+  const bySetup = groupBy(ft, (t) => t.setupType ?? "UNKNOWN");
   const setupRows = Object.entries(bySetup)
     .map(([label, ts]) => ({ label: label.replace(/_/g, " "), ...statsFor(ts) }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
-  // ── Session breakdown ──
-  const bySession = groupBy(trades, (t) => t.session?.replace(/_/g, " ") ?? "Unknown");
+  // ── Session breakdown (filtered) ──
+  const bySession = groupBy(ft, (t) => t.session?.replace(/_/g, " ") ?? "Unknown");
   const sessionRows = Object.entries(bySession)
     .map(([label, ts]) => ({ label, ...statsFor(ts) }))
     .sort((a, b) => b.count - a.count);
 
-  // ── Triad breakdown ──
-  const byTriad = groupBy(trades, (t) => t.triad ?? "Unknown");
+  // ── Triad breakdown (filtered) ──
+  const byTriad = groupBy(ft, (t) => t.triad ?? "Unknown");
   const triadRows = Object.entries(byTriad)
     .map(([label, ts]) => ({ label, ...statsFor(ts) }))
     .sort((a, b) => b.count - a.count);
 
-  // ── Instrument breakdown (Feature 3) ──
-  const byInstrument = groupBy(trades, (t) => t.instrument);
+  // ── Instrument breakdown (filtered) ──
+  const byInstrument = groupBy(ft, (t) => t.instrument);
   const instrumentRows = Object.entries(byInstrument)
     .map(([instrument, ts]) => {
       const s = statsFor(ts);
@@ -229,9 +236,9 @@ export default async function AnalyticsPage({
     })
     .sort((a, b) => b.count - a.count);
 
-  // ── Mistake tag frequency ──
+  // ── Mistake tag frequency (filtered) ──
   const mistakeCounts: Record<string, number> = {};
-  trades.forEach((t) =>
+  ft.forEach((t) =>
     t.tags
       .filter((tt) => tt.tag.category === "MISTAKE")
       .forEach((tt) => { mistakeCounts[tt.tag.name] = (mistakeCounts[tt.tag.name] ?? 0) + 1; })
@@ -241,9 +248,9 @@ export default async function AnalyticsPage({
     .slice(0, 10);
   const maxMistake = topMistakes[0]?.[1] ?? 1;
 
-  // ── Positive tag frequency ──
+  // ── Positive tag frequency (filtered) ──
   const positiveCounts: Record<string, number> = {};
-  trades.forEach((t) =>
+  ft.forEach((t) =>
     t.tags
       .filter((tt) => tt.tag.category === "POSITIVE")
       .forEach((tt) => { positiveCounts[tt.tag.name] = (positiveCounts[tt.tag.name] ?? 0) + 1; })
@@ -320,11 +327,46 @@ export default async function AnalyticsPage({
         </a>
       </div>
 
+      {/* Period filter */}
+      {(() => {
+        const PERIODS: { value: Period; label: string }[] = [
+          { value: "all",   label: "Tümü" },
+          { value: "month", label: "Bu Ay" },
+          { value: "30d",   label: "Son 30 Gün" },
+          { value: "90d",   label: "Son 90 Gün" },
+          { value: "week",  label: "Bu Hafta" },
+        ];
+        return (
+          <div className="flex gap-1.5 flex-wrap">
+            {PERIODS.map((p) => (
+              <Link
+                key={p.value}
+                href={`/analytics?period=${p.value}`}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
+                style={{
+                  background: period === p.value ? "var(--color-accent)" : "var(--color-bg-elevated)",
+                  borderColor: period === p.value ? "var(--color-accent)" : "var(--color-bg-border)",
+                  color: period === p.value ? "#fff" : "var(--color-text-secondary)",
+                }}
+              >
+                {p.label}
+              </Link>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Overall stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} active trades`} />
-        <StatCard label="Avg R" value={ar} sub={`Total: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
-        <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${trades.length} toplam trade`} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} trade`} />
+        <StatCard label="Avg R" value={ar} sub={`Toplam: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
+        <StatCard
+          label="Max Drawdown"
+          value={mdd > 0 ? `-${mdd.toFixed(1)}R` : "—"}
+          sub="peak-to-trough"
+          valueColor={mdd > 0 ? "var(--color-danger)" : undefined}
+        />
+        <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${ft.length} toplam trade`} />
       </div>
 
       {/* Cumulative R chart */}
