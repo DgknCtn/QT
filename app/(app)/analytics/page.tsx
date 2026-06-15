@@ -327,39 +327,16 @@ export default async function AnalyticsPage({
         <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${trades.length} toplam trade`} />
       </div>
 
-      {/* Streak + Cumulative R */}
-      <div className="grid md:grid-cols-3 gap-4">
-        {/* Streak badge */}
-        <div className="rounded-xl border p-5 flex flex-col justify-between" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--color-text-muted)" }}>Güncel Seri</p>
-          {streakType ? (
-            <>
-              <p
-                className="text-5xl font-bold leading-none"
-                style={{ color: streakType === "WIN" ? "#34c97e" : "#ef4444" }}
-              >
-                {currentStreak}
-              </p>
-              <p className="text-sm mt-2 font-medium" style={{ color: streakType === "WIN" ? "#34c97e" : "#ef4444" }}>
-                {streakType === "WIN" ? "🔥 kazanç serisi" : "⚠ kayıp serisi"}
-              </p>
-            </>
-          ) : (
-            <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Henüz trade yok</p>
-          )}
-        </div>
-
-        {/* Cumulative R chart */}
-        <div className="md:col-span-2 rounded-xl border p-5" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "var(--color-text-muted)" }}>
-            Kümülatif R Eğrisi · {rCurve.length} trade
-          </p>
-          {rCurve.length > 1 ? (
-            <CumulativeRChart points={rCurve} />
-          ) : (
-            <p className="text-xs py-6 text-center" style={{ color: "var(--color-text-muted)" }}>En az 2 R değeri olan trade gerekli</p>
-          )}
-        </div>
+      {/* Cumulative R chart */}
+      <div className="rounded-xl border p-5" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "var(--color-text-muted)" }}>
+          Kümülatif R Eğrisi · {rCurve.length} trade
+        </p>
+        {rCurve.length > 1 ? (
+          <CumulativeRChart points={rCurve} />
+        ) : (
+          <p className="text-xs py-6 text-center" style={{ color: "var(--color-text-muted)" }}>En az 2 R değeri olan trade gerekli</p>
+        )}
       </div>
 
       {/* P&L Heatmap Calendar (Feature 2) */}
