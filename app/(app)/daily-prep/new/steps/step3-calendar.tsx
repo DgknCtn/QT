@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, CalendarDays } from "lucide-react";
 import type { PrepFormData, NewsEvent } from "../types";
+import type { CalendarEventItem } from "../actions";
 
 const IMPACTS = ["HIGH", "MEDIUM", "LOW"];
 const RISK_TAGS = ["IGNORE", "WATCH", "HIGH_RISK", "NO_TRADE_WINDOW", "DATA_HIGH_LOW_RELEVANT"];
@@ -14,9 +15,15 @@ const RISK_LABELS: Record<string, string> = {
   DATA_HIGH_LOW_RELEVANT: "Data H/L Relevant",
 };
 
-type Props = { data: PrepFormData; update: (p: Partial<PrepFormData>) => void };
+const IMPACT_COLOR: Record<string, { bg: string; color: string }> = {
+  HIGH:   { bg: "rgba(239,68,68,0.15)",   color: "var(--color-danger)" },
+  MEDIUM: { bg: "rgba(245,158,11,0.15)",  color: "var(--color-warning)" },
+  LOW:    { bg: "rgba(52,201,126,0.15)",  color: "var(--color-success)" },
+};
 
-export function Step3Calendar({ data, update }: Props) {
+type Props = { data: PrepFormData; update: (p: Partial<PrepFormData>) => void; calendarEvents?: CalendarEventItem[] };
+
+export function Step3Calendar({ data, update, calendarEvents = [] }: Props) {
   const [form, setForm] = useState<Omit<NewsEvent, "id">>({
     eventName: "", time: "", currency: "", impact: "HIGH", riskTag: "WATCH", notes: "",
   });
@@ -36,8 +43,62 @@ export function Step3Calendar({ data, update }: Props) {
     update({ newsEvents: data.newsEvents.map((e) => e.id === id ? { ...e, [field]: value } : e) });
   }
 
+  const addedIds = new Set(data.newsEvents.map((e) => e.id));
+
+  function addFromCalendar(evt: CalendarEventItem) {
+    if (addedIds.has(evt.id)) return;
+    const event: NewsEvent = {
+      id: evt.id,
+      eventName: evt.eventName,
+      time: evt.timeStr,
+      currency: evt.currency,
+      impact: evt.impact,
+      riskTag: evt.userRiskTag ?? "WATCH",
+      notes: "",
+    };
+    update({ newsEvents: [...data.newsEvents, event] });
+  }
+
   return (
     <div className="space-y-4 pt-3">
+      {/* Calendar import */}
+      {calendarEvents.length > 0 && (
+        <div className="rounded-lg border p-3 space-y-2" style={{ background: "var(--color-bg-surface)", borderColor: "var(--color-bg-border)" }}>
+          <div className="flex items-center gap-1.5 mb-1">
+            <CalendarDays size={13} style={{ color: "var(--color-accent)" }} />
+            <p className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>Bugünkü Takvim Etkinlikleri</p>
+          </div>
+          <div className="space-y-1">
+            {calendarEvents.map((evt) => {
+              const ic = IMPACT_COLOR[evt.impact] ?? IMPACT_COLOR.LOW;
+              const added = addedIds.has(evt.id);
+              return (
+                <button
+                  key={evt.id}
+                  type="button"
+                  disabled={added}
+                  onClick={() => addFromCalendar(evt)}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left transition-opacity disabled:opacity-40"
+                  style={{
+                    background: added ? "var(--color-bg-hover)" : "transparent",
+                    borderColor: "var(--color-bg-border)",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={ic}>{evt.impact}</span>
+                    <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>{evt.eventName}</span>
+                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{evt.timeStr} · {evt.currency}</span>
+                  </div>
+                  {!added && (
+                    <Plus size={12} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Existing events */}
       {data.newsEvents.length > 0 && (
         <div className="space-y-2">

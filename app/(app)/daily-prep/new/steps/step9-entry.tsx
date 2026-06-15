@@ -127,7 +127,7 @@ export function Step9Entry({ data, update }: Props) {
         <input type="number" step="0.01" value={entry.mainDol} onChange={(e) => upd(data, update, "mainDol", e.target.value)} placeholder="Price" className="field-input w-48" />
       </div>
 
-      {/* Risk + RR */}
+      {/* Risk + USD Risk + RR */}
       <div className="flex items-end gap-4">
         <div>
           <label className="step-label">
@@ -137,6 +137,10 @@ export function Step9Entry({ data, update }: Props) {
             )}
           </label>
           <input type="number" step="0.1" min="0.1" max="10" value={entry.riskPercent} onChange={(e) => upd(data, update, "riskPercent", e.target.value)} placeholder="1.0" className="field-input w-28" />
+        </div>
+        <div>
+          <label className="step-label">Risk (USD)</label>
+          <input type="number" step="1" min="0" value={entry.riskUsd} onChange={(e) => upd(data, update, "riskUsd", e.target.value)} placeholder="100" className="field-input w-28" />
         </div>
         <div className="pb-1">
           <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Est. RR (to TP1)</p>

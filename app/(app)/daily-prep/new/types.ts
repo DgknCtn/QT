@@ -90,6 +90,7 @@ export type PrepFormData = {
     tp3: string;
     mainDol: string;
     riskPercent: string;
+    riskUsd: string;
   };
   // Step 10
   goNoGoStatus: string;

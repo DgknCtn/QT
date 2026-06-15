@@ -12,7 +12,7 @@ import { Step7SSMT } from "./steps/step7-ssmt";
 import { Step8Confirmation } from "./steps/step8-confirmation";
 import { Step9Entry } from "./steps/step9-entry";
 import { Step10GoNoGo } from "./steps/step10-gonogo";
-import { saveDailyPrep } from "./actions";
+import { saveDailyPrep, type CalendarEventItem } from "./actions";
 import type { PrepFormData } from "./types";
 
 const STEPS = [
@@ -110,6 +110,7 @@ const EMPTY_FORM: PrepFormData = {
     tp3: "",
     mainDol: "",
     riskPercent: "",
+    riskUsd: "",
   },
   // Step 10
   goNoGoStatus: "",
@@ -142,7 +143,7 @@ function StepIcon({ status }: { status: "complete" | "partial" | "empty" }) {
   return <Circle size={14} style={{ color: "var(--color-text-muted)" }} />;
 }
 
-export function PrepWizard({ userId }: { userId: string }) {
+export function PrepWizard({ userId, calendarEvents = [] }: { userId: string; calendarEvents?: CalendarEventItem[] }) {
   const [data, setData] = useState<PrepFormData>(EMPTY_FORM);
   const [open, setOpen] = useState<number>(1);
   const [saving, setSaving] = useState(false);
@@ -249,7 +250,7 @@ export function PrepWizard({ userId }: { userId: string }) {
               <div className="px-4 pb-4 pt-1 border-t" style={{ borderColor: "var(--color-bg-border)" }}>
                 {step.id === 1 && <Step1Market data={data} update={update} />}
                 {step.id === 2 && <Step2Narrative data={data} update={update} />}
-                {step.id === 3 && <Step3Calendar data={data} update={update} />}
+                {step.id === 3 && <Step3Calendar data={data} update={update} calendarEvents={calendarEvents} />}
                 {step.id === 4 && <Step4Cycle data={data} update={update} />}
                 {step.id === 5 && <Step5TrueOpens data={data} update={update} />}
                 {step.id === 6 && <Step6DFR data={data} update={update} />}

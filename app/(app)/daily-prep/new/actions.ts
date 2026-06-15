@@ -5,6 +5,36 @@ import { createClient } from "@/lib/supabase/server";
 import type { PrepFormData } from "./types";
 import { revalidatePath } from "next/cache";
 
+export type CalendarEventItem = {
+  id: string;
+  eventName: string;
+  timeStr: string;
+  currency: string;
+  impact: string;
+  userRiskTag: string | null;
+};
+
+export async function getCalendarEventsForDate(userId: string, date: Date): Promise<CalendarEventItem[]> {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+
+  const events = await prisma.economicEvent.findMany({
+    where: { userId, dateTime: { gte: start, lte: end } },
+    orderBy: { dateTime: "asc" },
+  });
+
+  return events.map((e) => ({
+    id: e.id,
+    eventName: e.eventName,
+    timeStr: e.dateTime.toTimeString().slice(0, 5),
+    currency: e.currency,
+    impact: e.impact,
+    userRiskTag: e.userRiskTag ?? null,
+  }));
+}
+
 function e<T>(v: string | undefined): T | undefined {
   return v && v.trim() !== "" ? (v as unknown as T) : undefined;
 }

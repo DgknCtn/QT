@@ -2,7 +2,7 @@
 
 import type { PrepFormData } from "../types";
 
-const SESSIONS = ["LONDON", "NY_AM", "NY_PM", "ASIA"];
+const SESSIONS = ["ASIA", "LONDON", "NY_AM", "NY_PM"];
 const SESSION_LABELS: Record<string, string> = { LONDON: "London", NY_AM: "NY AM", NY_PM: "NY PM", ASIA: "Asia" };
 
 const TRIADS = [

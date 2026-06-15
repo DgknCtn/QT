@@ -4,8 +4,7 @@ import type { PrepFormData } from "../types";
 
 const PO3_STATES = ["ACCUMULATION", "MANIPULATION", "DISTRIBUTION", "X", "UNKNOWN"];
 const MMXM_STAGES = ["ACCUMULATION", "MANIPULATION", "DISTRIBUTION", "REVERSAL", "CONTINUATION", "UNKNOWN"];
-const BIAS_OPTIONS = ["LONG", "SHORT", "NEUTRAL", "WAIT"];
-const CONFIDENCE = ["LOW", "MEDIUM", "HIGH"];
+const BIAS_OPTIONS = ["LONG", "SHORT", "WAIT"];
 const LIQ_TARGETS = [
   "PREV_DAY_HIGH", "PREV_DAY_LOW", "PREV_WEEK_HIGH", "PREV_WEEK_LOW",
   "PREV_6H_HIGH", "PREV_6H_LOW", "DFR_PROJECTION", "NWOG_NDOG",
@@ -71,34 +70,16 @@ export function Step2Narrative({ data, update }: Props) {
         </div>
       </div>
 
-      {/* Confidence */}
-      <div>
-        <label className="step-label">Confidence</label>
-        <ChipRow values={CONFIDENCE} selected={data.htfBiasConfidence} onSelect={(v) => update({ htfBiasConfidence: v })} />
-      </div>
-
       {/* HTF Target */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="step-label">HTF Target / DOL</label>
-          <input
-            type="text"
-            value={data.htfTarget}
-            onChange={(e) => update({ htfTarget: e.target.value })}
-            placeholder="e.g. prev day low, DFR projection…"
-            className="field-input"
-          />
-        </div>
-        <div>
-          <label className="step-label">Invalidation</label>
-          <input
-            type="text"
-            value={data.htfInvalidation}
-            onChange={(e) => update({ htfInvalidation: e.target.value })}
-            placeholder="e.g. break above X level"
-            className="field-input"
-          />
-        </div>
+      <div>
+        <label className="step-label">HTF Target / DOL</label>
+        <input
+          type="text"
+          value={data.htfTarget}
+          onChange={(e) => update({ htfTarget: e.target.value })}
+          placeholder="e.g. prev day low, DFR projection…"
+          className="field-input"
+        />
       </div>
 
       {/* Liquidity target */}
