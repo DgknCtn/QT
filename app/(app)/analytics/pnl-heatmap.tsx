@@ -126,12 +126,6 @@ export function PnlHeatmap({ days, year, month }: Props) {
           ))}
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
-          {["var(--color-bg-surface)", "#15803d", "#166534", "#7f1d1d", "#991b1b"].map((c, i) => (
-            <div key={i} className="w-4 h-4 rounded" style={{ background: c, border: "1px solid var(--color-bg-border)" }} />
-          ))}
-        </div>
       </div>
 
       {/* Day popup */}
