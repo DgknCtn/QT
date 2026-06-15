@@ -29,7 +29,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
       { href: "/daily-prep", label: "Daily Prep",  icon: ClipboardList },
-      { href: "/katmanlar",  label: "QT Katmanlar", icon: Layers },
+      { href: "/katmanlar",  label: "Education", icon: Layers },
       { href: "/journal",    label: "Journal",     icon: BookOpen },
       { href: "/calendar",   label: "Calendar",    icon: Calendar },
     ],

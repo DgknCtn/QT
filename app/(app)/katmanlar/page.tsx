@@ -849,7 +849,7 @@ export default function KatmanlarPage() {
       {/* Header */}
       <div>
         <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Quarterly Theory</p>
-        <h2 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>QT Katmanlar</h2>
+        <h2 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>Education</h2>
       </div>
 
       {/* Tab bar */}

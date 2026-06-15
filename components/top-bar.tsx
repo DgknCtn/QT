@@ -14,6 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/levels":     "Levels",
   "/setups":     "Setups",
   "/knowledge":  "Knowledge Base",
+  "/katmanlar":  "Education",
   "/analytics":  "Analytics",
   "/settings":   "Settings",
 };
