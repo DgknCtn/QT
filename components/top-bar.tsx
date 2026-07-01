@@ -1,21 +1,27 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Plus, Sun, Moon, Menu } from "lucide-react";
+import { Plus, Sun, Moon, Menu } from "lucide-react";
 import Link from "next/link";
 import { MarketClockCompact } from "@/components/market-clock/market-clock-compact";
 import { useTheme } from "@/components/theme-provider";
+import { CommandPalette } from "@/components/command-palette";
+import { UserMenu } from "@/components/user-menu";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":  "Dashboard",
   "/daily-prep": "Daily Prep",
   "/journal":    "Journal",
+  "/trade-log":  "Trade Log",
   "/calendar":   "Calendar",
   "/levels":     "Levels",
   "/setups":     "Setups",
   "/knowledge":  "Knowledge Base",
   "/katmanlar":  "Education",
   "/analytics":  "Analytics",
+  "/accounts":   "Accounts",
+  "/weekly-review": "Weekly Review",
+  "/mentorship": "Mentorship",
   "/settings":   "Settings",
 };
 
@@ -32,26 +38,16 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const quickAdd = Object.entries(QUICK_ADD).find(([key]) => pathname === key || pathname.startsWith(key + "/"))?.[1];
 
   return (
-    <header
-      className="flex items-center justify-between px-4 md:px-6 border-b shrink-0"
-      style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)", height: 56 }}
-    >
+    <header className="flex items-center justify-between px-4 md:px-6 border-b border-app bg-elevated shrink-0" style={{ height: 56 }}>
       <div className="flex items-center gap-2">
-        <button
-          onClick={onMenuClick}
-          className="md:hidden p-1.5 rounded-lg transition-colors"
-          style={{ color: "var(--color-text-muted)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-        >
+        <button onClick={onMenuClick} className="md:hidden p-1.5 rounded-lg text-muted hover-surface transition-colors">
           <Menu size={16} />
         </button>
-        <h1 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-          {title}
-        </h1>
+        <h1 className="text-sm font-semibold text-primary">{title}</h1>
       </div>
 
       <div className="flex items-center gap-3">
+        <CommandPalette />
         <MarketClockCompact />
         {quickAdd && (
           <Link
@@ -66,21 +62,11 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
         <button
           onClick={toggle}
           title={theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"}
-          className="p-1.5 rounded-lg transition-colors"
-          style={{ color: "var(--color-text-muted)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          className="p-1.5 rounded-lg text-muted hover-surface transition-colors"
         >
           {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
         </button>
-        <button
-          className="p-1.5 rounded-lg transition-colors"
-          style={{ color: "var(--color-text-muted)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-        >
-          <Bell size={15} />
-        </button>
+        <UserMenu />
       </div>
     </header>
   );
