@@ -49,6 +49,30 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Token-bound utility classes (replace repeated inline styles) ──────────── */
+@layer utilities {
+  .text-primary   { color: var(--color-text-primary); }
+  .text-secondary { color: var(--color-text-secondary); }
+  .text-muted     { color: var(--color-text-muted); }
+  .text-accent    { color: var(--color-accent); }
+  .text-success   { color: var(--color-success); }
+  .text-danger    { color: var(--color-danger); }
+  .text-warning   { color: var(--color-warning); }
+
+  .bg-base     { background: var(--color-bg-base); }
+  .bg-elevated { background: var(--color-bg-elevated); }
+  .bg-surface  { background: var(--color-bg-surface); }
+  .border-app  { border-color: var(--color-bg-border); }
+
+  /* Standard elevated card surface (rounded-xl border + elevated bg) */
+  .card {
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-bg-border);
+    background: var(--color-bg-elevated);
+  }
+  .hover-surface:hover { background: var(--color-bg-hover); }
+}
+
 /* Step label in forms */
 .step-label {
   display: block;

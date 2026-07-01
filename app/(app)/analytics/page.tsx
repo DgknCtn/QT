@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Download } from "lucide-react";
 import { CumulativeRChart } from "./cumulative-r-chart";
 import { PnlHeatmap } from "./pnl-heatmap";
+import { StatCard } from "@/components/ui-kit/stat-card";
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -149,16 +150,6 @@ function adherenceRows(trades: Trade[]) {
 }
 
 // ─── components ────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, sub, valueColor }: { label: string; value: string | number | null; sub?: string; valueColor?: string }) {
-  return (
-    <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-      <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-      <p className="text-2xl font-bold" style={{ color: valueColor ?? "var(--color-text-primary)" }}>{value ?? "—"}</p>
-      {sub && <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{sub}</p>}
-    </div>
-  );
-}
 
 function MiniBar({ pct, color }: { pct: number; color: string }) {
   return (

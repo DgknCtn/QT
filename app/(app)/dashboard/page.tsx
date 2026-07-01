@@ -9,21 +9,7 @@ import {
   Ban,
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
-
-
-const GO_NO_GO_MAP: Record<string, { label: string; color: string }> = {
-  GO:           { label: "GO",           color: "var(--color-go)" },
-  NO_GO:        { label: "NO-GO",        color: "var(--color-nogo)" },
-  WAIT:         { label: "WAIT",         color: "var(--color-wait)" },
-  REVIEW_LATER: { label: "REVIEW LATER", color: "var(--color-wait)" },
-  MISSED_SETUP: { label: "MISSED",       color: "var(--color-text-muted)" },
-};
-
-function GoNoGoBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>No prep today</span>;
-  const item = GO_NO_GO_MAP[status] ?? { label: status, color: "var(--color-text-secondary)" };
-  return <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: item.color }}>{item.label}</span>;
-}
+import { GoNoGoBadge } from "@/components/ui-kit/badge";
 
 export default async function DashboardPage() {
   const supabase = await createClient();

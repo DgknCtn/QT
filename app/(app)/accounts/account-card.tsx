@@ -5,24 +5,11 @@ import { useTransition } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Trophy } from "lucide-react";
 import { deleteAccount, advancePhase } from "./actions";
 import type { FundedAccount, EquityLog } from "@prisma/client";
+import { ProgressBar } from "@/components/ui-kit/progress-bar";
 
 interface Props {
   account: FundedAccount & { equityLogs: EquityLog[] };
   todayPnl: number | null;
-}
-
-function ProgressBar({ value, max, color, danger = false }: { value: number; max: number; color: string; danger?: boolean }) {
-  const pct = Math.min(max > 0 ? (value / max) * 100 : 0, 100);
-  // For danger bars (loss/drawdown): red at 90%, amber at 70%
-  // For target bars (profit): keep original color, green at 100%
-  const bg = danger
-    ? (pct >= 90 ? "#ef4444" : pct >= 70 ? "#f59e0b" : color)
-    : (pct >= 100 ? "#34c97e" : color);
-  return (
-    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-bg-border)" }}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: bg }} />
-    </div>
-  );
 }
 
 export function AccountCard({ account, todayPnl }: Props) {
