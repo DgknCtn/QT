@@ -113,7 +113,7 @@ export function MarketClockPanel() {
         {(["Acc", "Manip", "Distr", "X"] as const).map((label, idx) => (
           <span key={label} className="flex items-center gap-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
             <span className="w-2 h-2 rounded-full inline-block" style={{ background: Q_COLORS[idx as QIndex].border }} />
-            {label === "Acc" ? "Accumulation" : label === "Manip" ? "Manipulation" : label === "Distr" ? "Distribution" : "X (belirsiz)"}
+            {label === "Acc" ? "Accumulation" : label === "Manip" ? "Manipulation" : label === "Distr" ? "Distribution" : "X (Reversal - Continuation)"}
           </span>
         ))}
       </div>

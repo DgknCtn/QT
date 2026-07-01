@@ -5,8 +5,6 @@ import { Plus, Sun, Moon, Menu } from "lucide-react";
 import Link from "next/link";
 import { MarketClockCompact } from "@/components/market-clock/market-clock-compact";
 import { useTheme } from "@/components/theme-provider";
-import { CommandPalette } from "@/components/command-palette";
-import { UserMenu } from "@/components/user-menu";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":  "Dashboard",
@@ -47,7 +45,6 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <CommandPalette />
         <MarketClockCompact />
         {quickAdd && (
           <Link
@@ -66,7 +63,6 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
         >
           {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
         </button>
-        <UserMenu />
       </div>
     </header>
   );

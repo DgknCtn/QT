@@ -87,68 +87,6 @@ function statsFor(trades: Trade[]) {
   return { count: active.length, wins, wr, ar, totalPnl };
 }
 
-function expectancy(trades: Trade[]): number | null {
-  const active = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result) && t.pnlCurrency != null);
-  if (!active.length) return null;
-  const wins = active.filter((t) => (t.pnlCurrency ?? 0) > 0);
-  const losses = active.filter((t) => (t.pnlCurrency ?? 0) < 0);
-  const winRate = wins.length / active.length;
-  const lossRate = losses.length / active.length;
-  const avgWin = wins.length ? wins.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0) / wins.length : 0;
-  const avgLoss = losses.length ? Math.abs(losses.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0) / losses.length) : 0;
-  return winRate * avgWin - lossRate * avgLoss;
-}
-
-// Longest win/loss streaks and current streak, chronological.
-function streaks(chronoActive: Trade[]): { longestWin: number; longestLoss: number; current: number } {
-  let longestWin = 0, longestLoss = 0, curWin = 0, curLoss = 0;
-  for (const t of chronoActive) {
-    if (t.result === "WIN") { curWin++; curLoss = 0; longestWin = Math.max(longestWin, curWin); }
-    else if (t.result === "LOSS") { curLoss++; curWin = 0; longestLoss = Math.max(longestLoss, curLoss); }
-    else { curWin = 0; curLoss = 0; }
-  }
-  // current streak (signed): + for wins, - for losses
-  let current = 0;
-  for (let i = chronoActive.length - 1; i >= 0; i--) {
-    const r = chronoActive[i].result;
-    if (r !== "WIN" && r !== "LOSS") break;
-    if (current === 0) current = r === "WIN" ? 1 : -1;
-    else if ((current > 0 && r === "WIN")) current++;
-    else if ((current < 0 && r === "LOSS")) current--;
-    else break;
-  }
-  return { longestWin, longestLoss, current };
-}
-
-const R_BUCKETS: { label: string; test: (r: number) => boolean }[] = [
-  { label: "≤ -2R", test: (r) => r <= -2 },
-  { label: "-2..-1", test: (r) => r > -2 && r <= -1 },
-  { label: "-1..0",  test: (r) => r > -1 && r < 0 },
-  { label: "0..1",   test: (r) => r >= 0 && r < 1 },
-  { label: "1..2",   test: (r) => r >= 1 && r < 2 },
-  { label: "2..3",   test: (r) => r >= 2 && r < 3 },
-  { label: "3R+",    test: (r) => r >= 3 },
-];
-
-function rDistribution(trades: Trade[]): { label: string; count: number }[] {
-  const rs = trades.filter((t) => t.rResult != null).map((t) => t.rResult as number);
-  return R_BUCKETS.map((b) => ({ label: b.label, count: rs.filter(b.test).length }));
-}
-
-const GRADE_ORDER: { key: string; label: string }[] = [
-  { key: "A_PLUS", label: "A+" },
-  { key: "B", label: "B" },
-  { key: "C", label: "C" },
-  { key: "RULE_BREAK", label: "RULE BREAK" },
-];
-
-function adherenceRows(trades: Trade[]) {
-  return GRADE_ORDER.map(({ key, label }) => {
-    const ts = trades.filter((t) => t.processGrade === key);
-    return { label, ...statsFor(ts) };
-  }).filter((r) => r.count > 0);
-}
-
 // ─── components ────────────────────────────────────────────────────────────
 
 function MiniBar({ pct, color }: { pct: number; color: string }) {
@@ -242,7 +180,6 @@ export default async function AnalyticsPage({
   const active = ft.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
   const totalR = ft.filter((t) => t.rResult != null).reduce((s, t) => s + (t.rResult ?? 0), 0);
   const totalPnl = ft.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
-  const exp = expectancy(ft);
 
   // ── Cumulative R curve (chronological, filtered) ──
   const chronoTrades = [...ft].reverse();
@@ -260,13 +197,6 @@ export default async function AnalyticsPage({
 
   // ── Max drawdown ──
   const mdd = maxDrawdownR(rCurve);
-
-  // ── Streaks, R-distribution, adherence (chronological/filtered) ──
-  const chronoActive = chronoTrades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
-  const streak = streaks(chronoActive);
-  const rDist = rDistribution(ft);
-  const rDistMax = Math.max(...rDist.map((b) => b.count), 1);
-  const adherence = adherenceRows(ft);
 
   // ── Grade distribution (filtered) ──
   const gradeMap = { A_PLUS: 0, B: 0, C: 0, RULE_BREAK: 0, UNREVIEWED: 0 };
@@ -421,75 +351,16 @@ export default async function AnalyticsPage({
       })()}
 
       {/* Overall stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} trade`} />
         <StatCard label="Avg R" value={ar} sub={`Toplam: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
         <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${ft.length} toplam trade`} />
-        <StatCard
-          label="Expectancy"
-          value={exp != null ? `${exp >= 0 ? "+" : ""}$${exp.toFixed(0)}` : null}
-          sub="işlem başına beklenen $"
-          valueColor={exp != null ? (exp >= 0 ? "#34c97e" : "#ef4444") : undefined}
-        />
         <StatCard
           label="Max Drawdown"
           value={rCurve.length > 0 ? `${mdd.toFixed(1)}R` : null}
           sub="kümülatif R eğrisinden"
           valueColor={mdd > 0 ? "#ef4444" : undefined}
         />
-        <StatCard
-          label="Güncel Seri"
-          value={streak.current === 0 ? "—" : `${streak.current > 0 ? "+" : ""}${streak.current}`}
-          sub={`En uzun: ${streak.longestWin}W / ${streak.longestLoss}L`}
-          valueColor={streak.current > 0 ? "#34c97e" : streak.current < 0 ? "#ef4444" : undefined}
-        />
-      </div>
-
-      {/* R-distribution + Adherence */}
-      <div className="grid md:grid-cols-2 gap-3">
-        {/* R distribution histogram */}
-        <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>R Dağılımı</h3>
-          <div className="space-y-2">
-            {rDist.map((b) => (
-              <div key={b.label} className="flex items-center gap-2">
-                <span className="text-xs w-14 shrink-0 text-right font-mono" style={{ color: "var(--color-text-muted)" }}>{b.label}</span>
-                <div className="flex-1">
-                  <MiniBar pct={(b.count / rDistMax) * 100} color={b.label.startsWith("-") || b.label.startsWith("≤") ? "var(--color-danger)" : "var(--color-success)"} />
-                </div>
-                <span className="text-xs w-6 text-right" style={{ color: "var(--color-text-secondary)" }}>{b.count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Adherence vs outcome */}
-        <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Disiplin vs Sonuç</h3>
-          <table className="w-full text-xs">
-            <thead>
-              <tr style={{ color: "var(--color-text-muted)" }}>
-                <th className="text-left pb-2">Grade</th>
-                <th className="text-right pb-2">Trade</th>
-                <th className="text-right pb-2">WR %</th>
-                <th className="text-right pb-2">Avg R</th>
-              </tr>
-            </thead>
-            <tbody>
-              {adherence.map((row) => (
-                <tr key={row.label} className="border-t" style={{ borderColor: "var(--color-bg-border)" }}>
-                  <td className="py-1.5 font-semibold" style={{ color: "var(--color-text-primary)" }}>{row.label}</td>
-                  <td className="py-1.5 text-right" style={{ color: "var(--color-text-secondary)" }}>{row.count}</td>
-                  <td className="py-1.5 text-right" style={{ color: (row.wr ?? 0) >= 50 ? "#34c97e" : "#ef4444" }}>{row.wr != null ? `${row.wr}%` : "—"}</td>
-                  <td className="py-1.5 text-right" style={{ color: parseFloat(row.ar ?? "0") >= 0 ? "#34c97e" : "#ef4444" }}>{row.ar ?? "—"}</td>
-                </tr>
-              ))}
-              {adherence.length === 0 && (
-                <tr><td colSpan={4} className="py-3 text-center" style={{ color: "var(--color-text-muted)" }}>Henüz grade&apos;li trade yok</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Cumulative R chart */}
