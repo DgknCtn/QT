@@ -18,7 +18,7 @@ export default function LoginPage() {
 
       {/* Top-left brand */}
       <div className="flex items-center gap-2.5 px-6 md:px-10 pt-6">
-        <Image src="/qtlogo.png" alt="QT" width={30} height={30} className="rounded-lg" style={{ filter: "invert(1)" }} priority />
+        <Image src="/qtlogo.png" alt="QT" width={30} height={30} className="rounded-lg" priority />
         <span className="text-sm font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(255,255,255,0.75)" }}>
           Quarterly Theory
         </span>

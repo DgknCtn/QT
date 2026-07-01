@@ -113,7 +113,6 @@ export function AppSidebar({ mobileOpen = false, onClose }: { mobileOpen?: boole
           width={28}
           height={28}
           className="rounded-md shrink-0"
-          style={{ filter: "invert(1)" }}
         />
         {!collapsed && (
           <span className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>
