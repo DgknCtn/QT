@@ -5,12 +5,13 @@ import { getMonthlyQuarterWeeks, dayQuarter } from "./monthly-quarter";
 const QUARTER_COLOR: Record<1 | 2 | 3 | 4, string> = {
   1: "var(--color-accent)",
   2: "var(--color-long)",
-  3: "var(--color-warning)",
+  3: "#f97316",
   4: "var(--color-danger)",
 };
 
 const MONTH_NAMES = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-const DOW = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+// Weekly cycle: Pzt=Q1, Sal=Q2 (True Week Open), Çar=Q3, Per=Q4 — sabit ve deterministik
+const DOW = ["Pzt · Q1", "Sal · TWO", "Çar · Q3", "Per · Q4", "Cum", "Cmt", "Paz"];
 
 const impactColor: Record<string, string> = {
   HIGH: "var(--color-danger)",
@@ -84,7 +85,7 @@ export function MonthlyQuarterGrid({
 
       <div className="grid grid-cols-7 gap-1">
         {DOW.map((d) => (
-          <div key={d} className="text-center text-xs py-0.5" style={{ color: "var(--color-text-muted)" }}>{d}</div>
+          <div key={d} className="text-center py-0.5 whitespace-nowrap" style={{ color: "var(--color-text-muted)", fontSize: 10 }}>{d}</div>
         ))}
       </div>
 
