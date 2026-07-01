@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { markLessonComplete, unmarkLessonComplete } from "../../../../actions";
-import { CheckCircle2, FileText, Video, ExternalLink } from "lucide-react";
+import { CheckCircle2, FileText, ExternalLink, Link2 } from "lucide-react";
+import { Markdown } from "@/components/markdown";
 
 export default async function LessonViewerPage({ params }: { params: Promise<{ id: string; lid: string }> }) {
   const { id, lid } = await params;
@@ -36,6 +37,13 @@ export default async function LessonViewerPage({ params }: { params: Promise<{ i
   const currentIdx = allLessons.findIndex(l => l.id === lid);
   const prev = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
   const next = currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
+  const lessonPosition = currentIdx >= 0 ? `Ders ${currentIdx + 1} / ${allLessons.length}` : "";
+
+  // Resources attached to this lesson
+  const lessonResources = await prisma.resource.findMany({
+    where: { lessonId: lid },
+    orderBy: { order: "asc" },
+  });
 
   // Extract YouTube embed URL
   function toEmbedUrl(url: string | null): string | null {
@@ -61,7 +69,10 @@ export default async function LessonViewerPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="flex items-start justify-between gap-4">
-        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>{lesson.title}</h1>
+        <div>
+          {lessonPosition && <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{lessonPosition}</p>}
+          <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>{lesson.title}</h1>
+        </div>
         {isDone && (
           <span className="flex items-center gap-1 text-xs font-medium shrink-0" style={{ color: "#34c97e" }}>
             <CheckCircle2 size={14} /> Tamamlandı
@@ -98,8 +109,24 @@ export default async function LessonViewerPage({ params }: { params: Promise<{ i
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--color-text-primary)" }}>
             <FileText size={14} style={{ color: "var(--color-accent)" }} /> Notlar
           </h2>
-          <div className="text-sm whitespace-pre-wrap" style={{ color: "var(--color-text-secondary)", lineHeight: 1.7 }}>
-            {lesson.content}
+          <Markdown>{lesson.content}</Markdown>
+        </div>
+      )}
+
+      {/* Lesson resources */}
+      {lessonResources.length > 0 && (
+        <div className="rounded-xl p-5 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <h2 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--color-text-primary)" }}>
+            <Link2 size={14} style={{ color: "var(--color-accent)" }} /> Bu Derse Ait Kaynaklar
+          </h2>
+          <div className="space-y-1.5">
+            {lessonResources.map((r) => (
+              <a key={r.id} href={r.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm hover:underline" style={{ color: "var(--color-accent)" }}>
+                <ExternalLink size={12} /> {r.title}
+                <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>· {r.type}</span>
+              </a>
+            ))}
           </div>
         </div>
       )}

@@ -179,12 +179,13 @@ export async function saveResource(formData: FormData) {
   const type        = formData.get("type") as "VIDEO" | "DOCUMENT" | "LINK" | "IMAGE";
   const url         = formData.get("url") as string;
   const category    = (formData.get("category") as string) || null;
+  const lessonId    = (formData.get("lessonId") as string) || null;
 
   if (id) {
-    await prisma.resource.update({ where: { id }, data: { title, description, type, url, category } });
+    await prisma.resource.update({ where: { id }, data: { title, description, type, url, category, lessonId } });
   } else {
     const maxOrder = await prisma.resource.aggregate({ _max: { order: true } });
-    await prisma.resource.create({ data: { title, description, type, url, category, order: (maxOrder._max.order ?? 0) + 1 } });
+    await prisma.resource.create({ data: { title, description, type, url, category, lessonId, order: (maxOrder._max.order ?? 0) + 1 } });
   }
   revalidatePath("/mentorship/admin/resources");
   revalidatePath("/mentorship/resources");

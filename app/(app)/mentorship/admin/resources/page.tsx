@@ -15,6 +15,11 @@ export default async function AdminResourcesPage() {
 
   const resources = await prisma.resource.findMany({ orderBy: { order: "asc" } });
 
+  const lessons = await prisma.lesson.findMany({
+    orderBy: [{ chapter: { course: { order: "asc" } } }, { chapter: { order: "asc" } }, { order: "asc" }],
+    select: { id: true, title: true, chapter: { select: { course: { select: { title: true } } } } },
+  });
+
   const typeLabel: Record<string, string> = {
     VIDEO: "Video", DOCUMENT: "Doküman", LINK: "Link", IMAGE: "Görsel",
   };
@@ -54,6 +59,14 @@ export default async function AdminResourcesPage() {
               className="rounded-lg px-3 py-2 text-sm outline-none"
               style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-bg-border)", color: "var(--color-text-primary)" }} />
           </div>
+          <select name="lessonId"
+            className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+            style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-bg-border)", color: "var(--color-text-primary)" }}>
+            <option value="">Derse bağlı değil (genel kaynak)</option>
+            {lessons.map((l) => (
+              <option key={l.id} value={l.id}>{l.chapter.course.title} — {l.title}</option>
+            ))}
+          </select>
           <button type="submit"
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"
             style={{ background: "var(--color-accent)", color: "#fff" }}>

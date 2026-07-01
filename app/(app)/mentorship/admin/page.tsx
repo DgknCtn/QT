@@ -11,12 +11,35 @@ export default async function MentorshipAdminPage() {
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
   if (!dbUser || dbUser.role !== "ADMIN") redirect("/mentorship");
 
-  const [pendingCount, activeCount, courseCount, resourceCount] = await Promise.all([
+  const [pendingCount, activeCount, courseCount, resourceCount, totalLessons, activeMentees] = await Promise.all([
     prisma.menteeProfile.count({ where: { status: "PENDING" } }),
     prisma.menteeProfile.count({ where: { status: "ACTIVE" } }),
     prisma.course.count(),
     prisma.resource.count(),
+    prisma.lesson.count({ where: { isPublished: true } }),
+    prisma.menteeProfile.findMany({
+      where: { status: "ACTIVE" },
+      select: {
+        userId: true,
+        user: { select: { email: true } },
+        progress: { select: { completedAt: true }, orderBy: { completedAt: "desc" } },
+      },
+    }),
   ]);
+
+  // Average completion + stalled mentees (no progress in 7+ days)
+  const now = Date.now();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  const completions = activeMentees.map((m) => ({
+    email: m.user.email,
+    done: m.progress.length,
+    pct: totalLessons > 0 ? Math.round((m.progress.length / totalLessons) * 100) : 0,
+    lastActivity: m.progress[0]?.completedAt ?? null,
+  }));
+  const avgCompletion = completions.length
+    ? Math.round(completions.reduce((s, c) => s + c.pct, 0) / completions.length)
+    : 0;
+  const stalled = completions.filter((c) => !c.lastActivity || (now - new Date(c.lastActivity).getTime()) > sevenDaysMs);
 
   const stats = [
     { label: "Onay Bekleyen",  value: pendingCount,  href: "/mentorship/admin/mentees",   color: "#f59e0b" },
@@ -42,6 +65,32 @@ export default async function MentorshipAdminPage() {
           </Link>
         ))}
       </div>
+
+      {/* Mini analytics */}
+      {activeMentees.length > 0 && (
+        <div className="rounded-xl p-5 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Genel Durum</h2>
+            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>Ortalama tamamlanma: <strong style={{ color: "var(--color-text-secondary)" }}>{avgCompletion}%</strong></span>
+          </div>
+          {stalled.length > 0 ? (
+            <div>
+              <p className="text-xs mb-2" style={{ color: "var(--color-warning)" }}>
+                ⚠️ 7+ gündür ilerleme yok ({stalled.length}):
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {stalled.map((c) => (
+                  <span key={c.email} className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.12)", color: "var(--color-warning)" }}>
+                    {c.email} · {c.pct}%
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs" style={{ color: "var(--color-success)" }}>Tüm aktif mentee&apos;ler son 7 günde ilerleme kaydetti ✓</p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link href="/mentorship/admin/mentees"

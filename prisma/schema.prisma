@@ -863,9 +863,11 @@ model Resource {
   type        ResourceType
   url         String
   category    String?
+  lessonId    String?
   order       Int          @default(0)
   createdAt   DateTime     @default(now())
 
+  @@index([lessonId])
   @@map("resources")
 }
 
