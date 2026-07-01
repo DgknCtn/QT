@@ -58,8 +58,6 @@ export default async function JournalPage({
   const user = await getUser();
   if (!user) return null;
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-
   // Build filter where clause
   const where: Record<string, unknown> = { userId: user.id };
   if (sp.instrument) where.instrument = sp.instrument;
@@ -78,14 +76,32 @@ export default async function JournalPage({
     ];
   }
 
-  const trades = dbUser
-    ? await prisma.trade.findMany({
-        where,
-        orderBy: { date: "desc" },
-        take: 100,
-        include: { tags: { include: { tag: true } } },
-      })
-    : [];
+  const trades = await prisma.trade.findMany({
+    where,
+    orderBy: { date: "desc" },
+    take: 100,
+    select: {
+      id: true,
+      date: true,
+      instrument: true,
+      direction: true,
+      session: true,
+      setupType: true,
+      result: true,
+      entryPrice: true,
+      stopPrice: true,
+      tp1: true,
+      riskPercent: true,
+      rResult: true,
+      pnlPoints: true,
+      pnlCurrency: true,
+      processGrade: true,
+      processScore: true,
+      planFollowed: true,
+      notes: true,
+      tags: { select: { tag: { select: { name: true, category: true } } } },
+    },
+  });
 
   // Stats for filtered set
   const activeTrades = trades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));

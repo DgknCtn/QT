@@ -15,7 +15,20 @@ async function loadTrades(userId: string) {
     where: { userId },
     orderBy: { date: "desc" },
     take: 200,
-    include: { tags: { include: { tag: true } } },
+    select: {
+      id: true,
+      date: true,
+      instrument: true,
+      direction: true,
+      session: true,
+      setupType: true,
+      triad: true,
+      result: true,
+      rResult: true,
+      pnlCurrency: true,
+      processGrade: true,
+      tags: { select: { tag: { select: { name: true, category: true } } } },
+    },
   });
 }
 

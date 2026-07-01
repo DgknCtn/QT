@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { deletePlaybook } from "../actions";
 
@@ -122,10 +123,8 @@ export default async function PlaybookDetailPage({ params }: { params: Promise<{
           <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Örnek Görseller</h3>
           <div className="grid grid-cols-2 gap-3">
             {entry.imageUrls.map((url, i) => (
-              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={`Screenshot ${i + 1}`}
-                  className="w-full rounded-lg object-cover" style={{ aspectRatio: "16/9" }} />
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative block w-full rounded-lg overflow-hidden" style={{ aspectRatio: "16/9" }}>
+                <Image src={url} alt={`Screenshot ${i + 1}`} fill className="object-cover" />
               </a>
             ))}
           </div>

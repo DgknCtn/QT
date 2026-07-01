@@ -12,16 +12,17 @@ import {
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
 
 
+const GO_NO_GO_MAP: Record<string, { label: string; color: string }> = {
+  GO:           { label: "GO",           color: "var(--color-go)" },
+  NO_GO:        { label: "NO-GO",        color: "var(--color-nogo)" },
+  WAIT:         { label: "WAIT",         color: "var(--color-wait)" },
+  REVIEW_LATER: { label: "REVIEW LATER", color: "var(--color-wait)" },
+  MISSED_SETUP: { label: "MISSED",       color: "var(--color-text-muted)" },
+};
+
 function GoNoGoBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>No prep today</span>;
-  const map: Record<string, { label: string; color: string }> = {
-    GO:           { label: "GO",           color: "var(--color-go)" },
-    NO_GO:        { label: "NO-GO",        color: "var(--color-nogo)" },
-    WAIT:         { label: "WAIT",         color: "var(--color-wait)" },
-    REVIEW_LATER: { label: "REVIEW LATER", color: "var(--color-wait)" },
-    MISSED_SETUP: { label: "MISSED",       color: "var(--color-text-muted)" },
-  };
-  const item = map[status] ?? { label: status, color: "var(--color-text-secondary)" };
+  const item = GO_NO_GO_MAP[status] ?? { label: status, color: "var(--color-text-secondary)" };
   return <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: item.color }}>{item.label}</span>;
 }
 
@@ -36,79 +37,64 @@ export default async function DashboardPage() {
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-  const dbUser = user ? await prisma.user.findUnique({ where: { id: user.id } }) : null;
-
-  // Today's prep
-  const todayPrep = dbUser
-    ? await prisma.dailyPrep.findFirst({
-        where: { userId: user!.id, date: { gte: todayStart, lte: todayEnd } },
-        orderBy: { createdAt: "desc" },
-      }).catch(() => null)
-    : null;
-
-  // Recent preps (last 5)
-  const recentPreps = dbUser
-    ? await prisma.dailyPrep.findMany({
-        where: { userId: user!.id },
-        orderBy: { date: "desc" },
-        take: 5,
-        select: { id: true, date: true, htfBias: true, goNoGoStatus: true, triad: true, session: true },
-      }).catch(() => [])
-    : [];
-
-  // This week trades
-  const weekTrades = dbUser
-    ? await prisma.trade.findMany({
-        where: { userId: user!.id, date: { gte: weekStart, lte: weekEnd } },
-        select: { result: true, rResult: true, processScore: true },
-      }).catch(() => [])
-    : [];
+  const [
+    todayPrep,
+    recentPreps,
+    weekTrades,
+    activeAccounts,
+    last10,
+    todayTrades,
+    todayEvents,
+  ] = user
+    ? await Promise.all([
+        prisma.dailyPrep.findFirst({
+          where: { userId: user.id, date: { gte: todayStart, lte: todayEnd } },
+          orderBy: { createdAt: "desc" },
+        }).catch(() => null),
+        prisma.dailyPrep.findMany({
+          where: { userId: user.id },
+          orderBy: { date: "desc" },
+          take: 5,
+          select: { id: true, date: true, htfBias: true, goNoGoStatus: true, triad: true, session: true },
+        }).catch(() => []),
+        prisma.trade.findMany({
+          where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
+          select: { result: true, rResult: true, processScore: true },
+        }).catch(() => []),
+        prisma.fundedAccount.findMany({
+          where:   { userId: user.id, status: "ACTIVE" },
+          include: { equityLogs: { where: { date: { gte: todayStart } }, take: 1, orderBy: { date: "desc" } } },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        }).catch(() => []),
+        prisma.trade.findMany({
+          where: { userId: user.id, result: { notIn: ["NO_TRADE", "MISSED"] } },
+          select: { result: true, rResult: true, pnlCurrency: true },
+          orderBy: { date: "desc" },
+          take: 10,
+        }).catch(() => []),
+        prisma.trade.findMany({
+          where: { userId: user.id, date: { gte: todayStart, lte: todayEnd }, result: { notIn: ["NO_TRADE", "MISSED"] } },
+          select: { pnlCurrency: true },
+        }).catch(() => []),
+        prisma.economicEvent.findMany({
+          where: { userId: user.id, dateTime: { gte: todayStart, lte: todayEnd } },
+          orderBy: { dateTime: "asc" },
+        }).catch(() => []),
+      ])
+    : [null, [], [], [], [], [], []];
 
   const activeWeekTrades = weekTrades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
   const weekWins = activeWeekTrades.filter((t) => t.result === "WIN").length;
   const weekWR = activeWeekTrades.length > 0 ? Math.round((weekWins / activeWeekTrades.length) * 100) : null;
-  // Active funded accounts
-  const activeAccounts = dbUser
-    ? await prisma.fundedAccount.findMany({
-        where:   { userId: user!.id, status: "ACTIVE" },
-        include: { equityLogs: { where: { date: { gte: todayStart } }, take: 1, orderBy: { date: "desc" } } },
-        orderBy: { createdAt: "desc" },
-        take: 3,
-      }).catch(() => [])
-    : [];
-
-  // Last 10 trades rolling stats
-  const last10 = dbUser
-    ? await prisma.trade.findMany({
-        where: { userId: user!.id, result: { notIn: ["NO_TRADE", "MISSED"] } },
-        select: { result: true, rResult: true, pnlCurrency: true },
-        orderBy: { date: "desc" },
-        take: 10,
-      }).catch(() => [])
-    : [];
 
   const last10Wins   = last10.filter((t) => t.result === "WIN").length;
   const last10WR     = last10.length > 0 ? Math.round((last10Wins / last10.length) * 100) : null;
   const last10NetR   = last10.reduce((s, t) => s + (t.rResult ?? 0), 0);
   const last10NetPnl = last10.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
 
-  // Today's trades P&L
-  const todayTrades = dbUser
-    ? await prisma.trade.findMany({
-        where: { userId: user!.id, date: { gte: todayStart, lte: todayEnd }, result: { notIn: ["NO_TRADE", "MISSED"] } },
-        select: { pnlCurrency: true },
-      }).catch(() => [])
-    : [];
   const todayPnl = todayTrades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
   const hasTodayTrades = todayTrades.length > 0;
-
-  // Today's economic events
-  const todayEvents = dbUser
-    ? await prisma.economicEvent.findMany({
-        where: { userId: user!.id, dateTime: { gte: todayStart, lte: todayEnd } },
-        orderBy: { dateTime: "asc" },
-      }).catch(() => [])
-    : [];
 
   const highRiskEvents = todayEvents.filter((e) => ["HIGH_RISK", "NO_TRADE_WINDOW"].includes(e.userRiskTag ?? "") || e.impact === "HIGH");
 
@@ -271,6 +257,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Market Clock Panel */}
+      <MarketClockPanel />
+
       {/* Funded Account widget */}
       {activeAccounts.length > 0 && (
         <div className="space-y-2">
@@ -339,9 +328,6 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Market Clock Panel */}
-      <MarketClockPanel />
 
       {/* Recent preps */}
       <div>

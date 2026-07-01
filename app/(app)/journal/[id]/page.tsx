@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { format } from "date-fns";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { TvChartWidget } from "@/components/tv-chart-widget";
@@ -159,9 +160,8 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
           <div className="grid grid-cols-2 gap-3">
             {trade.screenshots.map((sc) => (
               <div key={sc.id} className="space-y-1">
-                <a href={sc.fileUrl} target="_blank" rel="noopener noreferrer">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sc.fileUrl} alt={sc.screenshotType} className="w-full rounded-lg object-cover" style={{ aspectRatio: "16/9" }} />
+                <a href={sc.fileUrl} target="_blank" rel="noopener noreferrer" className="relative block w-full rounded-lg overflow-hidden" style={{ aspectRatio: "16/9" }}>
+                  <Image src={sc.fileUrl} alt={sc.screenshotType} fill className="object-cover" />
                 </a>
                 <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{sc.screenshotType.replace(/_/g, " ")}</p>
                 {sc.notes && <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{sc.notes}</p>}

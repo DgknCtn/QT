@@ -39,6 +39,7 @@ model User {
   playbookEntries  PlaybookEntry[]
   weeklyReviews    WeeklyReview[]
   mentorNotes      MentorNote[]
+  brokerTrades     BrokerTrade[]
 
   @@map("users")
 }
@@ -94,6 +95,7 @@ model DailyPrep {
   trades        Trade[]
   screenshots   Screenshot[]
 
+  @@index([userId, date])
   @@map("daily_preps")
 }
 
@@ -116,6 +118,7 @@ model Level {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
 
+  @@index([userId, instrument])
   @@map("levels")
 }
 
@@ -151,6 +154,7 @@ model DFR {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
   @@map("dfrs")
 }
 
@@ -180,6 +184,7 @@ model SSMTEvent {
   dailyPrep     DailyPrep?     @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
   confirmations Confirmation[]
 
+  @@index([userId])
   @@map("ssmt_events")
 }
 
@@ -200,6 +205,7 @@ model Confirmation {
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
   ssmtEvent SSMTEvent? @relation(fields: [ssmtEventId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
   @@map("confirmations")
 }
 
@@ -241,6 +247,8 @@ model Trade {
   tags        TradeTag[]
   screenshots Screenshot[]
 
+  @@index([userId, date])
+  @@index([userId, instrument])
   @@map("trades")
 }
 
@@ -285,6 +293,8 @@ model Screenshot {
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
   concept   Concept?   @relation(fields: [conceptId], references: [id], onDelete: SetNull)
 
+  @@index([tradeId])
+  @@index([dailyPrepId])
   @@map("screenshots")
 }
 
@@ -327,6 +337,7 @@ model EconomicEvent {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, dateTime])
   @@map("economic_events")
 }
 
@@ -715,6 +726,7 @@ model FundedAccount {
   user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   equityLogs EquityLog[]
 
+  @@index([userId])
   @@map("funded_accounts")
 }
 
@@ -728,6 +740,7 @@ model EquityLog {
 
   account FundedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
+  @@index([accountId, date])
   @@map("equity_logs")
 }
 
@@ -780,6 +793,7 @@ model MentorNote {
 
   mentee User @relation(fields: [menteeId], references: [id], onDelete: Cascade)
 
+  @@index([menteeId])
   @@map("mentor_notes")
 }
 
@@ -905,5 +919,39 @@ model PlaybookEntry {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("playbook_entries")
+}
+
+// ─── Trade Log (broker CSV import) ────────────────────────────────────────────
+
+model BrokerTrade {
+  id          String   @id @default(cuid())
+  userId      String
+  source      String
+  account     String?
+  instrument  String
+  direction   String
+  quantity    Int
+  entryPrice  Float
+  exitPrice   Float
+  entryTime   DateTime
+  exitTime    DateTime
+  durationSec Int?
+  grossPnl    Float?
+  commission  Float?
+  fees        Float?
+  netPnl      Float?
+  riskUsd     Float?
+  journalNote String?
+  chartUrl    String?
+  externalRef String
+  rawRow      Json?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, externalRef])
+  @@index([userId, entryTime])
+  @@map("broker_trades")
 }

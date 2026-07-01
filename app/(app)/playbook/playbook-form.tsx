@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Plus, X, Upload } from "lucide-react";
 import { savePlaybook } from "./actions";
 import { uploadScreenshot } from "@/lib/supabase/storage";
@@ -203,8 +204,7 @@ export function PlaybookForm({ entry, userId }: { entry?: PlaybookEntry; userId:
           <div className="grid grid-cols-2 gap-2">
             {form.imageUrls.map((url, i) => (
               <div key={i} className="relative rounded-lg overflow-hidden group" style={{ aspectRatio: "16/9" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="w-full h-full object-cover" />
+                <Image src={url} alt="" fill className="object-cover" />
                 <button type="button" onClick={() => setForm((f) => ({ ...f, imageUrls: f.imageUrls.filter((_, j) => j !== i) }))}
                   className="absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{ background: "var(--color-danger)", color: "#fff" }}>

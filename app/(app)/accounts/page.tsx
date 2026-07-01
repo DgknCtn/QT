@@ -3,20 +3,21 @@ import { Plus, Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { AccountCard } from "./account-card";
+import { GoalsPanel } from "../goals/goals-panel";
 
 export default async function AccountsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const accounts = await prisma.fundedAccount.findMany({
-    where:   { userId: user.id },
-    include: { equityLogs: { orderBy: { date: "desc" }, take: 30 } },
-    orderBy: { createdAt: "desc" },
-  });
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const accounts = await prisma.fundedAccount.findMany({
+    where:   { userId: user.id },
+    include: { equityLogs: { where: { date: { gte: today } }, orderBy: { date: "desc" }, take: 1 } },
+    orderBy: { createdAt: "desc" },
+  });
 
   // Multi-account summary
   const activeAccounts = accounts.filter((a) => a.status === "ACTIVE");
@@ -115,6 +116,11 @@ export default async function AccountsPage() {
             <AccountCard key={account.id} account={account} todayPnl={todayLog?.pnlToday ?? null} />
           );
         })}
+      </div>
+
+      {/* Monthly goals */}
+      <div className="pt-2 border-t" style={{ borderColor: "var(--color-bg-border)" }}>
+        <GoalsPanel userId={user.id} />
       </div>
     </div>
   );

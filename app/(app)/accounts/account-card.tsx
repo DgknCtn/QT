@@ -62,8 +62,8 @@ export function AccountCard({ account, todayPnl }: Props) {
       className="rounded-xl border p-5 space-y-4 relative overflow-hidden"
       style={{
         background: "var(--color-bg-elevated)",
-        borderColor: isAtRisk ? "#ef4444" : isWarning ? "#f59e0b" : "var(--color-bg-border)",
-        boxShadow: isAtRisk ? "0 0 0 1px #ef4444" : isWarning ? "0 0 0 1px #f59e0b" : undefined,
+        borderColor: isAtRisk ? "#ef4444" : isWarning ? "var(--color-risk-warning)" : "var(--color-bg-border)",
+        boxShadow: isAtRisk ? "0 0 0 1px #ef4444" : isWarning ? "0 0 0 1px var(--color-risk-warning)" : undefined,
       }}
     >
       {/* Header */}
@@ -187,7 +187,7 @@ export function AccountCard({ account, todayPnl }: Props) {
         </div>
       )}
       {!isAtRisk && isWarning && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium" style={{ background: "#f59e0b20", color: "#f59e0b" }}>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium" style={{ background: "color-mix(in srgb, var(--color-risk-warning) 15%, transparent)", color: "var(--color-risk-warning)" }}>
           <AlertTriangle size={14} />
           Risk limitinin %70'ine ulaşıldı — dikkatli ol.
         </div>
