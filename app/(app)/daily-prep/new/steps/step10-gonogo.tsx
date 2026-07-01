@@ -45,7 +45,9 @@ function buildSummary(data: PrepFormData): string {
   const conf = data.confirmation.confirmationType ? `${data.confirmation.confirmationType} (${data.confirmation.timeframe})` : "no confirmation";
   const entry = data.entry.entryModel ? data.entry.entryModel.replace(/_/g, " ") : "no entry";
   const risk = data.entry.riskPercent ? `${data.entry.riskPercent}%` : "?%";
-  const target = data.htfTarget || "unknown target";
+  const target = data.mainLiquidityTarget === "CUSTOM"
+    ? (data.customLiqTarget || "unknown target")
+    : (data.mainLiquidityTarget ? data.mainLiquidityTarget.replace(/_/g, " ") : "unknown target");
 
   return `HTF bias is ${bias}. I am in ${cycle}. SSMT: ${ssmt}. Confirmation: ${conf}. Entry: ${entry}. Target: ${target}. Risk: ${risk}.`;
 }

@@ -70,18 +70,6 @@ export function Step2Narrative({ data, update }: Props) {
         </div>
       </div>
 
-      {/* HTF Target */}
-      <div>
-        <label className="step-label">HTF Target / DOL</label>
-        <input
-          type="text"
-          value={data.htfTarget}
-          onChange={(e) => update({ htfTarget: e.target.value })}
-          placeholder="e.g. prev day low, DFR projection…"
-          className="field-input"
-        />
-      </div>
-
       {/* Liquidity target */}
       <div>
         <label className="step-label">Main Liquidity Target</label>

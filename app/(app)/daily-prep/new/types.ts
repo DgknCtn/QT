@@ -25,7 +25,6 @@ export type PrepFormData = {
   // Step 2
   htfBias: string;
   htfBiasConfidence: string;
-  htfTarget: string;
   htfInvalidation: string;
   htfBiasExplanation: string;
   weeklyPo3State: string;

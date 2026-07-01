@@ -39,7 +39,6 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
     secondaryInstruments: prep.secondaryInstruments ?? [],
     htfBias: prep.htfBias ?? "",
     htfBiasConfidence: prep.htfBiasConfidence ?? "MEDIUM",
-    htfTarget: prep.htfTarget ?? "",
     htfInvalidation: prep.htfInvalidation ?? "",
     htfBiasExplanation: prep.htfBiasExplanation ?? "",
     weeklyPo3State: prep.weeklyPo3State ?? "UNKNOWN",

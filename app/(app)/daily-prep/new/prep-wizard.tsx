@@ -38,7 +38,6 @@ const EMPTY_FORM: PrepFormData = {
   // Step 2
   htfBias: "",
   htfBiasConfidence: "MEDIUM",
-  htfTarget: "",
   htfInvalidation: "",
   htfBiasExplanation: "",
   weeklyPo3State: "UNKNOWN",
