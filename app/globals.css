@@ -73,30 +73,44 @@ body {
   .hover-surface:hover { background: var(--color-bg-hover); }
 }
 
-/* ── Auth screen animated background ──────────────────────────────────────── */
-@keyframes auth-drift-1 {
-  0%   { transform: translate(0, 0) scale(1); }
-  50%  { transform: translate(6%, -4%) scale(1.25); }
-  100% { transform: translate(0, 0) scale(1); }
+/* ── Auth screen animated aurora background ───────────────────────────────── */
+@keyframes auth-blob-a {
+  0%   { transform: translate(-8%, -6%) scale(1); }
+  33%  { transform: translate(24%, 14%) scale(1.45); }
+  66%  { transform: translate(6%, -18%) scale(1.15); }
+  100% { transform: translate(-8%, -6%) scale(1); }
 }
-@keyframes auth-drift-2 {
-  0%   { transform: translate(0, 0) scale(1.1); }
-  50%  { transform: translate(-7%, 5%) scale(1); }
-  100% { transform: translate(0, 0) scale(1.1); }
+@keyframes auth-blob-b {
+  0%   { transform: translate(10%, 8%) scale(1.2); }
+  50%  { transform: translate(-22%, -12%) scale(1); }
+  100% { transform: translate(10%, 8%) scale(1.2); }
 }
-.auth-smoke-1 {
-  position: absolute; inset: -25%;
-  background: radial-gradient(closest-side, rgba(79,142,247,0.35), transparent 70%),
-              radial-gradient(closest-side at 70% 40%, rgba(99,102,241,0.30), transparent 65%);
-  filter: blur(70px);
-  animation: auth-drift-1 20s ease-in-out infinite;
+@keyframes auth-blob-c {
+  0%   { transform: translate(0%, 20%) scale(1.05); }
+  50%  { transform: translate(18%, -14%) scale(1.35); }
+  100% { transform: translate(0%, 20%) scale(1.05); }
 }
-.auth-smoke-2 {
-  position: absolute; inset: -25%;
-  background: radial-gradient(closest-side at 30% 70%, rgba(30,58,110,0.55), transparent 65%),
-              radial-gradient(closest-side at 60% 80%, rgba(79,142,247,0.22), transparent 70%);
+.auth-aurora {
+  position: absolute;
+  border-radius: 50%;
   filter: blur(80px);
-  animation: auth-drift-2 26s ease-in-out infinite;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.auth-aurora.a {
+  width: 55vw; height: 55vw; left: -6%; top: -12%;
+  background: radial-gradient(circle at 50% 50%, rgba(99,102,241,0.95), rgba(99,102,241,0) 62%);
+  animation: auth-blob-a 16s ease-in-out infinite;
+}
+.auth-aurora.b {
+  width: 50vw; height: 50vw; right: -8%; top: 6%;
+  background: radial-gradient(circle at 50% 50%, rgba(79,142,247,0.85), rgba(79,142,247,0) 62%);
+  animation: auth-blob-b 20s ease-in-out infinite;
+}
+.auth-aurora.c {
+  width: 48vw; height: 48vw; left: 18%; bottom: -18%;
+  background: radial-gradient(circle at 50% 50%, rgba(56,189,248,0.7), rgba(56,189,248,0) 62%);
+  animation: auth-blob-c 18s ease-in-out infinite;
 }
 .auth-grid {
   position: absolute; inset: 0;
@@ -104,6 +118,9 @@ body {
                     linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
   background-size: 54px 54px;
   mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, #000 40%, transparent 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-aurora { animation: none; }
 }
 .auth-card {
   background: rgba(18, 18, 22, 0.55);
