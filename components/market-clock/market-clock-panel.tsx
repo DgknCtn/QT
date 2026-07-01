@@ -25,6 +25,7 @@ export function MarketClockPanel() {
     etDateLabel, session, activeQIndex,
     q90Progress, microProgress, microEndLabel, microRemainingMin,
     cycles, toggleTz, tzOffsetHours,
+    sessionRemainingLabel, nextSessionName,
   } = useMarketClock();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -42,6 +43,9 @@ export function MarketClockPanel() {
           </p>
           <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
             {String(session.startEtH).padStart(2, "0")}:00 – {String(session.endEtH === 24 ? 0 : session.endEtH).padStart(2, "0")}:00 ET · 4 × 90dk
+          </p>
+          <p className="text-xs mt-0.5" suppressHydrationWarning style={{ color: "var(--color-text-secondary)" }}>
+            {mounted ? <>Bitişe {sessionRemainingLabel} · Sıradaki: <span style={{ color: "var(--color-accent)" }}>{nextSessionName}</span></> : ""}
           </p>
         </div>
         <div className="text-right flex items-center gap-2">
@@ -104,6 +108,16 @@ export function MarketClockPanel() {
         })}
       </div>
 
+      {/* Q phase legend */}
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {(["Acc", "Manip", "Distr", "X"] as const).map((label, idx) => (
+          <span key={label} className="flex items-center gap-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+            <span className="w-2 h-2 rounded-full inline-block" style={{ background: Q_COLORS[idx as QIndex].border }} />
+            {label === "Acc" ? "Accumulation" : label === "Manip" ? "Manipulation" : label === "Distr" ? "Distribution" : "X (belirsiz)"}
+          </span>
+        ))}
+      </div>
+
       {/* Cycle hierarchy row */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {cycles.map((c) => {
@@ -118,7 +132,12 @@ export function MarketClockPanel() {
               >
                 Q{c.q}
               </div>
-              <p className="text-xs leading-tight" style={{ color: "var(--color-text-secondary)" }}>{c.label}</p>
+              <p className="text-xs leading-tight flex items-center gap-1" style={{ color: "var(--color-text-secondary)" }}>
+                {c.label}
+                {c.key === "HAFTA" && c.label === "Salı" && (
+                  <span className="text-[9px] font-bold px-1 rounded" style={{ background: "rgba(79,142,247,0.18)", color: "var(--color-accent)" }}>TWO</span>
+                )}
+              </p>
               {c.sub && <p className="text-xs leading-tight mt-0.5" style={{ color: "var(--color-text-muted)", fontSize: "10px" }}>{c.sub}</p>}
             </div>
           );

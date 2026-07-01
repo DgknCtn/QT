@@ -49,6 +49,10 @@ export interface MarketClockState {
   // Hierarchy cycles
   cycles: CycleEntry[];
 
+  // Session countdown + next session
+  sessionRemainingLabel: string;
+  nextSessionName: string;
+
   // TR offset from ET in hours (7 in summer EDT, 8 in winter EST)
   tzOffsetHours: number;
 }
@@ -272,6 +276,14 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
   const displayTime = displayTz === "ET" ? etStr : trStr;
   const tzOffsetHours = displayTz === "TR" ? getTrOffsetHours(now) : 0;
 
+  // Session countdown label + next session (chronological order by dayQ)
+  const sessionRemainingLabel = sessionRemainingMin <= 0
+    ? "bitiyor"
+    : sessionRemainingMin >= 60
+      ? `${Math.floor(sessionRemainingMin / 60)}sa ${sessionRemainingMin % 60}dk`
+      : `${sessionRemainingMin}dk`;
+  const nextSessionName = SESSIONS.find((s) => s.dayQ === ((session.dayQ + 1) % 4))?.name ?? "";
+
   return {
     displayTime,
     displayTz,
@@ -286,6 +298,8 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
     microEndLabel,
     microRemainingMin,
     cycles,
+    sessionRemainingLabel,
+    nextSessionName,
     tzOffsetHours,
   };
 }
