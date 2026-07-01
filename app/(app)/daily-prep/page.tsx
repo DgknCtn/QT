@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, ClipboardList, Trash2 } from "lucide-react";
+import { Plus, ClipboardList, Trash2, Eye, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -129,14 +129,28 @@ export default async function DailyPrepPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <form action={deleteDailyPrep.bind(null, prep.id)}>
-                        <button type="submit"
-                          className="p-1.5 rounded transition-colors hover:text-red-500"
+                      <div className="flex items-center gap-1">
+                        <Link href={`/daily-prep/${prep.id}`}
+                          className="p-1.5 rounded transition-colors"
                           style={{ color: "var(--color-text-muted)" }}
-                          title="Sil">
-                          <Trash2 size={14} />
-                        </button>
-                      </form>
+                          title="Görüntüle">
+                          <Eye size={14} />
+                        </Link>
+                        <Link href={`/daily-prep/${prep.id}/edit`}
+                          className="p-1.5 rounded transition-colors"
+                          style={{ color: "var(--color-text-muted)" }}
+                          title="Düzenle">
+                          <Pencil size={14} />
+                        </Link>
+                        <form action={deleteDailyPrep.bind(null, prep.id)}>
+                          <button type="submit"
+                            className="p-1.5 rounded transition-colors hover:text-red-500"
+                            style={{ color: "var(--color-text-muted)" }}
+                            title="Sil">
+                            <Trash2 size={14} />
+                          </button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 );

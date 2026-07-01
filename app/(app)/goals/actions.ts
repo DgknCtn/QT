@@ -36,10 +36,12 @@ export async function saveGoal(formData: FormData) {
   });
 
   revalidatePath("/goals");
+  revalidatePath("/accounts");
 }
 
 export async function deleteGoal(id: string) {
   const user = await ensureUser();
   await prisma.monthlyGoal.deleteMany({ where: { id, userId: user.id } });
   revalidatePath("/goals");
+  revalidatePath("/accounts");
 }

@@ -14,12 +14,12 @@ import {
   TrendingUp,
   GraduationCap,
   Wallet,
-  Target,
   Calculator,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Layers,
+  ListChecks,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -31,6 +31,7 @@ const NAV_GROUPS = [
       { href: "/daily-prep", label: "Daily Prep",  icon: ClipboardList },
       { href: "/katmanlar",  label: "Education", icon: Layers },
       { href: "/journal",    label: "Journal",     icon: BookOpen },
+      { href: "/trade-log",  label: "Trade Log",   icon: ListChecks },
       { href: "/calendar",   label: "Calendar",    icon: Calendar },
     ],
   },
@@ -39,7 +40,6 @@ const NAV_GROUPS = [
     items: [
       { href: "/analytics",  label: "Analytics",  icon: BarChart3 },
       { href: "/accounts",   label: "Accounts",   icon: Wallet },
-      { href: "/goals",      label: "Goals",      icon: Target },
     ],
   },
   {
