@@ -87,10 +87,10 @@ export default async function LevelsPage() {
             {group}
           </p>
           <div
-            className="rounded-xl border overflow-hidden"
+            className="rounded-xl border overflow-x-auto"
             style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
           >
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-bg-border)" }}>
                   {["Durum","Enstrüman","Tip","Timeframe","Fiyat","Geçerlilik","Notlar",""].map((h) => (

@@ -1,24 +1,42 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, ArrowLeft, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { ImportUploader } from "./import-uploader";
 import { TradeRow } from "./trade-row";
 
-export default async function TradeLogPage() {
+const PAGE_SIZE = 100;
+
+export default async function TradeLogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const sp = await searchParams;
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const trades = await prisma.brokerTrade.findMany({
-    where: { userId: user.id },
-    orderBy: { entryTime: "desc" },
-  });
+  // Aggregate stats over ALL trades (cheap, indexed) — independent of pagination.
+  const [totalCount, agg, winCount, decidedCount, trades] = await Promise.all([
+    prisma.brokerTrade.count({ where: { userId: user.id } }),
+    prisma.brokerTrade.aggregate({ where: { userId: user.id }, _sum: { netPnl: true } }),
+    prisma.brokerTrade.count({ where: { userId: user.id, netPnl: { gt: 0 } } }),
+    prisma.brokerTrade.count({ where: { userId: user.id, netPnl: { not: null } } }),
+    prisma.brokerTrade.findMany({
+      where: { userId: user.id },
+      orderBy: { entryTime: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ]);
 
-  const totalNet = trades.reduce((s, t) => s + (t.netPnl ?? 0), 0);
-  const decided = trades.filter((t) => t.netPnl != null);
-  const wins = decided.filter((t) => (t.netPnl ?? 0) > 0).length;
-  const winRate = decided.length > 0 ? Math.round((wins / decided.length) * 100) : null;
+  const totalNet = agg._sum.netPnl ?? 0;
+  const winRate = decidedCount > 0 ? Math.round((winCount / decidedCount) * 100) : null;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const groups = new Map<string, typeof trades>();
   for (const t of trades) {
@@ -33,7 +51,7 @@ export default async function TradeLogPage() {
         <div>
           <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Trade Log</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {trades.length} trade · {winRate != null ? `${winRate}% win rate` : "—"} ·{" "}
+            {totalCount} trade · {winRate != null ? `${winRate}% win rate` : "—"} ·{" "}
             <span style={{ color: totalNet >= 0 ? "var(--color-success)" : "var(--color-danger)" }}>
               {totalNet >= 0 ? "+" : ""}${totalNet.toFixed(2)}
             </span>
@@ -86,6 +104,22 @@ export default async function TradeLogPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 pt-2">
+          {page > 1 ? (
+            <Link href={`/trade-log?page=${page - 1}`} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border" style={{ borderColor: "var(--color-bg-border)", color: "var(--color-text-secondary)" }}>
+              <ArrowLeft size={12} /> Önceki
+            </Link>
+          ) : <span />}
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{page} / {totalPages}</span>
+          {page < totalPages ? (
+            <Link href={`/trade-log?page=${page + 1}`} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border" style={{ borderColor: "var(--color-bg-border)", color: "var(--color-text-secondary)" }}>
+              Sonraki <ArrowRight size={12} />
+            </Link>
+          ) : <span />}
         </div>
       )}
     </div>

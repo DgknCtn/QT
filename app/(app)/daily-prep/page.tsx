@@ -66,8 +66,8 @@ export default async function DailyPrepPage() {
           </Link>
         </div>
       ) : (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--color-bg-border)" }}>
-          <table className="w-full text-sm">
+        <div className="rounded-xl border overflow-x-auto" style={{ borderColor: "var(--color-bg-border)" }}>
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr style={{ background: "var(--color-bg-elevated)", borderBottom: "1px solid var(--color-bg-border)" }}>
                 <th className="text-left px-4 py-2.5 text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>Tarih</th>

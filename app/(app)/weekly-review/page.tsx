@@ -61,6 +61,21 @@ export default async function WeeklyReviewPage({
     if (t.processGrade) gradeCounts[t.processGrade] = (gradeCounts[t.processGrade] ?? 0) + 1;
   });
 
+  // ── Auto-generated insights ──
+  const rTrades = trades.filter((t) => t.rResult != null);
+  const bestTrade = rTrades.length ? rTrades.reduce((a, b) => ((b.rResult ?? 0) > (a.rResult ?? 0) ? b : a)) : null;
+  const worstTrade = rTrades.length ? rTrades.reduce((a, b) => ((b.rResult ?? 0) < (a.rResult ?? 0) ? b : a)) : null;
+  const mistakeFreq: Record<string, number> = {};
+  trades.forEach((t) =>
+    t.tags.filter((tt) => tt.tag.category === "MISTAKE").forEach((tt) => {
+      mistakeFreq[tt.tag.name] = (mistakeFreq[tt.tag.name] ?? 0) + 1;
+    })
+  );
+  const topMistake = Object.entries(mistakeFreq).sort((a, b) => b[1] - a[1])[0] ?? null;
+  const followedCount = trades.filter((t) => t.planFollowed === "YES").length;
+  const adherencePct = trades.length ? Math.round((followedCount / trades.length) * 100) : null;
+  const hasInsights = trades.length > 0;
+
   const isCurrentWeek = weekOffset === 0;
   const prevLink = `/weekly-review?w=${weekOffset + 1}`;
   const nextLink = `/weekly-review?w=${Math.max(weekOffset - 1, 0)}`;
@@ -137,6 +152,27 @@ export default async function WeeklyReviewPage({
                   <span className="text-xs w-4 text-right" style={{ color: "var(--color-text-muted)" }}>{count}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Auto insights */}
+          {hasInsights && (
+            <div className="rounded-xl border p-4 space-y-2" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Otomatik Özet</p>
+              <ul className="space-y-1.5 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                {bestTrade && (
+                  <li>🏆 En iyi: <span style={{ color: "var(--color-text-primary)" }}>{bestTrade.instrument} {bestTrade.setupType?.replace(/_/g, " ")}</span> <span style={{ color: "#34c97e" }}>+{(bestTrade.rResult ?? 0).toFixed(1)}R</span></li>
+                )}
+                {worstTrade && (worstTrade.rResult ?? 0) < 0 && (
+                  <li>⚠️ En kötü: <span style={{ color: "var(--color-text-primary)" }}>{worstTrade.instrument} {worstTrade.setupType?.replace(/_/g, " ")}</span> <span style={{ color: "#ef4444" }}>{(worstTrade.rResult ?? 0).toFixed(1)}R</span></li>
+                )}
+                {topMistake && (
+                  <li>🔁 En çok tekrar eden hata: <span style={{ color: "#ef4444" }}>{topMistake[0]}</span> ({topMistake[1]}x)</li>
+                )}
+                {adherencePct != null && (
+                  <li>📋 Plana uyum: <span style={{ color: adherencePct >= 70 ? "#34c97e" : "var(--color-warning)" }}>{adherencePct}%</span> ({followedCount}/{trades.length} trade)</li>
+                )}
+              </ul>
             </div>
           )}
 

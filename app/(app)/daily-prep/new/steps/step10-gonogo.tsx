@@ -18,6 +18,28 @@ type Props = {
   saving: boolean;
 };
 
+function premiumDiscountConflict(data: PrepFormData): string | null {
+  const entries = Object.values(data.trueOpens ?? {}).filter(
+    (t) => t.price && t.price.trim() !== "" && (t.position === "ABOVE" || t.position === "BELOW")
+  );
+  if (entries.length === 0) return null;
+  const allAbove = entries.every((t) => t.position === "ABOVE"); // price above all TOs → premium
+  const allBelow = entries.every((t) => t.position === "BELOW"); // price below all TOs → discount
+  if (data.htfBias === "LONG" && allAbove)
+    return "Long fikri premium bağlamla çelişiyor (fiyat tüm True Open'ların üstünde). Açıkla ya da NO-GO.";
+  if (data.htfBias === "SHORT" && allBelow)
+    return "Short fikri discount bağlamla çelişiyor (fiyat tüm True Open'ların altında). Açıkla ya da NO-GO.";
+  return null;
+}
+
+function noTradeWindowBlock(data: PrepFormData): string | null {
+  const willEnter = data.entry.entryModel && data.entry.entryModel !== "NO_ENTRY";
+  if (!willEnter) return null;
+  const blocking = (data.newsEvents ?? []).find((e) => e.riskTag === "NO_TRADE_WINDOW");
+  if (blocking) return `Haber no-trade penceresinde işlem (${blocking.eventName}). Bu hard NO-GO.`;
+  return null;
+}
+
 function checkHardBlocks(data: PrepFormData): string[] {
   const blocks: string[] = [];
   if (!data.htfBias || !data.htfBiasExplanation) blocks.push("HTF narrative incomplete");
@@ -27,6 +49,10 @@ function checkHardBlocks(data: PrepFormData): string[] {
     blocks.push("No risk % defined");
   if (data.ssmt.formed === "NO" && data.htfBias !== "WAIT" && data.htfBias !== "NEUTRAL")
     blocks.push("No SSMT / crack on directional idea (reversal risk)");
+  const pd = premiumDiscountConflict(data);
+  if (pd) blocks.push(pd);
+  const ntw = noTradeWindowBlock(data);
+  if (ntw) blocks.push(ntw);
   return blocks;
 }
 
@@ -41,6 +67,8 @@ function checkSoftWarnings(data: PrepFormData): string[] {
       warnings.push("Triad korelasyonu eksik (üç asset davranışı işaretlenmemiş)");
     }
   }
+  const highRisk = (data.newsEvents ?? []).find((e) => e.riskTag === "HIGH_RISK" || e.impact === "HIGH");
+  if (highRisk) warnings.push(`Yüksek etkili haber var (${highRisk.eventName}) — zamanlamayı gözden geçir`);
   return warnings;
 }
 
