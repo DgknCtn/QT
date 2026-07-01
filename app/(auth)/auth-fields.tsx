@@ -3,9 +3,6 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-const inputClass =
-  "w-full rounded-lg px-3 py-2.5 text-sm outline-none bg-surface border border-app text-primary transition-colors focus:border-[var(--color-accent)]";
-
 export function TextField({
   label, name, type = "text", placeholder, required, autoComplete, autoFocus, minLength,
 }: {
@@ -20,7 +17,7 @@ export function TextField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5 text-secondary">{label}</label>
+      <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.5)" }}>{label}</label>
       <input
         name={name}
         type={type}
@@ -29,7 +26,7 @@ export function TextField({
         autoFocus={autoFocus}
         minLength={minLength}
         placeholder={placeholder}
-        className={inputClass}
+        className="auth-input"
       />
     </div>
   );
@@ -47,27 +44,27 @@ export function PasswordField({
   const [show, setShow] = useState(false);
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5 text-secondary">{label}</label>
-      <div className="relative">
-        <input
-          name={name}
-          type={show ? "text" : "password"}
-          required
-          minLength={minLength}
-          autoComplete={autoComplete}
-          placeholder={placeholder}
-          className={`${inputClass} pr-10`}
-        />
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="block text-xs font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>{label}</label>
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
           tabIndex={-1}
-          aria-label={show ? "Şifreyi gizle" : "Şifreyi göster"}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-secondary transition-colors"
+          className="flex items-center gap-1 text-xs transition-colors"
+          style={{ color: "rgba(255,255,255,0.5)" }}
         >
-          {show ? <EyeOff size={15} /> : <Eye size={15} />}
+          {show ? <EyeOff size={12} /> : <Eye size={12} />} {show ? "Gizle" : "Göster"}
         </button>
       </div>
+      <input
+        name={name}
+        type={show ? "text" : "password"}
+        required
+        minLength={minLength}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        className="auth-input"
+      />
     </div>
   );
 }
