@@ -1,7 +1,9 @@
-/** Animated indigo/blue smoke + grid backdrop for the auth screens. */
+/** Animated indigo/blue smoke + grid backdrop for the auth screens.
+ * Rendered as an absolute layer inside a `relative` page container; page
+ * content must sit in a sibling with `relative z-10`. */
 export function AuthBackground() {
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden" style={{ background: "#08090c" }}>
+    <div className="absolute inset-0 z-0 overflow-hidden" style={{ background: "#08090c" }}>
       <div className="auth-smoke-1" />
       <div className="auth-smoke-2" />
       <div className="auth-grid" />

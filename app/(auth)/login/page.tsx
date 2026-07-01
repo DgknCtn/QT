@@ -12,8 +12,9 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, { error: "" });
 
   return (
-    <div className="min-h-screen relative flex flex-col">
+    <div className="min-h-screen relative overflow-hidden flex flex-col">
       <AuthBackground />
+      <div className="relative z-10 flex flex-col flex-1">
 
       {/* Top-left brand */}
       <div className="flex items-center gap-2.5 px-6 md:px-10 pt-6">
@@ -73,6 +74,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

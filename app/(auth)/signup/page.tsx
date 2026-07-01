@@ -13,9 +13,9 @@ export default function SignupPage() {
 
   if (state?.success) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center px-4">
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center px-4">
         <AuthBackground />
-        <div className="w-full max-w-sm text-center space-y-4">
+        <div className="relative z-10 w-full max-w-sm text-center space-y-4">
           <Image src="/qtlogo.png" alt="QT" width={48} height={48} className="mx-auto rounded-xl" style={{ filter: "invert(1)" }} />
           <div className="auth-card rounded-3xl p-7">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3"
@@ -36,8 +36,9 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen relative flex flex-col">
+    <div className="min-h-screen relative overflow-hidden flex flex-col">
       <AuthBackground />
+      <div className="relative z-10 flex flex-col flex-1">
 
       {/* Top-left brand */}
       <div className="flex items-center gap-2.5 px-6 md:px-10 pt-6">
@@ -97,6 +98,7 @@ export default function SignupPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
