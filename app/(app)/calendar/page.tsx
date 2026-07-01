@@ -3,8 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { addDays, subDays } from "date-fns";
 import { CalendarClient } from "./calendar-client";
 import { InvestingCalendarWidget } from "@/components/investing-calendar-widget";
+import { MonthlyQuarterGrid } from "./monthly-quarter-grid";
 
-export default async function CalendarPage() {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ qYear?: string; qMonth?: string }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -21,6 +27,17 @@ export default async function CalendarPage() {
       }).catch(() => [])
     : [];
 
+  const now = new Date();
+  const qYear = parseInt(sp.qYear ?? String(now.getFullYear()), 10);
+  const qMonth = parseInt(sp.qMonth ?? String(now.getMonth() + 1), 10);
+
+  const eventsByDate: Record<string, { impact: string }[]> = {};
+  for (const ev of events) {
+    const d = new Date(ev.dateTime);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    (eventsByDate[key] ??= []).push({ impact: ev.impact });
+  }
+
   return (
     <div className="p-6 space-y-8 max-w-5xl">
       {/* investing.com Economic Calendar */}
@@ -29,6 +46,11 @@ export default async function CalendarPage() {
           Ekonomik Takvim
         </h2>
         <InvestingCalendarWidget />
+      </div>
+
+      {/* Aylık Quarter (Q1-Q4) görünümü */}
+      <div>
+        <MonthlyQuarterGrid year={qYear} month={qMonth} eventsByDate={eventsByDate} />
       </div>
 
       {/* Manuel olay listesi */}

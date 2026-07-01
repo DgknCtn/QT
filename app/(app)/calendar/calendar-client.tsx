@@ -133,7 +133,7 @@ export function CalendarClient({ userId, events }: { userId: string; events: Cal
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-0.5">
                             <span className="text-xs font-mono" style={{ color: "var(--color-text-muted)" }}>
-                              {format(new Date(ev.dateTime), "HH:mm")}
+                              {new Date(ev.dateTime).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false })}
                             </span>
                             <span
                               className="text-xs font-bold px-1.5 py-0.5 rounded"
