@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { assertValidTrade } from "@/lib/schemas/trade";
 
 function e<T>(v: string | undefined): T | undefined {
   return v && v.trim() !== "" ? (v as unknown as T) : undefined;
@@ -51,12 +52,14 @@ export async function saveTrade(
   screenshots: { url: string; type: string }[]
 ): Promise<void> {
   await ensureUser(userId);
+  assertValidTrade(form);
 
   const mistakeTags = (form.mistakeTags as string[]) ?? [];
   const positiveTags = (form.positiveTags as string[]) ?? [];
   const { score, grade } = computeProcessScore(form, mistakeTags);
 
-  const trade = await prisma.trade.create({
+  await prisma.$transaction(async (tx) => {
+  const trade = await tx.trade.create({
     data: {
       userId,
       date: new Date(form.date as string),
@@ -93,17 +96,17 @@ export async function saveTrade(
   ];
 
   for (const { name, category } of allTags) {
-    const tag = await prisma.tag.upsert({
+    const tag = await tx.tag.upsert({
       where: { userId_name: { userId, name } },
       update: {},
       create: { userId, name, category },
     });
-    await prisma.tradeTag.create({ data: { tradeId: trade.id, tagId: tag.id } });
+    await tx.tradeTag.create({ data: { tradeId: trade.id, tagId: tag.id } });
   }
 
   // Save screenshots
   for (const { url, type } of screenshots) {
-    await prisma.screenshot.create({
+    await tx.screenshot.create({
       data: {
         userId,
         tradeId: trade.id,
@@ -112,6 +115,7 @@ export async function saveTrade(
       },
     });
   }
+  });
 
   revalidatePath("/journal");
   revalidatePath("/dashboard");

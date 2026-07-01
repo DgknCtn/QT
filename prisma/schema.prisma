@@ -293,6 +293,7 @@ model Screenshot {
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
   concept   Concept?   @relation(fields: [conceptId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
   @@index([tradeId])
   @@index([dailyPrepId])
   @@map("screenshots")

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { assertValidTrade } from "@/lib/schemas/trade";
 
 export async function deleteTrade(id: string) {
   const supabase = await createClient();
@@ -56,6 +57,8 @@ export async function updateTrade(
 
   const existing = await prisma.trade.findFirst({ where: { id: tradeId, userId } });
   if (!existing) throw new Error("Trade not found");
+
+  assertValidTrade(form);
 
   const mistakeTags = (form.mistakeTags as string[]) ?? [];
   const positiveTags = (form.positiveTags as string[]) ?? [];

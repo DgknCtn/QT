@@ -35,6 +35,12 @@ function checkSoftWarnings(data: PrepFormData): string[] {
   if (!data.confirmation.confirmationType) warnings.push("No confirmation type selected");
   if (data.dfr.dfrType && !data.dfr.dfrHigh) warnings.push("DFR type set but no levels entered");
   if (!data.active90mCycle) warnings.push("90m quarter not selected");
+  if (data.ssmt.formed === "YES") {
+    const behaviors = [data.ssmt.assetABehavior, data.ssmt.assetBBehavior, data.ssmt.assetCBehavior];
+    if (behaviors.some((b) => !b || b.trim() === "")) {
+      warnings.push("Triad korelasyonu eksik (üç asset davranışı işaretlenmemiş)");
+    }
+  }
   return warnings;
 }
 

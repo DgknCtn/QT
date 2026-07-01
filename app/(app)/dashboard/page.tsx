@@ -7,7 +7,6 @@ import {
   TrendingUp,
   AlertTriangle,
   Ban,
-  Wallet,
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
 
@@ -39,9 +38,7 @@ export default async function DashboardPage() {
 
   const [
     todayPrep,
-    recentPreps,
     weekTrades,
-    activeAccounts,
     last10,
     todayTrades,
     todayEvents,
@@ -51,21 +48,9 @@ export default async function DashboardPage() {
           where: { userId: user.id, date: { gte: todayStart, lte: todayEnd } },
           orderBy: { createdAt: "desc" },
         }).catch(() => null),
-        prisma.dailyPrep.findMany({
-          where: { userId: user.id },
-          orderBy: { date: "desc" },
-          take: 5,
-          select: { id: true, date: true, htfBias: true, goNoGoStatus: true, triad: true, session: true },
-        }).catch(() => []),
         prisma.trade.findMany({
           where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
           select: { result: true, rResult: true, processScore: true },
-        }).catch(() => []),
-        prisma.fundedAccount.findMany({
-          where:   { userId: user.id, status: "ACTIVE" },
-          include: { equityLogs: { where: { date: { gte: todayStart } }, take: 1, orderBy: { date: "desc" } } },
-          orderBy: { createdAt: "desc" },
-          take: 3,
         }).catch(() => []),
         prisma.trade.findMany({
           where: { userId: user.id, result: { notIn: ["NO_TRADE", "MISSED"] } },
@@ -82,7 +67,7 @@ export default async function DashboardPage() {
           orderBy: { dateTime: "asc" },
         }).catch(() => []),
       ])
-    : [null, [], [], [], [], [], []];
+    : [null, [], [], [], []];
 
   const activeWeekTrades = weekTrades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
   const weekWins = activeWeekTrades.filter((t) => t.result === "WIN").length;
@@ -259,119 +244,6 @@ export default async function DashboardPage() {
 
       {/* Market Clock Panel */}
       <MarketClockPanel />
-
-      {/* Funded Account widget */}
-      {activeAccounts.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Funded Accounts</p>
-            <Link href="/accounts" className="text-xs" style={{ color: "var(--color-accent)" }}>Tümü →</Link>
-          </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(activeAccounts.length, 3)}, 1fr)` }}>
-            {activeAccounts.map((acc) => {
-              const profit    = acc.currentEquity - acc.startingBalance;
-              const profitPct = (profit / acc.startingBalance) * 100;
-              const todayPnl  = acc.equityLogs[0]?.pnlToday ?? null;
-              const todayLoss = todayPnl !== null && todayPnl < 0 ? Math.abs(todayPnl) : 0;
-              const drawdown  = Math.abs(Math.min(profit, 0));
-              const atRisk    = todayLoss >= acc.maxDailyLoss * 0.8 || drawdown >= acc.maxTotalLoss * 0.8;
-              return (
-                <Link
-                  key={acc.id}
-                  href={`/accounts/${acc.id}`}
-                  className="rounded-xl border p-4 space-y-2.5 block"
-                  style={{
-                    background: "var(--color-bg-elevated)",
-                    borderColor: atRisk ? "#ef4444" : "var(--color-bg-border)",
-                  }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-                        {acc.firmName} · Phase {acc.phase}
-                      </p>
-                      <p className="text-lg font-mono font-bold mt-0.5" style={{ color: "var(--color-text-primary)" }}>
-                        ${acc.currentEquity.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                    <Wallet size={14} style={{ color: atRisk ? "#ef4444" : "var(--color-text-muted)" }} />
-                  </div>
-                  {/* Profit target bar */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
-                      <span>Hedef</span>
-                      <span style={{ color: profit >= acc.profitTarget ? "#34c97e" : "inherit" }}>
-                        {profit >= 0 ? "+" : ""}{profitPct.toFixed(1)}% / %{((acc.profitTarget / acc.startingBalance) * 100).toFixed(0)}
-                      </span>
-                    </div>
-                    <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--color-bg-border)" }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min((Math.max(profit, 0) / acc.profitTarget) * 100, 100)}%`,
-                          background: profit >= acc.profitTarget ? "#34c97e" : "#6366f1",
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {atRisk && (
-                    <p className="text-xs font-medium" style={{ color: "#ef4444" }}>⚠ Risk limitine yakın</p>
-                  )}
-                  {todayPnl !== null && (
-                    <p className="text-xs font-mono" style={{ color: todayPnl >= 0 ? "#34c97e" : "#ef4444" }}>
-                      Bugün: {todayPnl >= 0 ? "+" : ""}{todayPnl.toFixed(2)}$
-                    </p>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Recent preps */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
-            Recent Daily Preps
-          </p>
-          <Link href="/daily-prep" className="text-xs hover:underline" style={{ color: "var(--color-accent)" }}>
-            View all
-          </Link>
-        </div>
-        {recentPreps.length === 0 ? (
-          <div
-            className="rounded-xl border flex items-center justify-center py-10 text-sm"
-            style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)", color: "var(--color-text-muted)" }}
-          >
-            No preps yet — start your first daily prep above
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {recentPreps.map((prep) => (
-              <Link
-                key={prep.id}
-                href={`/daily-prep/${prep.id}`}
-                className="flex items-center justify-between rounded-xl border px-4 py-3"
-                style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
-              >
-                <div className="flex items-center gap-3 text-xs">
-                  <span style={{ color: "var(--color-text-muted)" }}>{format(new Date(prep.date), "EEE, MMM d")}</span>
-                  <span style={{ color: "var(--color-text-secondary)" }}>{prep.triad?.replace(/_/g, " ")} · {prep.session?.replace(/_/g, " ")}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  {prep.htfBias && (
-                    <span className="text-xs font-medium" style={{ color: prep.htfBias === "LONG" ? "var(--color-long)" : prep.htfBias === "SHORT" ? "var(--color-short)" : "var(--color-text-muted)" }}>
-                      {prep.htfBias}
-                    </span>
-                  )}
-                  <GoNoGoBadge status={prep.goNoGoStatus} />
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

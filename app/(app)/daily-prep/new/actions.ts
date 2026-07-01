@@ -68,7 +68,13 @@ async function ensureUser(userId: string) {
   });
 }
 
-export async function updateDailyPrep(prepId: string, userId: string, data: PrepFormData): Promise<void> {
+export async function updateDailyPrep(prepId: string, _userId: string, data: PrepFormData): Promise<void> {
+  // Derive userId from the authenticated session, not the client-supplied argument.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const userId = user.id;
+
   const completionScore = computeCompletionScore(data);
 
   await prisma.dailyPrep.updateMany({

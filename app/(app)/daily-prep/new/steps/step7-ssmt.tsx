@@ -19,6 +19,23 @@ const SSMT_LOCATIONS = [
 const TIMEFRAMES = ["WEEKLY", "DAILY", "H4", "H1", "M90", "M15", "M5", "M1"];
 const THREE_STATE = ["YES", "NO", "PARTIAL", "UNSURE"];
 
+const BEHAVIOR_OPTIONS: { value: string; label: string }[] = [
+  { value: "RAIDED_HIGH",   label: "Raided High" },
+  { value: "RAIDED_LOW",    label: "Raided Low" },
+  { value: "PROTECTED_HIGH",label: "Protected High" },
+  { value: "PROTECTED_LOW", label: "Protected Low" },
+  { value: "CONFIRMED",     label: "Confirmed" },
+  { value: "DID_NOT_CONFIRM", label: "Did Not Confirm" },
+  { value: "NEUTRAL",       label: "Neutral" },
+];
+
+// A behavior "points long" if it takes lows (raid low / protect low) and "points short" if it takes highs.
+function behaviorDirection(v: string): "LONG" | "SHORT" | null {
+  if (v === "RAIDED_LOW" || v === "PROTECTED_LOW") return "LONG";
+  if (v === "RAIDED_HIGH" || v === "PROTECTED_HIGH") return "SHORT";
+  return null;
+}
+
 type Props = { data: PrepFormData; update: (p: Partial<PrepFormData>) => void };
 
 function upd(data: PrepFormData, update: Props["update"], field: string, value: unknown) {
@@ -139,19 +156,67 @@ export function Step7SSMT({ data, update }: Props) {
           <div>
             <label className="step-label">Triad Behavior</label>
             <div className="space-y-2">
-              {assets.map((asset, i) => (
-                <div key={asset} className="flex items-center gap-3">
-                  <span className="text-xs font-bold w-16 shrink-0" style={{ color: "var(--color-accent)" }}>{asset}</span>
-                  <input
-                    type="text"
-                    value={[ssmt.assetABehavior, ssmt.assetBBehavior, ssmt.assetCBehavior][i]}
-                    onChange={(e) => upd(data, update, ["assetABehavior", "assetBBehavior", "assetCBehavior"][i], e.target.value)}
-                    placeholder={`e.g. raided prev high, protected prev low…`}
-                    className="field-input"
-                  />
-                </div>
-              ))}
+              {assets.map((asset, i) => {
+                const field = ["assetABehavior", "assetBBehavior", "assetCBehavior"][i];
+                const current = [ssmt.assetABehavior, ssmt.assetBBehavior, ssmt.assetCBehavior][i];
+                return (
+                  <div key={asset} className="flex items-start gap-3">
+                    <span className="text-xs font-bold w-16 shrink-0 pt-1.5" style={{ color: "var(--color-accent)" }}>{asset}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {BEHAVIOR_OPTIONS.map((b) => (
+                        <button
+                          key={b.value}
+                          type="button"
+                          onClick={() => upd(data, update, field, current === b.value ? "" : b.value)}
+                          className="px-2 py-1 rounded-md border text-xs transition-colors"
+                          style={{
+                            background: current === b.value ? "var(--color-accent)" : "var(--color-bg-surface)",
+                            borderColor: current === b.value ? "var(--color-accent)" : "var(--color-bg-border)",
+                            color: current === b.value ? "#fff" : "var(--color-text-secondary)",
+                          }}
+                        >
+                          {b.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Triad alignment warning */}
+            {(() => {
+              const behaviors = [ssmt.assetABehavior, ssmt.assetBBehavior, ssmt.assetCBehavior];
+              const filled = behaviors.filter((b) => b && b.trim() !== "");
+              const dirs = filled.map(behaviorDirection).filter((d): d is "LONG" | "SHORT" => d !== null);
+              const bias = data.htfBias;
+              if (filled.length > 0 && filled.length < 3) {
+                return (
+                  <p className="text-xs mt-2" style={{ color: "var(--color-warning)" }}>
+                    Triad korelasyonu eksik — üç asset&apos;in de davranışını işaretle.
+                  </p>
+                );
+              }
+              if (dirs.length >= 2) {
+                const allLong = dirs.every((d) => d === "LONG");
+                const allShort = dirs.every((d) => d === "SHORT");
+                if (!allLong && !allShort) {
+                  return (
+                    <p className="text-xs mt-2" style={{ color: "var(--color-warning)" }}>
+                      Asset&apos;ler aynı yönü göstermiyor — korelasyon zayıf, SSMT kalitesi düşük olabilir.
+                    </p>
+                  );
+                }
+                if ((bias === "LONG" && allShort) || (bias === "SHORT" && allLong)) {
+                  return (
+                    <p className="text-xs mt-2" style={{ color: "var(--color-warning)" }}>
+                      Triad {allLong ? "long" : "short"} sinyali veriyor ama HTF bias {bias}. Çelişkiyi açıkla ya da bias&apos;ı gözden geçir.
+                    </p>
+                  );
+                }
+              }
+              return null;
+            })()}
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div>
                 <label className="step-label">Strong Asset</label>
