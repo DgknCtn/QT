@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useMarketClock } from "./use-market-clock";
 
 export function MarketClockCompact() {
-  const { displayTime, displayTz, etTime, trTime, session, activeQIndex, cycles, toggleTz } = useMarketClock();
+  const { displayTime, displayTz, etTime, trTime, session, activeQIndex, cycles, toggleTz, marketClosed } = useMarketClock();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -23,7 +23,9 @@ export function MarketClockCompact() {
           {mounted ? displayTime : ""}
         </p>
         <p className="text-xs leading-none mt-0.5" style={{ color: "var(--color-text-muted)" }} suppressHydrationWarning>
-          {mounted ? `${session.name} · Q${activeQIndex + 1} ${q90?.label}` : ""}
+          {mounted
+            ? (marketClosed ? "Market kapalı" : `${session.name} · Q${activeQIndex + 1} ${q90?.label}`)
+            : ""}
         </p>
       </div>
 

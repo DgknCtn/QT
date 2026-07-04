@@ -53,6 +53,10 @@ export interface MarketClockState {
   sessionRemainingLabel: string;
   nextSessionName: string;
 
+  // Market open/closed (weekend)
+  marketClosed: boolean;
+  marketStatusLabel: string;
+
   // TR offset from ET in hours (7 in summer EDT, 8 in winter EST)
   tzOffsetHours: number;
 }
@@ -215,6 +219,31 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
   const weekQ = dow === 5 ? 4 : dow === 6 || dow === 0 ? 0 : dow;
   const weekLabel = DOW_NAMES[dow] ?? "?";
 
+  // ── Market açık/kapalı (hafta sonu): Cuma 18:00 ET → Pazar 18:00 ET ──
+  const marketClosed =
+    dow === 6 ||                                 // Cumartesi (tüm gün)
+    (dow === 5 && etTotalMinutes >= 18 * 60) ||  // Cuma 18:00 sonrası
+    (dow === 0 && etTotalMinutes < 18 * 60);     // Pazar 18:00 öncesi
+
+  // Açılışa kalan süre — Pazar 18:00 ET
+  let marketStatusLabel = "Hafta sonu · Market kapalı";
+  let marketReopenLabel = "";
+  if (marketClosed) {
+    const reopenMin = dow === 0
+      ? 18 * 60 - etTotalMinutes
+      : (7 - dow) * 24 * 60 + 18 * 60 - etTotalMinutes; // Cuma/Cumartesi
+    if (reopenMin >= 24 * 60) {
+      const d = Math.floor(reopenMin / (24 * 60));
+      const h = Math.floor((reopenMin % (24 * 60)) / 60);
+      marketReopenLabel = h > 0 ? `${d}g ${h}sa` : `${d}g`;
+    } else {
+      const h = Math.floor(reopenMin / 60);
+      const m = reopenMin % 60;
+      marketReopenLabel = h > 0 ? `${h}sa ${m}dk` : `${m}dk`;
+    }
+    marketStatusLabel = `Market kapalı · Açılışa ${marketReopenLabel} (Paz 18:00 ET)`;
+  }
+
   // ── Remaining time calculations ──
 
   // 90 DK remaining
@@ -301,6 +330,8 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
     sessionRemainingLabel,
     nextSessionName,
     tzOffsetHours,
+    marketClosed,
+    marketStatusLabel,
   };
 }
 

@@ -26,6 +26,7 @@ export function MarketClockPanel() {
     q90Progress, microProgress, microEndLabel, microRemainingMin,
     cycles, toggleTz, tzOffsetHours,
     sessionRemainingLabel, nextSessionName,
+    marketClosed, marketStatusLabel,
   } = useMarketClock();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -39,13 +40,22 @@ export function MarketClockPanel() {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "var(--color-text-muted)" }}>
-            Aktif Session: <span style={{ color: "var(--color-accent)" }}>{session.name}</span>
+            Aktif Session: <span style={{ color: marketClosed ? "var(--color-text-muted)" : "var(--color-accent)" }}>{session.name}</span>
+            {mounted && marketClosed && (
+              <span className="ml-2 text-[9px] font-bold px-1 py-0.5 rounded align-middle" style={{ background: "rgba(90,90,106,0.18)", color: "var(--color-text-muted)" }}>
+                MARKET KAPALI
+              </span>
+            )}
           </p>
           <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
             {String(session.startEtH).padStart(2, "0")}:00 – {String(session.endEtH === 24 ? 0 : session.endEtH).padStart(2, "0")}:00 ET · 4 × 90dk
           </p>
           <p className="text-xs mt-0.5" suppressHydrationWarning style={{ color: "var(--color-text-secondary)" }}>
-            {mounted ? <>Bitişe {sessionRemainingLabel} · Sıradaki: <span style={{ color: "var(--color-accent)" }}>{nextSessionName}</span></> : ""}
+            {mounted
+              ? (marketClosed
+                  ? marketStatusLabel
+                  : <>Bitişe {sessionRemainingLabel} · Sıradaki: <span style={{ color: "var(--color-accent)" }}>{nextSessionName}</span></>)
+              : ""}
           </p>
         </div>
         <div className="text-right flex items-center gap-2">
