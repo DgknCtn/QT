@@ -32,8 +32,9 @@ export interface MarketClockState {
   etTime: string;         // always ET, used as secondary when TR selected
   trTime: string;         // always TR
 
-  // Date info (ET-based)
-  etDateLabel: string;    // "Thu 11 Jun 2026"
+  // Date info
+  etDateLabel: string;    // "Thu 11 Jun 2026" (ET)
+  trDateLabel: string;    // "Fri 12 Jun 2026" (TR)
 
   // Session
   session: SessionInfo;
@@ -188,6 +189,10 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
   const etDateObj = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
   const etDateLabel = `${DAYS_SHORT[etDateObj.getDay()]} ${pad2(et.d)} ${MONTHS_SHORT[et.mo - 1]} ${et.y}`;
 
+  // ── Date label (TR) — TR görünümünde gün/tarih İstanbul'a göre gösterilsin ──
+  const trDateObj = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+  const trDateLabel = `${DAYS_SHORT[trDateObj.getDay()]} ${pad2(trDateObj.getDate())} ${MONTHS_SHORT[trDateObj.getMonth()]} ${trDateObj.getFullYear()}`;
+
   // ── Micro end label in displayTz ──
   let microEndLabel: string;
   if (displayTz === "ET") {
@@ -319,6 +324,7 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
     etTime: etStr,
     trTime: trStr,
     etDateLabel,
+    trDateLabel,
     session,
     activeQIndex,
     microIndex,

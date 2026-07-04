@@ -22,7 +22,7 @@ const CYCLE_Q_COLORS: string[] = ["#6366f1", "#f59e0b", "#34c97e", "#5a5a6a"];
 export function MarketClockPanel() {
   const {
     displayTime, displayTz, etTime, trTime,
-    etDateLabel, session, activeQIndex,
+    etDateLabel, trDateLabel, session, activeQIndex,
     q90Progress, microProgress, microEndLabel, microRemainingMin,
     cycles, toggleTz, tzOffsetHours,
     sessionRemainingLabel, nextSessionName,
@@ -65,7 +65,7 @@ export function MarketClockPanel() {
             </p>
             <p className="text-xs mt-0.5 text-right" style={{ color: "var(--color-text-muted)" }} suppressHydrationWarning>
               {mounted
-                ? (displayTz === "ET" ? `${etDateLabel} · New York` : `${etDateLabel} · Istanbul (${etTime} ET)`)
+                ? (displayTz === "ET" ? `${etDateLabel} · New York` : `${trDateLabel} · Istanbul (${etDateLabel} ${etTime} ET)`)
                 : ""}
             </p>
           </div>
