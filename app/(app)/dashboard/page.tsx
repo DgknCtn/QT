@@ -1,14 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { format, startOfWeek, endOfWeek, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import {
   TrendingUp,
   AlertTriangle,
   Ban,
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
-import { StatsRow } from "@/components/dashboard/stats-row";
 import { GoNoGoBadge } from "@/components/ui-kit/badge";
 
 export default async function DashboardPage() {
@@ -19,13 +18,9 @@ export default async function DashboardPage() {
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
   const [
     todayPrep,
-    weekTrades,
-    last10,
     todayTrades,
     todayEvents,
   ] = user
@@ -35,16 +30,6 @@ export default async function DashboardPage() {
           orderBy: { createdAt: "desc" },
         }).catch(() => null),
         prisma.trade.findMany({
-          where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
-          select: { result: true, rResult: true, processScore: true },
-        }).catch(() => []),
-        prisma.trade.findMany({
-          where: { userId: user.id, result: { notIn: ["NO_TRADE", "MISSED"] } },
-          select: { result: true, rResult: true, pnlCurrency: true },
-          orderBy: { date: "desc" },
-          take: 10,
-        }).catch(() => []),
-        prisma.trade.findMany({
           where: { userId: user.id, date: { gte: todayStart, lte: todayEnd }, result: { notIn: ["NO_TRADE", "MISSED"] } },
           select: { pnlCurrency: true },
         }).catch(() => []),
@@ -53,16 +38,7 @@ export default async function DashboardPage() {
           orderBy: { dateTime: "asc" },
         }).catch(() => []),
       ])
-    : [null, [], [], [], []];
-
-  const activeWeekTrades = weekTrades.filter((t) => !["NO_TRADE", "MISSED"].includes(t.result));
-  const weekWins = activeWeekTrades.filter((t) => t.result === "WIN").length;
-  const weekWR = activeWeekTrades.length > 0 ? Math.round((weekWins / activeWeekTrades.length) * 100) : null;
-
-  const last10Wins   = last10.filter((t) => t.result === "WIN").length;
-  const last10WR     = last10.length > 0 ? Math.round((last10Wins / last10.length) * 100) : null;
-  const last10NetR   = last10.reduce((s, t) => s + (t.rResult ?? 0), 0);
-  const last10NetPnl = last10.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
+    : [null, [], []];
 
   const todayPnl = todayTrades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
   const hasTodayTrades = todayTrades.length > 0;
@@ -104,8 +80,8 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Row 1: Today's Prep · Today's Bias · Today's Events */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Row 1: Today's Prep · Today's Bias · Today's Events · Today's P&L */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {/* Today's Prep */}
         <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <p className="text-xs mb-2 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s Prep</p>
@@ -178,21 +154,18 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Row 2: This Week · Son 10 WR · Son 10 Net R · Bugün P&L (katlanabilir) */}
-      <StatsRow
-        activeWeekCount={activeWeekTrades.length}
-        weekWR={weekWR}
-        last10WR={last10WR}
-        last10Count={last10.length}
-        last10Wins={last10Wins}
-        last10NetR={last10NetR}
-        last10NetPnl={last10NetPnl}
-        todayPnl={todayPnl}
-        hasTodayTrades={hasTodayTrades}
-        todayTradesCount={todayTrades.length}
-      />
+        {/* Today's P&L */}
+        <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s P&amp;L</p>
+          <p className="text-2xl font-bold" style={{ color: hasTodayTrades ? (todayPnl > 0 ? "#34c97e" : todayPnl < 0 ? "#ef4444" : "var(--color-text-primary)") : "var(--color-text-muted)" }}>
+            {hasTodayTrades ? `${todayPnl >= 0 ? "+" : ""}$${Math.abs(todayPnl).toFixed(0)}` : "—"}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+            {hasTodayTrades ? `${todayTrades.length} trade` : "no trades today"}
+          </p>
+        </div>
+      </div>
 
       {/* Market Clock Panel */}
       <MarketClockPanel />
