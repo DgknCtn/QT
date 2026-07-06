@@ -3,12 +3,12 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay } from "date-fns";
 import {
-  ClipboardList,
   TrendingUp,
   AlertTriangle,
   Ban,
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
+import { StatsRow } from "@/components/dashboard/stats-row";
 import { GoNoGoBadge } from "@/components/ui-kit/badge";
 
 export default async function DashboardPage() {
@@ -72,23 +72,13 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {format(now, "EEEE, MMMM d, yyyy")}
-          </p>
-          <h2 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
-            {greeting}, {user?.user_metadata?.name || user?.email?.split("@")[0] || "Trader"}
-          </h2>
-        </div>
-        <Link
-          href="/daily-prep/new"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-          style={{ background: "var(--color-accent)", color: "#fff" }}
-        >
-          <ClipboardList size={14} />
-          {todayPrep ? "New Prep" : "Start Daily Prep"}
-        </Link>
+      <div>
+        <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>
+          {format(now, "EEEE, MMMM d, yyyy")}
+        </p>
+        <h2 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          {greeting}, {user?.user_metadata?.name || user?.email?.split("@")[0] || "Trader"}
+        </h2>
       </div>
 
       {/* High-risk news banner */}
@@ -190,43 +180,19 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 2: This Week · Son 10 WR · Son 10 Net R · Bugün P&L */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>This Week</p>
-          <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{activeWeekTrades.length}</p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {weekWR != null ? `${weekWR}% win rate` : "0 trades"}
-          </p>
-        </div>
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Last 10 Win Rate</p>
-          <p className="text-2xl font-bold" style={{ color: last10WR != null && last10WR >= 50 ? "#34c97e" : last10WR != null && last10WR >= 40 ? "#f59e0b" : "var(--color-text-primary)" }}>
-            {last10WR != null ? `${last10WR}%` : "—"}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {last10.length < 10 ? `${last10.length}/10 trade` : `${last10Wins}W / ${last10.length - last10Wins}L`}
-          </p>
-        </div>
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Last 10 Net R</p>
-          <p className="text-2xl font-bold" style={{ color: last10NetR > 0 ? "#34c97e" : last10NetR < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
-            {last10.length > 0 ? `${last10NetR >= 0 ? "+" : ""}${last10NetR.toFixed(1)}R` : "—"}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {last10NetPnl !== 0 ? `${last10NetPnl >= 0 ? "+" : ""}$${Math.abs(last10NetPnl).toFixed(0)}` : "son 10 trade"}
-          </p>
-        </div>
-        <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s P&amp;L</p>
-          <p className="text-2xl font-bold" style={{ color: hasTodayTrades ? (todayPnl > 0 ? "#34c97e" : todayPnl < 0 ? "#ef4444" : "var(--color-text-primary)") : "var(--color-text-muted)" }}>
-            {hasTodayTrades ? `${todayPnl >= 0 ? "+" : ""}$${Math.abs(todayPnl).toFixed(0)}` : "—"}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {hasTodayTrades ? `${todayTrades.length} trade` : "no trades today"}
-          </p>
-        </div>
-      </div>
+      {/* Row 2: This Week · Son 10 WR · Son 10 Net R · Bugün P&L (katlanabilir) */}
+      <StatsRow
+        activeWeekCount={activeWeekTrades.length}
+        weekWR={weekWR}
+        last10WR={last10WR}
+        last10Count={last10.length}
+        last10Wins={last10Wins}
+        last10NetR={last10NetR}
+        last10NetPnl={last10NetPnl}
+        todayPnl={todayPnl}
+        hasTodayTrades={hasTodayTrades}
+        todayTradesCount={todayTrades.length}
+      />
 
       {/* Market Clock Panel */}
       <MarketClockPanel />
