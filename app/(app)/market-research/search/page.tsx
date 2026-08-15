@@ -36,11 +36,23 @@ export default async function MarketResearchSearchPage({
 
       {!hasQuery ? (
         <div
-          className="rounded-xl border flex flex-col items-center justify-center py-16 gap-2"
+          className="rounded-xl border flex flex-col items-center justify-center py-16 gap-3"
           style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
         >
           <SearchIcon size={28} style={{ color: "var(--color-text-muted)" }} />
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Aramaya başlamak için bir terim veya filtre gir</p>
+          <div className="flex gap-2">
+            {["liquidity", "ssmt", "PDL"].map((term) => (
+              <Link
+                key={term}
+                href={`/market-research/search?q=${encodeURIComponent(term)}`}
+                className="text-xs font-medium px-2.5 py-1 rounded-lg border"
+                style={{ borderColor: "var(--color-bg-border)", color: "var(--color-text-secondary)" }}
+              >
+                {term}
+              </Link>
+            ))}
+          </div>
         </div>
       ) : results.length === 0 ? (
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Sonuç bulunamadı</p>
@@ -49,7 +61,7 @@ export default async function MarketResearchSearchPage({
           <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{results.length} sonuç</p>
           {results.map((m) => (
             <div key={m.id} className="space-y-1">
-              <MarketMessageCard message={m} signedUrls={signedUrls} />
+              <MarketMessageCard message={m} signedUrls={signedUrls} highlightQuery={sp.q} />
               <Link
                 href={`/market-research/days/${format(m.marketDay.date, "yyyy-MM-dd")}`}
                 className="text-xs inline-block"

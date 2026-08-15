@@ -17,6 +17,9 @@ export default async function MarketResearchImportAdminPage() {
   }
 
   const runs = await prisma.marketImportRun.findMany({ orderBy: { startedAt: "desc" }, take: 20 });
+  const totalImported = runs.reduce((n, r) => n + r.imported, 0);
+  const totalErrors = runs.reduce((n, r) => n + r.errors, 0);
+  const lastRun = runs[0];
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -32,6 +35,22 @@ export default async function MarketResearchImportAdminPage() {
 npx tsx scripts/discord-import/run.ts --input &lt;export-klasörü&gt;
         </pre>
       </div>
+
+      {runs.length > 0 && (
+        <div className="flex gap-6">
+          {[
+            { label: "Toplam çalıştırma", value: runs.length },
+            { label: "Toplam içe aktarılan", value: totalImported },
+            { label: "Toplam hata", value: totalErrors },
+            { label: "Son durum", value: lastRun.status.toUpperCase() },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+              <p className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {runs.length === 0 ? (
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Henüz import çalıştırılmadı.</p>

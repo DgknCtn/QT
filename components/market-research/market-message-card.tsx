@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { AnalysisTypeBadge } from "./analysis-type-badge";
 import { ImageGallery, type GalleryImage } from "./image-gallery";
+import { HighlightText } from "./highlight-text";
 import type { MarketMessageWithRelations } from "@/app/(app)/market-research/queries";
 
 const INSTRUMENT_COLOR: Record<string, string> = {
@@ -13,10 +14,12 @@ export function MarketMessageCard({
   message,
   signedUrls,
   showAnalysisType = true,
+  highlightQuery,
 }: {
   message: MarketMessageWithRelations;
   signedUrls: Record<string, string>;
   showAnalysisType?: boolean;
+  highlightQuery?: string;
 }) {
   const images: GalleryImage[] = message.attachments.map((a) => ({
     id: a.id,
@@ -31,11 +34,14 @@ export function MarketMessageCard({
       style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
     >
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+        <span
+          className="text-xs font-mono tabular-nums shrink-0"
+          style={{ color: "var(--color-text-muted)", minWidth: 40 }}
+        >
+          {format(message.timestamp, "HH:mm")}
+        </span>
         <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
           {message.author}
-        </span>
-        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-          {format(message.timestamp, "HH:mm")}
         </span>
         {showAnalysisType && <AnalysisTypeBadge type={message.analysisType} />}
         {message.instruments.map((i) => (
@@ -51,7 +57,7 @@ export function MarketMessageCard({
 
       {message.content && (
         <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--color-text-secondary)" }}>
-          {message.content}
+          <HighlightText text={message.content} query={highlightQuery} />
         </p>
       )}
 

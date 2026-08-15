@@ -27,6 +27,21 @@ export default async function MarketDayDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
+      <div
+        className="sticky z-10 flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold"
+        style={{
+          top: 56,
+          background: "var(--color-bg-elevated)",
+          borderColor: "var(--color-bg-border)",
+          color: "var(--color-text-primary)",
+        }}
+      >
+        <span>{format(day.date, "d MMMM yyyy")}</span>
+        {instruments.map((i) => (
+          <span key={i} style={{ color: "var(--color-text-muted)" }}>{i}</span>
+        ))}
+      </div>
+
       <div className="rounded-xl border p-4" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
           {format(day.date, "d MMMM yyyy")}

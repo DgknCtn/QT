@@ -55,7 +55,7 @@ export interface DayListFilters {
   instrument?: "NQ" | "ES" | "YM";
 }
 
-export async function listDays(filters: DayListFilters, take = 30) {
+export async function listDays(filters: DayListFilters, take = 300) {
   const where: Prisma.MarketDayWhereInput = {};
   if (filters.dateFrom || filters.dateTo) {
     where.date = {};

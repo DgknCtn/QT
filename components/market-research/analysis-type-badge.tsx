@@ -1,4 +1,4 @@
-const ANALYSIS_TYPE: Record<string, { label: string; color: string; bg: string }> = {
+export const ANALYSIS_TYPE: Record<string, { label: string; color: string; bg: string }> = {
   PRE_MARKET: { label: "PRE-MARKET", color: "var(--color-accent)", bg: "rgba(79,142,247,0.15)" },
   INTRADAY: { label: "INTRADAY", color: "var(--color-warning)", bg: "rgba(245,158,11,0.15)" },
   EOD: { label: "EOD", color: "var(--color-success)", bg: "rgba(52,201,126,0.15)" },
