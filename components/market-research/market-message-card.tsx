@@ -28,10 +28,16 @@ export function MarketMessageCard({
     originalFilename: a.originalFilename,
   }));
 
+  const isOdin = message.author.toLowerCase() === "odin";
+
   return (
     <div
       className="rounded-xl border p-3"
-      style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}
+      style={{
+        background: "var(--color-bg-elevated)",
+        borderColor: "var(--color-bg-border)",
+        borderLeft: isOdin ? "3px solid var(--color-accent)" : undefined,
+      }}
     >
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
         <span
@@ -40,7 +46,13 @@ export function MarketMessageCard({
         >
           {format(message.timestamp, "HH:mm")}
         </span>
-        <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+        <span
+          className="text-sm"
+          style={{
+            color: isOdin ? "var(--color-accent)" : "var(--color-text-primary)",
+            fontWeight: isOdin ? 700 : 600,
+          }}
+        >
           {message.author}
         </span>
         {showAnalysisType && <AnalysisTypeBadge type={message.analysisType} />}
