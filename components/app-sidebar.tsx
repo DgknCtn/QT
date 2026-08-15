@@ -20,6 +20,7 @@ import {
   PanelLeftOpen,
   Layers,
   ListChecks,
+  Radar,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -47,6 +48,12 @@ const NAV_GROUPS = [
     items: [
       { href: "/risk-calculator", label: "Risk Calc",  icon: Calculator },
       { href: "/mentorship",      label: "Mentorship", icon: GraduationCap },
+    ],
+  },
+  {
+    label: "Research",
+    items: [
+      { href: "/market-research", label: "Market Research", icon: Radar },
     ],
   },
 ];

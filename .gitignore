@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Market Research: raw Discord export data (HTML + images, private, multi-GB) --
+# never committed. The import pipeline in scripts/discord-import/ IS committed.
+/market-research/
