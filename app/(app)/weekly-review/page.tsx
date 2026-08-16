@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { format, startOfWeek, endOfWeek, subWeeks, addWeeks } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReviewForm } from "./review-form";
@@ -52,7 +52,6 @@ export default async function WeeklyReviewPage({
   ]);
 
   const wins    = trades.filter((t) => t.result === "WIN").length;
-  const losses  = trades.filter((t) => t.result === "LOSS").length;
   const winRate = trades.length > 0 ? Math.round((wins / trades.length) * 100) : 0;
   const netR    = trades.reduce((s, t) => s + (t.rResult ?? 0), 0);
   const netPnl  = trades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);

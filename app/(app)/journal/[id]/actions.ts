@@ -1,16 +1,14 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { assertValidTrade } from "@/lib/schemas/trade";
 
 export async function deleteTrade(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
-  await prisma.trade.deleteMany({ where: { id, userId: user.id } });
+  await prisma.trade.deleteMany({ where: { id, userId } });
   revalidatePath("/journal");
 }
 
@@ -47,13 +45,10 @@ function computeProcessScore(form: Record<string, unknown>, mistakeTags: string[
 
 export async function updateTrade(
   tradeId: string,
-  userId: string,
   form: Record<string, unknown>,
   newScreenshots: { url: string; type: string }[]
 ): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.id !== userId) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const existing = await prisma.trade.findFirst({ where: { id: tradeId, userId } });
   if (!existing) throw new Error("Trade not found");

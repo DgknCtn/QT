@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useStoredValue, writeStoredValue } from "@/lib/use-stored-value";
 
 const INSTRUMENTS: Record<string, { label: string; dollarPerPoint: number; tickSize: number; dollarPerTick: number; type: "futures" | "forex" | "crypto"; unit?: string }> = {
   NQ:      { label: "NQ  (Nasdaq Futures)",    dollarPerPoint: 20,   tickSize: 0.25,   dollarPerTick: 5,     type: "futures" },
@@ -30,20 +31,13 @@ function fmt(n: number, decimals = 2) {
 }
 
 export default function RiskCalculatorPage() {
-  const [balance, setBalance]     = useState("");
+  // Persisted directly: localStorage is the single source of truth for the
+  // balance, so there is no read-on-mount effect to fall out of sync with.
+  const balance = useStoredValue("rc-balance", "");
   const [riskPct, setRiskPct]     = useState("1");
   const [instrument, setInstrument] = useState("NQ");
   const [entry, setEntry]         = useState("");
   const [stop, setStop]           = useState("");
-
-  // Persist balance in localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("rc-balance");
-    if (saved) setBalance(saved);
-  }, []);
-  useEffect(() => {
-    if (balance) localStorage.setItem("rc-balance", balance);
-  }, [balance]);
 
   const inst = INSTRUMENTS[instrument];
 
@@ -112,7 +106,7 @@ export default function RiskCalculatorPage() {
             <input
               type="number"
               value={balance}
-              onChange={(e) => setBalance(e.target.value)}
+              onChange={(e) => writeStoredValue("rc-balance", e.target.value)}
               placeholder="10000"
               className={inputCls}
               style={inputStyle}
@@ -258,7 +252,7 @@ export default function RiskCalculatorPage() {
             </p>
             {!isCrypto && contractsFloor === 0 && contracts > 0 && (
               <p className="text-xs mt-2" style={{ color: "#f59e0b" }}>
-                ⚠ Minimum 1 kontrat için hesap bakiyeni veya risk%'ini artır
+                ⚠ Minimum 1 kontrat için hesap bakiyeni veya risk%&apos;ini artır
               </p>
             )}
           </div>

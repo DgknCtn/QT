@@ -22,7 +22,7 @@ export default async function NewTradePage() {
       <p className="text-xs mb-5" style={{ color: "var(--color-text-muted)" }}>
         {format(new Date(), "EEEE, MMMM d, yyyy")}
       </p>
-      <TradeForm userId={user!.id} recentPreps={recentPreps as any} />
+      <TradeForm userId={user!.id} recentPreps={recentPreps} />
     </div>
   );
 }

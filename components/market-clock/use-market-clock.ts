@@ -112,7 +112,7 @@ function getEtParts(now: Date) {
     timeZone: "America/New_York",
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   }).formatToParts(now);
   const get = (t: string) => parseInt(parts.find((p) => p.type === t)?.value ?? "0", 10);
   return { y: get("year"), mo: get("month"), d: get("day"), h: get("hour"), min: get("minute"), s: get("second") };
@@ -122,7 +122,7 @@ function getTrParts(now: Date) {
   const parts = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
     hour: "2-digit", minute: "2-digit", second: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   }).formatToParts(now);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
   return `${get("hour")}:${get("minute")}:${get("second")}`;
@@ -130,11 +130,11 @@ function getTrParts(now: Date) {
 
 function getTrOffsetHours(now: Date): number {
   const etH = parseInt(
-    new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", hour12: false }).format(now),
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", hourCycle: "h23" }).format(now),
     10
   );
   const trH = parseInt(
-    new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Istanbul", hour: "2-digit", hour12: false }).format(now),
+    new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Istanbul", hour: "2-digit", hourCycle: "h23" }).format(now),
     10
   );
   return (trH - etH + 24) % 24; // +7 in summer (EDT), +8 in winter (EST)
@@ -152,7 +152,8 @@ function getWeekOfMonth(date: Date): number {
   return Math.ceil((dayOfMonth - mondayOffset + 1) / 7);
 }
 
-function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
+/** Exported for tests: pure function of (instant, display timezone). */
+export function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
   const et = getEtParts(now);
   const etTotalMinutes = et.h * 60 + et.min;
 
@@ -203,7 +204,7 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
     const diffMs = (22.5 - minutesInMicro) * 60 * 1000;
     microEndDate.setTime(microEndDate.getTime() + diffMs);
     const trEnd = new Intl.DateTimeFormat("tr-TR", {
-      timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit", hour12: false,
+      timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
     }).format(microEndDate);
     microEndLabel = `${trEnd} TR`;
   }
@@ -343,17 +344,28 @@ function computeState(now: Date, displayTz: DisplayTz): MarketClockState {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useMarketClock(): MarketClockState & { toggleTz: () => void } {
-  const { displayTz, toggleTz } = useClockTz();
-  const [state, setState] = useState<MarketClockState>(() => computeState(new Date(), displayTz));
+/** Stand-in date used for the server render and the first client render. */
+const PREHYDRATION_DATE = new Date(0);
 
-  // Tick every second, re-run when displayTz changes
+export function useMarketClock(): MarketClockState & { toggleTz: () => void; ready: boolean } {
+  const { displayTz, toggleTz } = useClockTz();
+  const [now, setNow] = useState<Date | null>(null);
+
+  // Tick every second. The clock only starts after mount: the server render and
+  // the first client render must produce identical markup, and a live timestamp
+  // never can -- rendering `new Date()` during SSR is what caused a hydration
+  // mismatch on every page that shows the clock.
   useEffect(() => {
-    const tick = () => setState(computeState(new Date(), displayTz));
+    const tick = () => setNow(new Date());
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [displayTz]);
+  }, []);
 
-  return { ...state, toggleTz };
+  // Derived on each render, so switching timezone updates without waiting a tick.
+  const state = computeState(now ?? PREHYDRATION_DATE, displayTz);
+
+  // Consumers must withhold every time-dependent value (text *and* attributes
+  // such as `title`) until this is true.
+  return { ...state, ready: now !== null, toggleTz };
 }

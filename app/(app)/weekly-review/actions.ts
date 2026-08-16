@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export async function saveWeeklyReview(
@@ -14,9 +14,7 @@ export async function saveWeeklyReview(
     overallRating: number | null;
   }
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getSessionUser();
 
   await prisma.weeklyReview.upsert({
     where: { userId_weekStart: { userId: user.id, weekStart: new Date(weekStart) } },

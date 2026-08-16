@@ -3,82 +3,25 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import {
-  LayoutDashboard,
-  ClipboardList,
-  Calendar,
-  BookOpen,
-  BarChart3,
-  Settings,
-  TrendingUp,
-  GraduationCap,
-  Wallet,
-  Calculator,
-  LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Layers,
-  ListChecks,
-  Radar,
-} from "lucide-react";
+import { useIsHydrated, useMediaQuery, useStoredValue, writeStoredValue } from "@/lib/use-stored-value";
+import { Settings, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getNavGroups } from "@/lib/nav";
 
-const NAV_GROUPS = [
-  {
-    label: "Home",
-    items: [
-      { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
-      { href: "/daily-prep", label: "Daily Prep",  icon: ClipboardList },
-      { href: "/katmanlar",  label: "Education", icon: Layers },
-      { href: "/journal",    label: "Journal",     icon: BookOpen },
-      { href: "/trade-log",  label: "Trade Log",   icon: ListChecks },
-      { href: "/calendar",   label: "Calendar",    icon: Calendar },
-    ],
-  },
-  {
-    label: "Analyze",
-    items: [
-      { href: "/analytics",  label: "Analytics",  icon: BarChart3 },
-      { href: "/accounts",   label: "Accounts",   icon: Wallet },
-    ],
-  },
-  {
-    label: "Tools",
-    items: [
-      { href: "/risk-calculator", label: "Risk Calc",  icon: Calculator },
-      { href: "/mentorship",      label: "Mentorship", icon: GraduationCap },
-    ],
-  },
-  {
-    label: "Research",
-    items: [
-      { href: "/market-research", label: "Market Research", icon: Radar },
-    ],
-  },
-];
+const NAV_GROUPS = getNavGroups();
 
 export function AppSidebar({ mobileOpen = false, onClose }: { mobileOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mounted,   setMounted]   = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebar-collapsed");
-    if (window.innerWidth < 768) {
-      setCollapsed(true);
-    } else if (saved === "true") {
-      setCollapsed(true);
-    }
-    setMounted(true);
-  }, []);
+  // Derived rather than set from an effect: on narrow screens the sidebar is
+  // always collapsed, otherwise the stored preference wins.
+  const mounted = useIsHydrated();
+  const isNarrow = useMediaQuery("(max-width: 767px)");
+  const storedCollapsed = useStoredValue("sidebar-collapsed", "false");
+  const collapsed = isNarrow || storedCollapsed === "true";
 
   function toggle() {
-    setCollapsed((c) => {
-      localStorage.setItem("sidebar-collapsed", String(!c));
-      return !c;
-    });
+    writeStoredValue("sidebar-collapsed", String(!collapsed));
   }
 
   async function handleLogout() {
@@ -157,6 +100,9 @@ export function AppSidebar({ mobileOpen = false, onClose }: { mobileOpen?: boole
                 <Link
                   key={href}
                   href={href}
+                  // Navigating on mobile should also dismiss the drawer;
+                  // previously only tapping the backdrop closed it.
+                  onClick={onClose}
                   title={collapsed ? label : undefined}
                   className="flex items-center rounded-lg text-sm font-medium transition-colors"
                   style={{
@@ -215,6 +161,7 @@ export function AppSidebar({ mobileOpen = false, onClose }: { mobileOpen?: boole
         {/* Settings */}
         <Link
           href="/settings"
+          onClick={onClose}
           title={collapsed ? "Settings" : undefined}
           className="w-full flex items-center rounded-lg text-sm transition-colors mb-1"
           style={{

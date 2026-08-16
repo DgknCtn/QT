@@ -19,7 +19,7 @@ export default async function NewPrepPage() {
           New Daily Prep
         </h2>
       </div>
-      <PrepWizard userId={user!.id} calendarEvents={calendarEvents} />
+      <PrepWizard calendarEvents={calendarEvents} />
     </div>
   );
 }

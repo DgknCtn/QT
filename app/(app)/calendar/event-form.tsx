@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { saveEvent } from "./actions";
 import { X } from "lucide-react";
 
@@ -17,11 +18,9 @@ type Event = {
 };
 
 export function EventForm({
-  userId,
   editEvent,
   onClose,
 }: {
-  userId: string;
   editEvent?: Event | null;
   onClose: () => void;
 }) {
@@ -39,10 +38,12 @@ export function EventForm({
     const form = new FormData(formRef.current!);
     startTransition(async () => {
       try {
-        await saveEvent(userId, form);
+        await saveEvent(form);
+        toast.success(editEvent ? "Etkinlik güncellendi" : "Etkinlik eklendi");
         onClose();
       } catch {
         setError("Failed to save event. Please try again.");
+        toast.error("Etkinlik kaydedilemedi");
       }
     });
   }

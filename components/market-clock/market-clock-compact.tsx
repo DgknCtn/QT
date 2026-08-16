@@ -1,13 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useMarketClock } from "./use-market-clock";
 
 export function MarketClockCompact() {
-  const { displayTime, displayTz, etTime, trTime, session, activeQIndex, cycles, toggleTz, marketClosed } = useMarketClock();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
+  const { displayTime, displayTz, etTime, trTime, session, activeQIndex, cycles, toggleTz, marketClosed, ready } = useMarketClock();
 
   const q90 = cycles.find((c) => c.key === "90 DK");
 
@@ -20,10 +16,10 @@ export function MarketClockCompact() {
           style={{ color: "var(--color-text-primary)", letterSpacing: "0.04em" }}
           suppressHydrationWarning
         >
-          {mounted ? displayTime : ""}
+          {ready ? displayTime : ""}
         </p>
         <p className="text-xs leading-none mt-0.5" style={{ color: "var(--color-text-muted)" }} suppressHydrationWarning>
-          {mounted
+          {ready
             ? (marketClosed ? "Market kapalı" : `${session.name} · Q${activeQIndex + 1} ${q90?.label}`)
             : ""}
         </p>
@@ -32,7 +28,8 @@ export function MarketClockCompact() {
       {/* TZ toggle */}
       <button
         onClick={toggleTz}
-        title={mounted ? `Switch to ${displayTz === "ET" ? "TR" : "ET"} time\nET: ${etTime} · TR: ${trTime}` : undefined}
+        aria-label={`Saat dilimini ${displayTz === "ET" ? "TR" : "ET"} olarak değiştir`}
+        title={ready ? `Switch to ${displayTz === "ET" ? "TR" : "ET"} time\nET: ${etTime} · TR: ${trTime}` : undefined}
         suppressHydrationWarning
         className="flex flex-col items-center px-1.5 py-1 rounded border text-xs font-bold leading-none gap-0.5 transition-colors"
         style={{

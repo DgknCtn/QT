@@ -67,6 +67,7 @@ export function PwaInstall() {
       </button>
       <button
         onClick={dismiss}
+        aria-label="Kurulum önerisini kapat"
         className="p-1 rounded"
         style={{ color: "var(--color-text-muted)" }}
       >

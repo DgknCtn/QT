@@ -157,6 +157,9 @@ export async function runImport(options: ImportOptions): Promise<ImportSummary> 
         await Promise.all(
           msg.attachments.map(async (att, i) => {
             try {
+              // Video attachments can be hundreds of MB -- give uploads a much
+              // longer deadline than the original 30s (sized for chart screenshots).
+              const isVideo = /\.(mp4|mov|webm|mkv|m4v)$/i.test(att.originalFilename);
               const extracted = await withTimeout(
                 extractAndUploadAttachment({
                   exportDir: options.exportDir,
@@ -167,7 +170,7 @@ export async function runImport(options: ImportOptions): Promise<ImportSummary> 
                   messageId: created.id,
                   attachmentIndex: i,
                 }),
-                30000,
+                isVideo ? 600000 : 30000,
                 `attachment upload ${att.originalFilename}`
               );
               if (!extracted) {

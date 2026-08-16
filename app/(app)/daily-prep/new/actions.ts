@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { ensureUser, requireUserId } from "@/lib/auth";
 import type { PrepFormData } from "./types";
 import { revalidatePath } from "next/cache";
 
@@ -53,27 +53,9 @@ function computeCompletionScore(data: PrepFormData): number {
   return Math.min(score, 100);
 }
 
-async function ensureUser(userId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  await prisma.user.upsert({
-    where: { id: userId },
-    update: {},
-    create: {
-      id: userId,
-      email: user?.email ?? "",
-      name: user?.user_metadata?.name ?? null,
-    },
-  });
-}
-
-export async function updateDailyPrep(prepId: string, _userId: string, data: PrepFormData): Promise<void> {
-  // Derive userId from the authenticated session, not the client-supplied argument.
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  const userId = user.id;
+export async function updateDailyPrep(prepId: string, data: PrepFormData): Promise<void> {
+  // Derive userId from the authenticated session, not a client-supplied argument.
+  const userId = await requireUserId();
 
   const completionScore = computeCompletionScore(data);
 
@@ -118,8 +100,8 @@ export async function updateDailyPrep(prepId: string, _userId: string, data: Pre
   revalidatePath(`/daily-prep/${prepId}`);
 }
 
-export async function saveDailyPrep(userId: string, data: PrepFormData): Promise<void> {
-  await ensureUser(userId);
+export async function saveDailyPrep(data: PrepFormData): Promise<void> {
+  const { id: userId } = await ensureUser();
 
   const completionScore = computeCompletionScore(data);
 

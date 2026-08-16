@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { TopBar } from "@/components/top-bar";
 import { ClockTzProvider } from "@/components/market-clock/clock-tz-context";
 import { NotificationScheduler } from "@/components/notification-scheduler";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -29,6 +30,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      <Toaster position="bottom-right" />
     </ClockTzProvider>
   );
 }

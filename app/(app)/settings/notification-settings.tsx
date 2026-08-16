@@ -1,41 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, BellOff, CheckCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useIsHydrated, useStoredValue } from "@/lib/use-stored-value";
+import { Bell, CheckCircle } from "lucide-react";
 import {
   type NotifPrefs,
   DEFAULT_PREFS,
-  loadPrefs,
+  PREFS_STORAGE_KEY,
   savePrefs,
 } from "@/components/notification-scheduler";
 
 const DAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
 
 export function NotificationSettings() {
-  const [permission, setPermission] = useState<NotificationPermission>("default");
-  const [prefs, setPrefs]           = useState<NotifPrefs>(DEFAULT_PREFS);
-  const [saved, setSaved]           = useState(false);
+  const hydrated = useIsHydrated();
+  const [saved, setSaved]                   = useState(false);
+  // Only set once the user answers the browser prompt; before that we read the
+  // live value, which is stable for the lifetime of the page.
+  const [grantedPermission, setGrantedPermission] = useState<NotificationPermission | null>(null);
 
-  useEffect(() => {
-    if (typeof Notification !== "undefined") {
-      setPermission(Notification.permission);
+  const permission: NotificationPermission =
+    grantedPermission ??
+    (hydrated && typeof Notification !== "undefined" ? Notification.permission : "default");
+
+  const prefsRaw = useStoredValue(PREFS_STORAGE_KEY, "");
+  const storedPrefs = useMemo<NotifPrefs>(() => {
+    try {
+      return prefsRaw ? { ...DEFAULT_PREFS, ...JSON.parse(prefsRaw) } : DEFAULT_PREFS;
+    } catch {
+      return DEFAULT_PREFS;
     }
-    setPrefs(loadPrefs());
-  }, []);
+  }, [prefsRaw]);
+
+  // Unsaved edits layered over what is persisted; cleared once saved.
+  const [draft, setDraft] = useState<Partial<NotifPrefs>>({});
+  const prefs: NotifPrefs = { ...storedPrefs, ...draft };
 
   async function requestPermission() {
     if (typeof Notification === "undefined") return;
     const result = await Notification.requestPermission();
-    setPermission(result);
+    setGrantedPermission(result);
   }
 
   function update(patch: Partial<NotifPrefs>) {
-    setPrefs((p) => ({ ...p, ...patch }));
+    setDraft((d) => ({ ...d, ...patch }));
     setSaved(false);
   }
 
   function handleSave() {
     savePrefs(prefs);
+    setDraft({});
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

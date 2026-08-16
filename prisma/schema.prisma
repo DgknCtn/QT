@@ -40,6 +40,7 @@ model User {
   weeklyReviews    WeeklyReview[]
   mentorNotes      MentorNote[]
   brokerTrades     BrokerTrade[]
+  conceptProgress  ConceptProgress[]
 
   @@map("users")
 }
@@ -119,6 +120,7 @@ model Level {
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
 
   @@index([userId, instrument])
+  @@index([dailyPrepId])
   @@map("levels")
 }
 
@@ -155,6 +157,7 @@ model DFR {
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([dailyPrepId])
   @@map("dfrs")
 }
 
@@ -185,6 +188,7 @@ model SSMTEvent {
   confirmations Confirmation[]
 
   @@index([userId])
+  @@index([dailyPrepId])
   @@map("ssmt_events")
 }
 
@@ -206,6 +210,8 @@ model Confirmation {
   ssmtEvent SSMTEvent? @relation(fields: [ssmtEventId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([dailyPrepId])
+  @@index([ssmtEventId])
   @@map("confirmations")
 }
 
@@ -249,6 +255,7 @@ model Trade {
 
   @@index([userId, date])
   @@index([userId, instrument])
+  @@index([dailyPrepId])
   @@map("trades")
 }
 
@@ -310,15 +317,34 @@ model Concept {
   requiredConditions String?
   commonMistakes     String?
   checklistQuestions String[]        @default([])
-  userNotes          String?
-  confidenceLevel    ConfidenceLevel @default(NEW)
   isSystemConcept    Boolean         @default(false)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   screenshots Screenshot[]
+  progress    ConceptProgress[]
 
   @@map("concepts")
+}
+
+/// Per-user learning state for a shared `Concept`.
+/// `confidenceLevel`/`userNotes` used to live on the Concept row itself, which
+/// meant one user's rating and notes overwrote everyone else's.
+model ConceptProgress {
+  id              String          @id @default(cuid())
+  userId          String
+  conceptId       String
+  confidenceLevel ConfidenceLevel @default(NEW)
+  userNotes       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conceptId])
+  @@index([conceptId])
+  @@map("concept_progress")
 }
 
 model EconomicEvent {

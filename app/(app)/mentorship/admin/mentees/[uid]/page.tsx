@@ -58,7 +58,7 @@ export default async function MenteeDetailPage({ params }: { params: Promise<{ u
       <div className="flex items-start justify-between gap-4">
         <div>
           <Link href="/mentorship/admin/mentees" className="text-xs mb-2 inline-block" style={{ color: "var(--color-text-muted)" }}>
-            ← Mentee'ler
+            ← Mentee&apos;ler
           </Link>
           <h1 className="text-xl font-bold truncate" style={{ color: "var(--color-text-primary)" }}>{mentee.email}</h1>
           <div className="flex items-center gap-3 mt-1">

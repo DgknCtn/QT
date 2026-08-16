@@ -97,7 +97,7 @@ async function main() {
         whenNotToUse:       c.whenNotToUse ?? null,
         requiredConditions: c.requiredConditions ?? null,
         commonMistakes:     c.commonMistakes ?? null,
-        userNotes:          (c as any).userNotes ?? null,
+        // userNotes moved to the per-user ConceptProgress table.
       },
     });
     console.log(`  ✅ ${c.title}`);

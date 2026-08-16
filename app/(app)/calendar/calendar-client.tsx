@@ -4,6 +4,7 @@ import { useState } from "react";
 import { format, isSameDay } from "date-fns";
 import { Plus, Pencil, Trash2, AlertTriangle, Eye, Ban } from "lucide-react";
 import { EventForm } from "./event-form";
+import { toast } from "sonner";
 import { deleteEvent } from "./actions";
 
 type CalendarEvent = {
@@ -40,7 +41,7 @@ const riskTagColor: Record<string, string> = {
   DATA_HIGH_LOW_RELEVANT: "var(--color-accent)",
 };
 
-export function CalendarClient({ userId, events }: { userId: string; events: CalendarEvent[] }) {
+export function CalendarClient({ events }: { events: CalendarEvent[] }) {
   const [showForm, setShowForm] = useState(false);
   const [editEvent, setEditEvent] = useState<CalendarEvent | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -56,8 +57,14 @@ export function CalendarClient({ userId, events }: { userId: string; events: Cal
   async function handleDelete(eventId: string) {
     if (!confirm("Delete this event?")) return;
     setDeleting(eventId);
-    await deleteEvent(userId, eventId);
-    setDeleting(null);
+    try {
+      await deleteEvent(eventId);
+      toast.success("Etkinlik silindi");
+    } catch {
+      toast.error("Etkinlik silinemedi");
+    } finally {
+      setDeleting(null);
+    }
   }
 
   return (
@@ -197,7 +204,6 @@ export function CalendarClient({ userId, events }: { userId: string; events: Cal
 
       {showForm && (
         <EventForm
-          userId={userId}
           editEvent={editEvent}
           onClose={() => { setShowForm(false); setEditEvent(null); }}
         />

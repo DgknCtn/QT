@@ -1,16 +1,9 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { requireUserId } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { parseTradovateCsv, type ParsedTradeRow } from "./parse-tradovate";
-
-async function requireUserId(): Promise<string> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  return user.id;
-}
 
 export async function parseImportFile(csvText: string): Promise<{ rows: ParsedTradeRow[]; warnings: string[] }> {
   const userId = await requireUserId();

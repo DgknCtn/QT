@@ -1,0 +1,2548 @@
+# QT Market Research — Odin Market Intelligence & Historical Research Module
+
+## Product Vision
+
+QT Market Research is a dedicated market-research application embedded within the existing QT platform. It preserves the current QT experience and functionality while adding a separate, read-oriented environment for exploring historical market analysis, Odin's Discord commentary, market-day timelines, chart screenshots, and personal trading context.
+
+The product is not intended to be a Discord clone or a generic message archive. Discord exports are the source material. The product's primary unit of organization is the MARKET DAY: a chronological representation of what information was available, what Odin communicated during the trading day and week, what charts accompanied those observations, and how that information can be researched later.
+
+The long-term objective is to create a persistent market memory around Quarterly Theory learning and trading practice:
+
+    QUARTERLY THEORY
+           |
+           v
+      MARKET CONTEXT
+           |
+           v
+     ODIN'S ANALYSIS
+           |
+           v
+      ACTUAL MARKET
+           |
+           v
+       MY TRADES
+           |
+           v
+        REVIEW
+           |
+           v
+   HISTORICAL RESEARCH
+
+The existing QT application remains the user's primary trading operating system. Market Research becomes its historical intelligence and research layer.
+
+---
+
+## 1. Product Context
+
+The existing QT application already provides the user's primary workflow:
+
+- Dashboard
+- Daily Prep
+- Education
+- Journal
+- Trade Log
+- Calendar
+- Analytics
+- Accounts
+- Risk Calculator
+- Mentorship
+
+These existing pages are considered stable and valuable. The Market Research initiative must not redesign, replace, or materially alter their current UX.
+
+The new functionality should feel like a separate application inside the same overall site.
+
+Recommended conceptual navigation:
+
+    QT
+    ├── Existing QT Application
+    │   ├── Dashboard
+    │   ├── Daily Prep
+    │   ├── Education
+    │   ├── Journal
+    │   ├── Trade Log
+    │   ├── Calendar
+    │   ├── Analytics
+    │   ├── Accounts
+    │   ├── Risk Calculator
+    │   └── Mentorship
+    │
+    └── Market Research
+        ├── Today
+        ├── Market Days
+        ├── Search
+        └── Research
+
+Market Research should have its own visual hierarchy, navigation and page-level identity while continuing to share the existing application's authentication, infrastructure and design system where practical.
+
+---
+
+# 2. Goals
+
+## Primary Goals
+
+### G1 — Preserve and research historical Odin analysis
+
+Import and normalize historical Discord HTML exports containing:
+
+- pre-market analysis
+- intraday market commentary
+- end-of-day commentary
+- end-of-week commentary
+- associated images and chart screenshots
+
+The system must preserve the original content and context rather than rewriting it.
+
+### G2 — Make historical market days easy to understand
+
+Users should be able to open a specific market day and understand the chronological flow:
+
+    Pre-Market
+        ↓
+    Market Open
+        ↓
+    Intraday Updates
+        ↓
+    Additional Charts / Updates
+        ↓
+    EOD
+        ↓
+    EOW
+
+The experience should emphasize what was known and communicated at each point in time.
+
+### G3 — Create a high-quality research archive
+
+Users should be able to search historical commentary by:
+
+- keyword
+- date
+- date range
+- market
+- channel
+- analysis type
+- author
+
+The system should allow users to move from a search result to the complete Market Day surrounding that result.
+
+### G4 — Preserve chart-based context
+
+Images and screenshots are considered first-class research data.
+
+A message containing a chart must retain its associated visual context.
+
+Users must be able to:
+
+- view thumbnails
+- open images at larger size
+- browse all images associated with a Market Day
+- identify which message an image belongs to
+
+### G5 — Support Quarterly Theory learning
+
+Market Research should eventually become a practical historical reference for Quarterly Theory education.
+
+The product should allow a user to study historical market behavior without requiring the historical data to be manually reorganized into educational content first.
+
+### G6 — Support personal trading review
+
+The Market Research module should be able to connect conceptually and technically to the user's existing QT workflow without replacing it.
+
+A future or later-stage flow should allow:
+
+    Historical Market Day
+        ↓
+    QT Context
+        ↓
+    Daily Prep
+        ↓
+    Trade
+        ↓
+    Journal / Review
+
+Existing trade logging remains the source of truth for the user's trades.
+
+---
+
+# 3. Non-Goals
+
+The following are explicitly outside the initial product scope:
+
+- Discord API integration
+- Live Discord synchronization
+- Automatic Discord ingestion
+- Automatic interpretation of Odin's opinions
+- Automatic classification of Odin as correct or incorrect
+- Automated trading
+- Broker execution
+- Broker synchronization
+- TradingView API integration
+- Automatic extraction of trading signals
+- Automatic assignment of QT concepts to messages
+- Public social network functionality
+- Multi-tenant customer self-service import
+- User-provided Discord import in the first release
+- Rebuilding the existing QT Dashboard
+- Redesigning Daily Prep
+- Redesigning Trade Log
+- Redesigning Journal
+- Replacing the existing QT Education system
+- Replacing the existing Mentorship system
+- Vector/semantic search in the MVP
+- AI-generated summaries in the MVP
+
+These features may become future extensions but must not increase MVP complexity.
+
+---
+
+# 4. Core Product Principles
+
+## 4.1 Source fidelity
+
+The original Discord message is the authoritative source.
+
+The application must not silently alter, rewrite, summarize or reinterpret source content.
+
+Any future derived interpretation must be stored separately from the original message.
+
+The architecture must distinguish between:
+
+    RAW SOURCE
+    STRUCTURED METADATA
+    USER INTERPRETATION
+    DERIVED ANALYSIS
+
+The MVP primarily stores RAW SOURCE and STRUCTURED METADATA.
+
+## 4.2 Market Day over Discord channel
+
+Discord channels are implementation/source metadata, not the primary user mental model.
+
+The user should think:
+
+    "What happened on August 14?"
+
+rather than:
+
+    "Which Discord channel contains the August 14 messages?"
+
+Channels remain searchable and filterable, but Market Day is the principal navigation object.
+
+## 4.3 Visual context matters
+
+A chart screenshot is not merely an attachment.
+
+If Odin's message contains an image that communicates market context, that image must remain visually connected to the message.
+
+## 4.4 Historical context before hindsight
+
+The product should make it easy to understand what information existed at a specific moment.
+
+This is particularly important for learning.
+
+A user reviewing a 10:30 message should be able to distinguish:
+
+    Information available at 10:30
+
+from:
+
+    Information learned later that day.
+
+## 4.5 Existing QT remains stable
+
+Market Research must be additive.
+
+Existing functionality should not depend on Market Research for normal operation.
+
+If Market Research is unavailable, existing QT workflows must continue working.
+
+---
+
+# 5. Target Users
+
+## Persona 1 — Primary QT Trader
+
+The primary user is a trader learning Quarterly Theory through mentorship, educational material and practical market observation.
+
+Needs:
+
+- study historical examples
+- revisit Odin's market commentary
+- understand how commentary developed through a day
+- inspect chart screenshots
+- compare historical days
+- search for recurring market terminology
+- connect research with personal trading development
+
+## Persona 2 — Read-Only Research User
+
+A trusted friend or invited user who can access the shared Market Research library.
+
+Needs:
+
+- browse Market Days
+- search historical analysis
+- view Odin's messages
+- view screenshots
+- research specific market periods
+
+Permissions should initially be read-only.
+
+## Persona 3 — Owner / Administrator
+
+The person responsible for creating and maintaining the research archive.
+
+Needs:
+
+- import Discord exports
+- monitor import progress
+- detect duplicates
+- inspect parsing failures
+- maintain stored attachments
+- control user access
+
+The initial product assumes one owner/administrator rather than a generalized SaaS administration model.
+
+---
+
+# 6. Information Architecture
+
+Recommended Market Research navigation:
+
+    MARKET RESEARCH
+
+    ├── Today
+    │
+    ├── Market Days
+    │
+    ├── Search
+    │
+    └── Research
+
+Optional future navigation:
+
+    ├── Weeks
+    ├── Concepts
+    ├── Saved Research
+    └── Insights
+
+The MVP should remain intentionally small.
+
+---
+
+# 7. Today
+
+## Objective
+
+Today is the default entry point into Market Research.
+
+It should answer:
+
+"What is the latest available market context?"
+
+For a current trading day, the page should prioritize the latest relevant information.
+
+For a weekend or market holiday, the page should gracefully display the most recent Market Day and identify that the current date is not an active market day.
+
+## Suggested layout
+
+    MARKET RESEARCH
+
+    Today
+    [Current Date]
+
+    NQ     ES     YM
+
+    --------------------------------
+
+    PRE-MARKET
+
+    Latest Odin message
+    Timestamp
+    Content
+    Associated charts
+
+    --------------------------------
+
+    INTRADAY
+
+    Latest update
+    Timestamp
+    Content
+    Associated charts
+
+    --------------------------------
+
+    TODAY'S TIMELINE
+
+    08:xx   Pre-Market
+    10:xx   Intraday
+    12:xx   Intraday
+    16:xx   EOD
+
+    --------------------------------
+
+    RECENT MARKET DAYS
+
+    Yesterday
+    Previous Market Day
+    Previous Market Day
+    ...
+
+## Requirements
+
+- Show current date.
+- Determine the latest available Market Day.
+- Show latest relevant messages by analysis type.
+- Display associated images.
+- Provide direct navigation to the full Market Day.
+- Support NQ, ES and YM filtering.
+- Clearly distinguish current day from historical data.
+- Do not fabricate market information when no source message exists.
+
+---
+
+# 8. Market Day
+
+## Core Concept
+
+Market Day is the central object of the application.
+
+Every imported message should, where possible, belong to a Market Day.
+
+Example:
+
+    MARKET DAY
+    August 14, 2026
+
+    NQ / ES / YM
+
+    PRE-MARKET
+        08:41
+        Odin
+        Message
+        Chart
+
+    INTRADAY
+        10:23
+        Odin
+        Message
+        Chart
+
+        12:17
+        Odin
+        Message
+        Chart
+
+    EOD
+        16:15
+        Odin
+        Message
+        Chart
+
+## Market Day header
+
+The header should contain:
+
+- date
+- day of week
+- supported instruments referenced during the day
+- optional week reference
+- available analysis types
+- total message count
+- total image count
+
+Example:
+
+    August 14, 2026
+    Friday
+
+    NQ   ES   YM
+
+    Pre-Market ✓
+    Intraday ✓
+    EOD ✓
+    EOW —
+
+## Timeline
+
+Messages should be displayed chronologically.
+
+Each timeline item should include:
+
+- timestamp
+- channel
+- author
+- content
+- associated attachments
+- source indicator
+- optional instrument indicators
+
+The timeline must preserve the actual order of events.
+
+---
+
+# 9. Analysis Types
+
+The initial system supports exactly four primary analysis types corresponding to the selected Discord channels:
+
+## Pre-Market
+
+Source:
+
+    pre-market-analizi
+
+Purpose:
+
+Capture Odin's pre-market thinking and expectations before or around the beginning of the trading session.
+
+## Intraday
+
+Source:
+
+    market-intraday
+
+Purpose:
+
+Capture evolving market commentary during the session.
+
+Multiple intraday messages may belong to one Market Day.
+
+## End of Day
+
+Source:
+
+    eod
+
+Purpose:
+
+Capture Odin's end-of-day perspective.
+
+## End of Week
+
+Source:
+
+    eow
+
+Purpose:
+
+Capture weekly perspective.
+
+EOW should not be treated as an ordinary daily timeline event.
+
+It belongs to the Market Week context.
+
+---
+
+# 10. Market Week
+
+A Market Week groups Market Days and provides a weekly research context.
+
+Example:
+
+    WEEK
+    August 10–14, 2026
+
+    Monday
+        Pre-Market
+        Intraday
+        EOD
+
+    Tuesday
+        Pre-Market
+        Intraday
+        EOD
+
+    Wednesday
+        ...
+
+    Thursday
+        ...
+
+    Friday
+        ...
+
+    EOW
+        Weekly commentary
+
+This structure allows users to understand the transition from daily analysis to weekly analysis.
+
+---
+
+# 11. Instruments
+
+The initial supported instruments are:
+
+- NQ
+- ES
+- YM
+
+The system must not assume that every message belongs to exactly one instrument.
+
+A message may reference:
+
+- NQ only
+- ES only
+- YM only
+- multiple instruments
+- no identifiable instrument
+
+Therefore instrument references should be modeled as a many-to-many relationship between messages and instruments.
+
+The original message content remains authoritative.
+
+Automatic instrument detection may be used as an import convenience, but detection must never modify the original content.
+
+---
+
+# 12. Search
+
+Search is a core feature rather than an optional utility.
+
+## Primary search
+
+Users can search message content.
+
+Example:
+
+    liquidity
+
+Results should display:
+
+- date
+- analysis type
+- timestamp
+- author
+- matching content
+- relevant image thumbnail
+- instrument if known
+- "Open Market Day" action
+
+## Filters
+
+Search should support:
+
+- date
+- date range
+- instrument
+- analysis type
+- channel
+- author
+
+## Search result behavior
+
+A result should never become a dead-end message page.
+
+Each result should provide:
+
+    Open Message
+
+and:
+
+    Open Market Day
+
+The second action is essential.
+
+Example:
+
+    August 14, 2026
+    Pre-Market
+    Odin
+    08:41
+
+    "...liquidity..."
+
+    [chart thumbnail]
+
+    [Open Market Day]
+
+---
+
+# 13. Search Performance
+
+Given the expected multi-GB dataset, search must not depend on scanning raw HTML files.
+
+The import pipeline must normalize searchable content into the database.
+
+Initial implementation should use PostgreSQL-native search capabilities where practical.
+
+The MVP does not require vector search.
+
+Search infrastructure should be designed so that semantic/vector search can be introduced later without changing the user-facing information architecture.
+
+---
+
+# 14. Images and Chart Screenshots
+
+Images are critical product data.
+
+## Requirements
+
+Every imported image should preserve:
+
+- original filename where available
+- source message
+- source channel
+- timestamp relationship
+- Market Day relationship
+- storage path/object key
+- MIME type
+- dimensions where available
+- original file
+- generated thumbnail where useful
+
+## Image viewer
+
+The UI should provide:
+
+- thumbnail
+- enlarged view
+- full-screen/lightbox behavior
+- previous/next navigation where multiple images exist
+- associated message context
+
+## Market Day gallery
+
+A Market Day should optionally expose:
+
+    CHARTS
+
+    [Image 1] [Image 2] [Image 3]
+    [Image 4] [Image 5]
+
+Clicking an image opens it in the context of its original message.
+
+## Storage principle
+
+Raw HTML and media files must not be embedded into PostgreSQL as large blobs unless there is a specific technical reason.
+
+Recommended model:
+
+    PostgreSQL
+        Metadata
+        Relationships
+        Text
+        Search indexes
+
+    Object/File Storage
+        Raw HTML
+        Original images
+        Thumbnails
+
+---
+
+# 15. Market Replay
+
+Market Replay is a major product differentiator and should be implemented after the basic archive/search experience is stable.
+
+## Objective
+
+Allow users to inspect the market day as if they were progressing through it chronologically.
+
+The user should be able to ask:
+
+"What information had I/Odin available at this exact time?"
+
+## Replay model
+
+Example:
+
+    August 14, 2026
+
+    08:00 ───────●──────────────── 17:00
+                  11:32
+
+At 11:32, the interface displays only information whose timestamp is at or before 11:32.
+
+Future messages remain hidden until the user advances the timeline.
+
+## Replay behavior
+
+At each timestamp:
+
+- reveal the relevant Odin message
+- reveal associated charts
+- preserve chronological ordering
+- identify analysis type
+- optionally show market-day metadata
+
+## Important rule
+
+Replay must never mutate or alter the source data.
+
+It is a presentation layer over timestamped historical data.
+
+---
+
+# 16. Historical Learning Experience
+
+The product should naturally support Quarterly Theory learning without pretending to automatically understand or validate the theory.
+
+The user can:
+
+1. Open a historical Market Day.
+2. Read the pre-market context.
+3. Follow the intraday evolution.
+4. Inspect chart screenshots.
+5. Read EOD commentary.
+6. Review the weekly context.
+7. Compare this with their own QT knowledge.
+8. Optionally navigate to existing QT educational material.
+
+Future connections can allow:
+
+    Market Day
+        ↓
+    QT Concept
+        ↓
+    Education
+        ↓
+    Historical Examples
+
+However, the MVP should not automatically assign QT concepts to messages.
+
+---
+
+# 17. Integration With Existing QT
+
+Market Research must integrate with the existing application through links and shared entities rather than destructive redesign.
+
+## Existing Daily Prep
+
+Future capability:
+
+    Market Day
+        ↓
+    Open Daily Prep
+
+The user's Daily Prep remains unchanged.
+
+## Existing Trade Log
+
+Future capability:
+
+    Market Day
+        ↓
+    Related Trade(s)
+
+The existing Trade Log remains the source of truth for trade records.
+
+## Existing Journal
+
+Future capability:
+
+    Market Day
+        ↓
+    Journal Entry
+
+The existing Journal remains unchanged.
+
+## Existing Calendar
+
+Future capability:
+
+    Calendar Date
+        ↓
+    Market Research
+
+The existing Calendar remains unchanged.
+
+## Existing Education
+
+Future capability:
+
+    QT Concept
+        ↓
+    Historical Market Examples
+
+The Education experience remains unchanged.
+
+---
+
+# 18. Personal Trading Context
+
+The product should not recreate the existing Trade Log.
+
+Instead, Market Research should provide contextual navigation to existing records.
+
+Example:
+
+    MARKET DAY
+    August 14
+
+    Historical Analysis
+    ...
+
+    MY TRADES
+
+    NQ Long
+    +2.4R
+
+    [View Trade]
+
+The existing Trade entity remains authoritative.
+
+This avoids duplicate trade data and ensures that the current QT journal/trading system remains the single source of truth.
+
+---
+
+# 19. Data Architecture
+
+The existing application uses Next.js, Prisma and Supabase-related infrastructure.
+
+The Market Research module should extend the existing architecture rather than introducing a separate application stack.
+
+Recommended high-level architecture:
+
+    Next.js Application
+          |
+          ├── Existing QT Routes
+          |
+          └── Market Research Routes
+                    |
+                    v
+               Server Layer
+                    |
+              Prisma / Database
+                    |
+          ┌─────────┴─────────┐
+          |                   |
+      PostgreSQL          File Storage
+      Metadata             HTML / Images
+
+---
+
+# 20. Proposed Data Model
+
+The following is a conceptual model. Exact Prisma implementation should be adapted to the existing schema and conventions.
+
+## MarketWeek
+
+Fields:
+
+- id
+- weekStart
+- weekEnd
+- createdAt
+- updatedAt
+
+Relations:
+
+- marketDays
+- endOfWeekMessages
+
+## MarketDay
+
+Fields:
+
+- id
+- date
+- marketWeekId
+- createdAt
+- updatedAt
+
+Relations:
+
+- messages
+- attachments through messages
+- instrument references
+- optional future QT/trade relationships
+
+Constraints:
+
+- one MarketDay per trading calendar date
+- date must be unique
+
+## MarketMessage
+
+Fields:
+
+- id
+- marketDayId
+- sourceChannel
+- analysisType
+- author
+- timestamp
+- content
+- sourceMessageId
+- sourceFile
+- createdAt
+- updatedAt
+
+AnalysisType enum:
+
+    PRE_MARKET
+    INTRADAY
+    EOD
+    EOW
+
+The original source message must be preserved.
+
+## MarketAttachment
+
+Fields:
+
+- id
+- messageId
+- storageKey
+- originalFilename
+- mimeType
+- fileSize
+- width
+- height
+- checksum
+- thumbnailStorageKey
+- createdAt
+
+## InstrumentReference
+
+Fields:
+
+- messageId
+- instrument
+
+Supported initial instruments:
+
+    NQ
+    ES
+    YM
+
+Composite uniqueness:
+
+    messageId + instrument
+
+---
+
+# 21. Source Data Model
+
+The importer should retain sufficient provenance to answer:
+
+- Where did this message come from?
+- Which export file contained it?
+- Which channel did it belong to?
+- What was its original timestamp?
+- Which attachment belonged to it?
+
+Recommended provenance:
+
+    sourceType
+    sourceFile
+    sourceChannel
+    sourceMessageIdentifier
+    originalTimestamp
+
+If the Discord export does not provide a stable message ID, a deterministic source hash should be generated.
+
+---
+
+# 22. Import Pipeline
+
+The import pipeline is a critical subsystem.
+
+Because the source dataset is several GB, imports must run server-side or through a dedicated command-line/script workflow.
+
+Recommended structure:
+
+    /scripts
+        /discord-import
+            parser
+            normalizer
+            attachment-extractor
+            deduplicator
+            importer
+            validator
+
+Example operational flow:
+
+    Discord HTML Export
+          ↓
+    File Discovery
+          ↓
+    HTML Parsing
+          ↓
+    Message Extraction
+          ↓
+    Metadata Normalization
+          ↓
+    Attachment Extraction
+          ↓
+    Source Validation
+          ↓
+    Deduplication
+          ↓
+    Market Day Assignment
+          ↓
+    Database Batch Insert
+          ↓
+    File Storage
+          ↓
+    Import Report
+
+---
+
+# 23. Import Requirements
+
+The importer must:
+
+- process multiple files
+- process large files without loading everything into memory
+- support batch operations
+- preserve source timestamps
+- preserve authors
+- preserve channels
+- preserve message content
+- extract images
+- calculate attachment checksums
+- detect duplicates
+- report malformed messages
+- report unsupported files
+- be restartable
+- avoid duplicating already imported content
+
+The importer should be idempotent.
+
+Running the same export twice must not create duplicate Market Messages.
+
+---
+
+# 24. Deduplication
+
+Deduplication is required because exports may overlap or be re-imported.
+
+Preferred identity hierarchy:
+
+1. Stable source message ID if available.
+2. Otherwise deterministic source hash.
+
+Potential hash input:
+
+    sourceChannel
+    timestamp
+    author
+    normalized content
+    attachment identifiers
+
+The deduplication algorithm must be documented and deterministic.
+
+A failed or partial import must be safely restartable.
+
+---
+
+# 25. Large Dataset Handling
+
+Several GB of source data should be treated as a first-class performance constraint.
+
+Do not:
+
+- load all HTML into browser memory
+- send full exports through client-side JavaScript
+- store multi-GB raw exports inside ordinary relational rows
+- run unbounded synchronous imports in an HTTP request
+- generate all thumbnails synchronously during a page request
+
+Do:
+
+- process files server-side
+- use streaming/chunked parsing where possible
+- batch database inserts
+- separate raw storage from relational metadata
+- use background jobs for expensive work
+- use indexes for common search/filter operations
+- generate thumbnails asynchronously if necessary
+- expose import progress
+
+---
+
+# 26. Import Administration
+
+The owner should have a private import interface.
+
+Example:
+
+    ADMIN
+    ─────────────────────────
+
+    Import Discord Export
+
+    [Select Directory / Files]
+
+    Detected:
+    4 channels
+    1,284,203 messages
+    312,821 images
+
+    [Start Import]
+
+    Progress:
+    ████████████░░░ 78%
+
+    Messages:
+    998,120 / 1,284,203
+
+    Attachments:
+    248,920 / 312,821
+
+    Errors:
+    17
+
+    Duplicates:
+    8,421
+
+    [View Import Report]
+
+The import process should not block normal site usage.
+
+---
+
+# 27. Import Error Handling
+
+Errors should be classified:
+
+- malformed HTML
+- missing timestamp
+- missing author
+- unsupported attachment
+- unreadable image
+- duplicate source
+- invalid channel
+- database error
+- storage error
+
+A single malformed message must not abort an entire large import.
+
+The importer should continue processing and produce an error report.
+
+---
+
+# 28. Permissions
+
+The initial system uses two conceptual roles:
+
+## Owner/Admin
+
+Can:
+
+- access Market Research
+- import data
+- manage imports
+- inspect errors
+- manage read-only users
+
+## Viewer
+
+Can:
+
+- browse Today
+- browse Market Days
+- search
+- view messages
+- view images
+- use Market Replay
+
+Viewer cannot:
+
+- import
+- edit source messages
+- delete source messages
+- alter historical content
+- modify the archive
+
+---
+
+# 29. Source Content Integrity
+
+Source messages must be immutable from the standard UI.
+
+There should be no normal "Edit Message" function.
+
+If future annotations are introduced, they must be stored separately:
+
+    MarketMessage
+        |
+        └── UserAnnotation
+
+This prevents personal notes from contaminating the historical source.
+
+---
+
+# 30. User Experience Requirements
+
+## Navigation
+
+Market Research should have a distinct navigation context.
+
+Recommended:
+
+    Market Research
+    ├── Today
+    ├── Market Days
+    ├── Search
+    └── Research
+
+The user should always have an obvious way to return to the existing QT application.
+
+## Loading
+
+Large timelines should use progressive loading.
+
+Images should use thumbnails before full-resolution assets.
+
+## Empty states
+
+If no data exists:
+
+    No Market Research data is available yet.
+
+    Import a Discord export to begin building the archive.
+
+If a day has no EOD message:
+
+    No EOD analysis is available for this Market Day.
+
+The system must not infer that the analysis did not happen.
+
+---
+
+# 31. Market Day UX Details
+
+The Market Day page should prioritize chronological readability.
+
+Recommended visual hierarchy:
+
+    DATE
+    INSTRUMENTS
+    WEEK CONTEXT
+
+    PRE-MARKET
+        Message
+        Chart
+
+    INTRADAY
+        Message
+        Chart
+        Message
+        Chart
+
+    EOD
+        Message
+        Chart
+
+    WEEKLY CONTEXT
+        EOW
+
+A sticky date/context header may be used on long days.
+
+---
+
+# 32. Message Component
+
+Each message card should display:
+
+- author
+- timestamp
+- analysis type
+- source channel
+- content
+- image thumbnails
+- instrument tags if available
+- Open in context action
+
+Example:
+
+    ODIN
+    10:42
+    INTRADAY
+
+    [Message content]
+
+    NQ   ES
+
+    [Chart] [Chart]
+
+    [View in Market Day]
+
+The design should make long-form Discord messages comfortable to read.
+
+---
+
+# 33. Image Viewer UX
+
+When a chart is opened:
+
+- preserve image aspect ratio
+- provide zoom
+- provide close action
+- show source message context
+- show timestamp
+- show Market Day
+- support next/previous image navigation when appropriate
+
+The image viewer must work well on both desktop and mobile.
+
+---
+
+# 34. Market Replay UX
+
+Replay should provide:
+
+- timeline
+- current replay timestamp
+- progress indicator
+- play/pause
+- previous event
+- next event
+- reset
+- event markers
+
+Optional later functionality:
+
+- playback speed
+- synchronized chart progression
+- market price chart integration
+
+The MVP replay should remain focused on historical commentary rather than becoming a full trading simulator.
+
+---
+
+# 35. Responsive Design
+
+Desktop is the primary environment because research and chart analysis benefit from screen space.
+
+However:
+
+- mobile browsing must remain functional
+- message cards must reflow
+- images must remain readable
+- filters should collapse into a mobile control
+- timeline must remain navigable
+- search must remain usable
+
+Desktop should prioritize research density.
+
+Mobile should prioritize readability.
+
+---
+
+# 36. Accessibility
+
+Requirements:
+
+- keyboard-accessible navigation
+- accessible buttons
+- semantic headings
+- sufficient contrast
+- alt text for system-generated thumbnails where source metadata permits
+- visible focus states
+- modal dialogs accessible through keyboard
+- escape-to-close for image viewer
+- screen-reader labels for timeline controls
+
+For source images without meaningful descriptive metadata, the UI should not invent detailed alt descriptions.
+
+---
+
+# 37. Analytics and Observability
+
+The system should track product-level events without modifying source data.
+
+Recommended events:
+
+    market_research_opened
+    market_day_opened
+    market_message_opened
+    search_performed
+    search_result_opened
+    image_opened
+    replay_started
+    replay_completed
+
+Admin/import events:
+
+    import_started
+    import_completed
+    import_failed
+    message_imported
+    attachment_imported
+    duplicate_detected
+
+The product should never log the full content of private Discord messages into application logs.
+
+---
+
+# 38. Privacy and Security
+
+Because the dataset originates from a private Discord environment, source content must be treated as private data.
+
+Requirements:
+
+- authenticated access
+- authorization checks on every Market Research route
+- read-only access for viewers
+- admin-only import functionality
+- secure file storage
+- signed/private asset access where appropriate
+- no public indexing
+- no accidental exposure through client-side APIs
+- no raw message content in analytics logs
+- auditability for administrative operations
+
+The application should not expose the raw storage bucket publicly.
+
+---
+
+# 39. Data Retention
+
+Historical market research is intended to be persistent.
+
+Deleting a Market Day should not be a normal user operation.
+
+If administrative deletion is ever introduced, it should require explicit confirmation and should account for:
+
+- messages
+- attachments
+- source references
+- thumbnails
+- relationships
+- import metadata
+
+A soft-delete strategy should be preferred over immediate physical deletion if deletion becomes necessary.
+
+---
+
+# 40. Performance Requirements
+
+## Page performance
+
+For normal Market Day pages:
+
+- initial page response should remain responsive with large message counts
+- long timelines should use pagination or progressive loading
+- images should not block text rendering
+- thumbnails should be loaded before full-resolution images
+
+## Search
+
+Typical search should return results within a few seconds under normal system load.
+
+Search must operate on indexed normalized data.
+
+## Database
+
+Indexes should be created for:
+
+- MarketDay.date
+- MarketMessage.marketDayId
+- MarketMessage.timestamp
+- MarketMessage.analysisType
+- MarketMessage.sourceChannel
+- MarketMessage.author
+- MarketMessage.sourceMessageId
+- InstrumentReference.instrument
+
+Full-text search indexes should be added according to the chosen PostgreSQL implementation.
+
+---
+
+# 41. Reliability
+
+The system must tolerate:
+
+- partial imports
+- interrupted imports
+- duplicate exports
+- malformed messages
+- missing images
+- storage failures
+- database connection failures
+- large export files
+- browser refresh during import monitoring
+
+Import operations should be resumable.
+
+A failed import should not corrupt previously imported data.
+
+---
+
+# 42. Technical Architecture
+
+Recommended stack:
+
+    Next.js 16
+    React 19
+    TypeScript
+    Prisma
+    Existing Supabase infrastructure
+    PostgreSQL
+    Existing authentication
+    Existing UI/component system
+
+No new frontend framework should be introduced.
+
+The implementation should reuse existing:
+
+- authentication
+- layout
+- design tokens
+- UI components
+- database connection patterns
+- error handling patterns
+- deployment infrastructure
+
+Where possible, Market Research should be isolated under a dedicated route/module namespace.
+
+Recommended conceptual route:
+
+    /market-research
+
+Potential routes:
+
+    /market-research
+    /market-research/today
+    /market-research/days
+    /market-research/days/[date]
+    /market-research/search
+    /market-research/replay/[date]
+    /market-research/admin/import
+
+Exact route naming may follow the existing application's conventions.
+
+---
+
+# 43. Component Architecture
+
+Recommended conceptual components:
+
+    MarketResearchLayout
+    MarketResearchNavigation
+
+    TodayView
+    MarketDayView
+    MarketWeekView
+
+    MarketTimeline
+    MarketTimelineEvent
+    MarketMessageCard
+
+    AnalysisSection
+    ImageGallery
+    ChartViewer
+
+    SearchInterface
+    SearchFilters
+    SearchResults
+    SearchResultCard
+
+    MarketReplay
+    ReplayTimeline
+    ReplayControls
+
+    ImportDashboard
+    ImportProgress
+    ImportReport
+
+Components should remain reusable and isolated from existing QT-specific business logic where practical.
+
+---
+
+# 44. API / Server Responsibilities
+
+Client-side code should not directly access raw storage or privileged import operations.
+
+Server-side responsibilities:
+
+- retrieve Market Days
+- retrieve messages
+- perform search
+- enforce authorization
+- generate signed asset access
+- execute import jobs
+- report import status
+
+The import system should never be triggered by a public viewer.
+
+---
+
+# 45. Database Strategy
+
+The Market Research data model should coexist with the existing Prisma schema.
+
+Existing models should not be duplicated unnecessarily.
+
+Where an existing entity already represents the required concept, the new module should reuse it rather than create a parallel version.
+
+Examples:
+
+- existing User remains the identity source
+- existing Trade remains the trade source of truth
+- existing Daily Prep remains the daily-preparation source of truth
+- existing Screenshot infrastructure should be evaluated for reuse
+- existing Concept infrastructure should remain the education source of truth
+
+New Market Research models should be introduced only for source/archive concepts that do not already exist.
+
+---
+
+# 46. Relationship Strategy
+
+The initial architecture should allow future relationships such as:
+
+    MarketDay ↔ DailyPrep
+    MarketDay ↔ Trade
+    MarketDay ↔ Journal
+    MarketDay ↔ Concept
+    MarketDay ↔ Screenshot
+
+However, these relationships should not be required for importing historical data.
+
+A Market Day must remain valid even if the user has:
+
+- no Daily Prep
+- no trade
+- no journal entry
+- no QT concept
+- no personal screenshot
+
+This prevents the archive from becoming dependent on personal trading records.
+
+---
+
+# 47. Future Research Layer
+
+Once the archive is stable, the next layer can become more analytical.
+
+Potential future features:
+
+## Historical Pattern Search
+
+    "Show all pre-market messages containing liquidity
+     during NQ trading days."
+
+## QT Concept Research
+
+    Concept
+       ↓
+    Historical Market Days
+       ↓
+    Odin Examples
+
+## Personal Performance Comparison
+
+    Historical Context
+       ↓
+    My Trades
+       ↓
+    Outcome
+
+## Saved Research
+
+Users could save:
+
+- Market Days
+- messages
+- images
+- search queries
+- research collections
+
+## Semantic Search
+
+Later:
+
+    "Find days where Odin discussed a likely
+     liquidity sweep before a reversal."
+
+This should only be implemented after the deterministic search system is proven.
+
+---
+
+# 48. Future AI Layer
+
+AI should not be a prerequisite for the archive.
+
+If introduced later, AI can operate as a secondary interpretation layer.
+
+Possible future outputs:
+
+    Extracted Topics
+    Possible Instruments
+    Possible QT Concepts
+    Market Context
+    Similar Historical Days
+
+But every AI-derived statement must remain clearly distinguishable from the source.
+
+Preferred architecture:
+
+    Source Message
+          |
+          +---- Original Text
+          |
+          +---- Metadata
+          |
+          +---- AI Interpretation
+                    |
+                    +---- Confidence
+                    +---- Explanation
+                    +---- Source Reference
+
+AI must never overwrite source content.
+
+---
+
+# 49. Market Replay Evolution
+
+After the basic replay is proven, the system could eventually support:
+
+- synchronized NQ/ES/YM price charts
+- historical price candles
+- commentary markers
+- screenshot markers
+- replay-specific notes
+- "what was known at this point?" research mode
+- side-by-side Odin commentary and market price
+
+The initial release should not attempt to build a full TradingView replacement.
+
+---
+
+# 50. User Stories
+
+## Primary Trader
+
+As a QT trader, I want to open a historical Market Day so that I can understand how the market commentary developed throughout the session.
+
+As a QT trader, I want to read Odin's pre-market analysis before seeing later commentary so that I can study the original market expectation without hindsight.
+
+As a QT trader, I want to see the charts attached to Odin's messages so that I can understand the visual market context behind his commentary.
+
+As a QT trader, I want to search historical messages for a term such as "liquidity" so that I can find relevant examples quickly.
+
+As a QT trader, I want to jump from a search result to the full Market Day so that I can understand the surrounding context.
+
+As a QT trader, I want to filter research by NQ, ES or YM so that I can focus on the market I am studying.
+
+As a QT trader, I want to replay a historical day chronologically so that I can study what information was available at each point in time.
+
+## Viewer
+
+As a viewer, I want read-only access to the Market Research archive so that I can study the shared historical material without modifying it.
+
+As a viewer, I want to search the archive so that I can independently research historical commentary.
+
+## Owner
+
+As the archive owner, I want to import large Discord exports so that I can build the historical database.
+
+As the archive owner, I want duplicate detection so that repeated exports do not create duplicate messages.
+
+As the archive owner, I want an import report so that I can identify malformed or failed records.
+
+As the archive owner, I want import processing to continue when individual messages fail so that a large dataset does not require manual restart from the beginning.
+
+---
+
+# 51. Key User Flows
+
+## Flow A — Browse Today's Market Research
+
+    User enters Market Research
+            ↓
+    Today
+            ↓
+    Current/latest Market Day
+            ↓
+    Latest Pre-Market
+            ↓
+    Latest Intraday
+            ↓
+    Timeline
+            ↓
+    Open full Market Day
+
+Success condition:
+
+The user can understand the latest available historical/current research context within one screen transition.
+
+---
+
+## Flow B — Research a Historical Concept
+
+    User enters Search
+            ↓
+    Searches "liquidity"
+            ↓
+    Filters NQ
+            ↓
+    Results appear
+            ↓
+    Opens result
+            ↓
+    Opens Market Day
+            ↓
+    Reads surrounding messages
+            ↓
+    Opens chart
+
+Success condition:
+
+The user reaches the relevant historical visual context without navigating Discord.
+
+---
+
+## Flow C — Study a Market Day
+
+    Market Days
+          ↓
+    Select date
+          ↓
+    Market Day
+          ↓
+    Pre-Market
+          ↓
+    Intraday
+          ↓
+    Charts
+          ↓
+    EOD
+          ↓
+    EOW
+
+Success condition:
+
+The entire market-day narrative is understandable chronologically.
+
+---
+
+## Flow D — Historical Replay
+
+    Market Day
+          ↓
+    Replay
+          ↓
+    Start
+          ↓
+    Timeline progresses
+          ↓
+    Messages reveal chronologically
+          ↓
+    Charts appear at their timestamps
+          ↓
+    End of Day
+
+Success condition:
+
+The user can experience the progression of information without accidentally seeing future events.
+
+---
+
+## Flow E — Import Archive
+
+    Admin
+      ↓
+    Import
+      ↓
+    Select export
+      ↓
+    Parse
+      ↓
+    Validate
+      ↓
+    Deduplicate
+      ↓
+    Store messages
+      ↓
+    Store images
+      ↓
+    Build Market Days
+      ↓
+    Import Report
+
+Success condition:
+
+A multi-GB export can be imported reliably without corrupting existing data.
+
+---
+
+# 52. Edge Cases
+
+## Missing Pre-Market
+
+Display:
+
+    No Pre-Market analysis available.
+
+Do not infer why it is missing.
+
+## Missing Intraday
+
+Display:
+
+    No Intraday analysis available.
+
+## Missing EOD
+
+Display:
+
+    No EOD analysis available.
+
+## Missing EOW
+
+The Market Week may still exist without EOW.
+
+## Multiple EOD messages
+
+Display all messages chronologically.
+
+## Multiple messages at same timestamp
+
+Use source ordering where available.
+
+If exact ordering cannot be determined, preserve source-file order and avoid inventing precision.
+
+## Message without image
+
+Display text normally.
+
+## Image without message
+
+Retain attachment if recoverable, but mark it as orphaned and report it during import.
+
+## Message without author
+
+Preserve the message and mark author as unknown.
+
+## Duplicate message
+
+Ignore duplicate during normal import and increment duplicate counter.
+
+## Corrupt image
+
+Preserve message and mark attachment as unavailable.
+
+## Unknown instrument
+
+Do not force NQ/ES/YM classification.
+
+## Message mentioning multiple instruments
+
+Allow multiple instrument references.
+
+---
+
+# 53. Security Edge Cases
+
+The application must protect against:
+
+- unauthorized Market Research access
+- unauthorized image access
+- public asset URLs
+- import endpoint abuse
+- path traversal through uploaded/export filenames
+- malicious HTML execution
+- unsafe rendering of source HTML
+- oversized attachment abuse
+
+Source HTML must never be rendered as executable HTML inside the application.
+
+Discord content should be treated as untrusted text.
+
+Any HTML-derived content displayed to users must be sanitized and/or rendered as text.
+
+---
+
+# 54. Acceptance Criteria — MVP
+
+## Archive
+
+- Discord exports can be imported.
+- Messages are persisted with original content.
+- Author is preserved.
+- Timestamp is preserved.
+- Channel is preserved.
+- Source provenance is preserved.
+
+## Analysis Types
+
+- Pre-Market messages are classified.
+- Intraday messages are classified.
+- EOD messages are classified.
+- EOW messages are classified.
+
+## Market Days
+
+- Messages are grouped by trading date.
+- A Market Day page can be opened.
+- Messages appear chronologically.
+- NQ, ES and YM references can be represented.
+
+## Images
+
+- Images are imported.
+- Images remain associated with their original message.
+- Thumbnails can be displayed.
+- Full-size images can be opened.
+
+## Search
+
+- Text search works.
+- Date filters work.
+- Instrument filters work.
+- Analysis-type filters work.
+- Search results link to the original Market Day.
+
+## Access
+
+- Owner can import.
+- Viewer can read.
+- Viewer cannot modify source content.
+
+## Reliability
+
+- Duplicate imports do not duplicate messages.
+- Individual parse failures do not terminate the entire import.
+- Import progress/reporting exists.
+- Existing QT functionality continues working.
+
+---
+
+# 55. MVP Scope
+
+The MVP consists of:
+
+### Module
+
+    Market Research
+
+### Pages
+
+    /market-research
+    /market-research/today
+    /market-research/days
+    /market-research/days/[date]
+    /market-research/search
+
+### Core capabilities
+
+- Market Research navigation
+- Today view
+- Market Day
+- Market Week context
+- Pre-Market
+- Intraday
+- EOD
+- EOW
+- NQ / ES / YM
+- Search
+- Filters
+- Image viewing
+- Read-only access
+- Admin import
+- Import progress
+- Deduplication
+- Source provenance
+- Large-file processing
+
+Market Replay should be treated as the final MVP feature after the archive/search foundation is stable, rather than allowing replay complexity to delay ingestion.
+
+---
+
+# 56. Phase 2
+
+Phase 2 may include:
+
+- Market Replay
+- richer Market Week view
+- saved searches
+- saved Market Days
+- personal annotations
+- direct Daily Prep links
+- direct Trade Log links
+- direct Journal links
+- Concept → Historical Examples
+- richer screenshot research
+- additional analytics
+- improved instrument detection
+
+---
+
+# 57. Phase 3
+
+Potential future capabilities:
+
+- semantic search
+- AI-assisted historical research
+- automatic topic extraction
+- automatic QT concept suggestions
+- historical pattern discovery
+- NQ/ES/YM price-chart synchronization
+- Market Replay with price action
+- performance comparison between market contexts and personal trades
+- research collections
+- collaborative annotations
+- more sophisticated permissions
+
+---
+
+# 58. Differentiation
+
+The product should not compete conceptually with Discord.
+
+Discord is the original communication source.
+
+The product's value is that it transforms historical communication into a structured research environment.
+
+The differentiation is:
+
+    Discord
+    = conversation
+
+    QT
+    = personal trading system
+
+    Market Research
+    = historical market memory
+
+The combined ecosystem becomes:
+
+    LEARN
+      ↓
+    PREPARE
+      ↓
+    OBSERVE
+      ↓
+    TRADE
+      ↓
+    REVIEW
+      ↓
+    RESEARCH
+      ↓
+    LEARN AGAIN
+
+This creates a closed learning loop around the user's actual trading process.
+
+---
+
+# 59. Key Product Risks
+
+## Risk 1 — Import complexity
+
+Several GB of HTML and images may expose unexpected export structures.
+
+Mitigation:
+
+- build parser against representative samples
+- use streaming/batched processing
+- preserve raw source
+- produce validation reports
+- make imports idempotent
+
+## Risk 2 — Incorrect date grouping
+
+Discord timestamps may not map perfectly to trading sessions.
+
+Mitigation:
+
+- preserve exact timestamps
+- separate source timestamp from derived Market Day
+- make date assignment deterministic
+- avoid silently changing timestamps
+
+## Risk 3 — Image loss
+
+Images are a major part of the research value.
+
+Mitigation:
+
+- checksum attachments
+- verify storage after import
+- maintain source-to-image relationship
+- report missing/corrupt assets
+
+## Risk 4 — Archive becomes another Discord clone
+
+Mitigation:
+
+- Market Day remains the primary object
+- research-first navigation
+- strong search
+- chronological context
+- chart-first presentation
+
+## Risk 5 — Scope explosion
+
+Potential additions such as AI, semantic search, live Discord sync and price replay can quickly turn the project into a large platform.
+
+Mitigation:
+
+MVP remains:
+
+    Import
+    → Normalize
+    → Browse
+    → Search
+    → Visualize
+    → Research
+
+---
+
+# 60. Implementation Sequencing
+
+## Phase 0 — Repository Preparation
+
+Goals:
+
+- identify existing Next.js route conventions
+- identify existing Prisma patterns
+- identify authentication/authorization implementation
+- identify existing storage implementation
+- identify reusable UI components
+- create Market Research module boundary
+
+Deliverables:
+
+- module structure
+- route strategy
+- data-model migration plan
+
+No existing QT page should be modified beyond navigation required to expose the new module.
+
+---
+
+## Phase 1 — Data Import Foundation
+
+Build:
+
+- Discord parser
+- channel parser
+- author parser
+- timestamp parser
+- message extraction
+- attachment extraction
+- checksum generation
+- deduplication
+- batch persistence
+- import reporting
+
+Target source channels:
+
+    pre-market-analizi
+    market-intraday
+    eod
+    eow
+
+This phase should be tested on a small representative export before running the full multi-GB dataset.
+
+---
+
+## Phase 2 — Archive UI
+
+Build:
+
+- Market Research layout
+- Today
+- Market Days
+- Market Day detail
+- Market Week context
+- message cards
+- image viewer
+
+At the end of this phase, the user should be able to browse the entire historical archive.
+
+---
+
+## Phase 3 — Search
+
+Build:
+
+- full-text search
+- date filters
+- instrument filters
+- analysis-type filters
+- result cards
+- Open Market Day
+
+Performance should be measured against the real dataset rather than a toy dataset.
+
+---
+
+## Phase 4 — Access Control
+
+Build:
+
+- owner/admin permissions
+- viewer permissions
+- protected routes
+- protected image access
+- admin import access
+
+---
+
+## Phase 5 — Market Replay
+
+Build:
+
+- timestamp timeline
+- event markers
+- progressive reveal
+- play/pause
+- next/previous
+- reset
+
+Replay should consume existing normalized Market Research data.
+
+---
+
+## Phase 6 — QT Integration
+
+Only after the archive is stable:
+
+- Market Day → Daily Prep
+- Market Day → Trade Log
+- Market Day → Journal
+- Concept → Historical Examples
+
+These integrations should be additive and should not modify existing workflows.
+
+---
+
+# 61. Definition of Done
+
+The feature is considered successfully implemented when:
+
+1. Existing QT pages continue functioning as before.
+2. Market Research exists as a visually distinct module.
+3. Multi-GB Discord exports can be imported through a controlled server-side process.
+4. Historical messages are preserved accurately.
+5. Original authors and timestamps are retained.
+6. The four selected Discord channels are supported.
+7. NQ, ES and YM can be researched.
+8. Images and charts remain connected to their messages.
+9. Market Days provide a coherent chronological view.
+10. Market Weeks provide weekly context.
+11. Users can search the archive.
+12. Search results lead to complete Market Days.
+13. Viewer users cannot alter source data.
+14. Duplicate imports do not duplicate messages.
+15. Import failures are reported without corrupting successful data.
+16. Large datasets do not require loading all content into browser memory.
+17. Source HTML is treated as untrusted content.
+18. The existing QT application remains operational and visually stable.
+19. The architecture leaves room for Market Replay and future research capabilities.
+20. The archive can become a reliable long-term historical knowledge base.
+
+---
+
+# 62. Product Success Metrics
+
+Because this is initially a personal research system rather than a commercial SaaS product, success should be measured by utility rather than revenue.
+
+## Core Metrics
+
+- % of historical export successfully imported
+- message import success rate
+- attachment import success rate
+- duplicate detection accuracy
+- search response time
+- Market Day page load time
+- image loading success rate
+- import restart/recovery success rate
+
+## Usage Metrics
+
+- Market Days opened
+- search queries performed
+- search results opened
+- images opened
+- replay sessions
+- historical days revisited
+
+## Learning Utility Metrics
+
+Future qualitative measures:
+
+- ability to find historical examples quickly
+- reduction in time required to research a market concept
+- number of historical examples reviewed per study session
+- frequency of returning to Market Research during preparation/review
+- usefulness of Market Day replay
+
+The primary product KPI should be:
+
+    "Can the user find and understand the historical market context
+     they are looking for without going back to Discord?"
+
+---
+
+# 63. Final Product Definition
+
+QT Market Research is a historical market-intelligence layer built directly into the existing QT ecosystem.
+
+It does not replace the user's current Dashboard, Daily Prep, Education, Journal, Trade Log, Calendar, Analytics, Accounts, Risk Calculator or Mentorship workflows.
+
+Instead, it adds a separate research environment where several years of Odin market commentary can be transformed from a large Discord export into an organized, searchable and visual historical market database.
+
+The fundamental object is the Market Day.
+
+The fundamental source is Odin's original commentary.
+
+The fundamental research unit is:
+
+    DATE
+    +
+    MARKET
+    +
+    TIMESTAMP
+    +
+    COMMENTARY
+    +
+    CHART
+    +
+    MARKET CONTEXT
+
+The fundamental user experience is:
+
+    FIND A DAY
+        ↓
+    SEE WHAT WAS SAID
+        ↓
+    SEE THE CHART
+        ↓
+    FOLLOW THE DAY
+        ↓
+    UNDERSTAND THE WEEK
+        ↓
+    COMPARE WITH MY QT KNOWLEDGE
+        ↓
+    COMPARE WITH MY TRADING
+        ↓
+    LEARN
+
+The initial implementation should remain deliberately disciplined.
+
+Do not begin with AI.
+Do not begin with semantic search.
+Do not begin with live Discord synchronization.
+Do not rebuild QT.
+Do not attempt to automatically determine whether Odin was right or wrong.
+
+First build the historical foundation correctly.
+
+Once the archive is reliable, searchable and visually coherent, the system becomes a platform on which substantially more sophisticated Quarterly Theory research can be built.
+
+The strategic goal is therefore not merely to "store Discord messages."
+
+The goal is to build a durable historical memory of the market-learning process around QT:
+
+    DISCORD SOURCE
+          ↓
+    STRUCTURED MARKET HISTORY
+          ↓
+    MARKET DAY
+          ↓
+    MARKET RESEARCH
+          ↓
+    QT LEARNING
+          ↓
+    PERSONAL TRADING
+          ↓
+    REVIEW
+          ↓
+    BETTER FUTURE RESEARCH

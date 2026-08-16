@@ -89,43 +89,6 @@ function statsFor(trades: Trade[]) {
 
 // ─── components ────────────────────────────────────────────────────────────
 
-function MiniBar({ pct, color }: { pct: number; color: string }) {
-  return (
-    <div className="h-1.5 rounded-full w-full overflow-hidden" style={{ background: "var(--color-bg-border)" }}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: color }} />
-    </div>
-  );
-}
-
-function BreakdownTable({
-  title, rows,
-}: {
-  title: string;
-  rows: { label: string; count: number; wr: number | null; ar: string | null }[];
-}) {
-  const maxCount = Math.max(...rows.map((r) => r.count), 1);
-  return (
-    <div className="rounded-xl border p-5 space-y-3" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-      <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>{title}</h3>
-      <div className="space-y-2.5">
-        {rows.map((row) => (
-          <div key={row.label}>
-            <div className="flex justify-between mb-1 text-xs">
-              <span style={{ color: "var(--color-text-secondary)" }}>{row.label}</span>
-              <span style={{ color: "var(--color-text-muted)" }}>
-                {row.count} trades · WR {row.wr != null ? `${row.wr}%` : "—"} · Avg R {row.ar ?? "—"}
-              </span>
-            </div>
-            <MiniBar pct={(row.count / maxCount) * 100} color="var(--color-accent)" />
-          </div>
-        ))}
-        {rows.length === 0 && (
-          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>No data yet</p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── page ──────────────────────────────────────────────────────────────────
 
@@ -183,17 +146,24 @@ export default async function AnalyticsPage({
 
   // ── Cumulative R curve (chronological, filtered) ──
   const chronoTrades = [...ft].reverse();
-  let cum = 0;
+  // Accumulate inside the reducer instead of mutating an outer `let` while
+  // mapping -- reassigning across renders is not allowed.
+  // The running total stays unrounded; only the emitted value is rounded, so
+  // rounding never compounds across the curve.
   const rCurve = chronoTrades
     .filter((t) => t.rResult != null)
-    .map((t, i) => {
-      cum += t.rResult ?? 0;
-      return {
-        label: `#${i + 1}`,
-        r:     parseFloat((t.rResult ?? 0).toFixed(2)),
-        cumR:  parseFloat(cum.toFixed(2)),
-      };
-    });
+    .reduce<{ rows: { label: string; r: number; cumR: number }[]; cum: number }>(
+      (acc, t, i) => {
+        const cum = acc.cum + (t.rResult ?? 0);
+        acc.rows.push({
+          label: `#${i + 1}`,
+          r:     parseFloat((t.rResult ?? 0).toFixed(2)),
+          cumR:  parseFloat(cum.toFixed(2)),
+        });
+        return { rows: acc.rows, cum };
+      },
+      { rows: [], cum: 0 }
+    ).rows;
 
   // ── Max drawdown ──
   const mdd = maxDrawdownR(rCurve);
@@ -201,25 +171,6 @@ export default async function AnalyticsPage({
   // ── Grade distribution (filtered) ──
   const gradeMap = { A_PLUS: 0, B: 0, C: 0, RULE_BREAK: 0, UNREVIEWED: 0 };
   ft.forEach((t) => { if (t.processGrade) gradeMap[t.processGrade as keyof typeof gradeMap]++; });
-
-  // ── Setup breakdown (filtered) ──
-  const bySetup = groupBy(ft, (t) => t.setupType ?? "UNKNOWN");
-  const setupRows = Object.entries(bySetup)
-    .map(([label, ts]) => ({ label: label.replace(/_/g, " "), ...statsFor(ts) }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
-
-  // ── Session breakdown (filtered) ──
-  const bySession = groupBy(ft, (t) => t.session?.replace(/_/g, " ") ?? "Unknown");
-  const sessionRows = Object.entries(bySession)
-    .map(([label, ts]) => ({ label, ...statsFor(ts) }))
-    .sort((a, b) => b.count - a.count);
-
-  // ── Triad breakdown (filtered) ──
-  const byTriad = groupBy(ft, (t) => t.triad ?? "Unknown");
-  const triadRows = Object.entries(byTriad)
-    .map(([label, ts]) => ({ label, ...statsFor(ts) }))
-    .sort((a, b) => b.count - a.count);
 
   // ── Instrument breakdown (filtered) ──
   const byInstrument = groupBy(ft, (t) => t.instrument);
@@ -239,30 +190,6 @@ export default async function AnalyticsPage({
       };
     })
     .sort((a, b) => b.count - a.count);
-
-  // ── Mistake tag frequency (filtered) ──
-  const mistakeCounts: Record<string, number> = {};
-  ft.forEach((t) =>
-    t.tags
-      .filter((tt) => tt.tag.category === "MISTAKE")
-      .forEach((tt) => { mistakeCounts[tt.tag.name] = (mistakeCounts[tt.tag.name] ?? 0) + 1; })
-  );
-  const topMistakes = Object.entries(mistakeCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-  const maxMistake = topMistakes[0]?.[1] ?? 1;
-
-  // ── Positive tag frequency (filtered) ──
-  const positiveCounts: Record<string, number> = {};
-  ft.forEach((t) =>
-    t.tags
-      .filter((tt) => tt.tag.category === "POSITIVE")
-      .forEach((tt) => { positiveCounts[tt.tag.name] = (positiveCounts[tt.tag.name] ?? 0) + 1; })
-  );
-  const topPositives = Object.entries(positiveCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-  const maxPositive = topPositives[0]?.[1] ?? 1;
 
 
   // ── P&L Heatmap (Feature 2) ──
@@ -298,11 +225,6 @@ export default async function AnalyticsPage({
   const nextHmLink = `/analytics?heatmapYear=${nextHmDate.getFullYear()}&heatmapMonth=${nextHmDate.getMonth() + 1}`;
   const isCurrentMonth = hmYear === now.getFullYear() && hmMonth === now.getMonth() + 1;
 
-  const gradeColor: Record<string, string> = {
-    A_PLUS: "var(--color-success)", B: "var(--color-accent)",
-    C: "var(--color-warning)", RULE_BREAK: "var(--color-danger)",
-    UNREVIEWED: "var(--color-text-muted)",
-  };
 
   const monthNames = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 

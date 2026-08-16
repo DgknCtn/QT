@@ -45,3 +45,7 @@ next-env.d.ts
 # Market Research: raw Discord export data (HTML + images, private, multi-GB) --
 # never committed. The import pipeline in scripts/discord-import/ IS committed.
 /market-research/
+
+# One-off migration snapshots. Kept on disk as a local safety net; this repo is
+# public and these contain personal trading notes.
+/prisma/backups/

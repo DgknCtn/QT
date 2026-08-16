@@ -143,12 +143,10 @@ function StepIcon({ status }: { status: "complete" | "partial" | "empty" }) {
 }
 
 export function PrepWizard({
-  userId,
   calendarEvents = [],
   initialData,
   prepId,
 }: {
-  userId: string;
   calendarEvents?: CalendarEventItem[];
   initialData?: PrepFormData;
   prepId?: string;
@@ -179,9 +177,9 @@ export function PrepWizard({
     setError("");
     try {
       if (prepId) {
-        await updateDailyPrep(prepId, userId, data);
+        await updateDailyPrep(prepId, data);
       } else {
-        await saveDailyPrep(userId, data);
+        await saveDailyPrep(data);
       }
       setSaved(true);
     } catch (e: unknown) {

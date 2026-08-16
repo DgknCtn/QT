@@ -24,8 +24,8 @@ export default async function MentorshipPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link href="/mentorship/admin/mentees" className="rounded-xl p-5 border flex flex-col gap-2 hover:border-[var(--color-accent)] transition-colors"
             style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-            <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Mentee'ler</span>
-            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>Onay bekleyenler ve aktif mentee'ler</span>
+            <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Mentee&apos;ler</span>
+            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>Onay bekleyenler ve aktif mentee&apos;ler</span>
           </Link>
           <Link href="/mentorship/admin/courses" className="rounded-xl p-5 border flex flex-col gap-2 hover:border-[var(--color-accent)] transition-colors"
             style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
@@ -102,17 +102,28 @@ export default async function MentorshipPage() {
 
   // ACTIVE mentee: show courses + resources + mentor notes
   const [courses, resources, mentorNotes] = await Promise.all([
+    // Narrowed on purpose: this page only renders titles and a completion
+    // count, so it must not pull every lesson's full `content`/`videoUrl` body.
     prisma.course.findMany({
       where: { isPublished: true },
       orderBy: { order: "asc" },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
         chapters: {
           orderBy: { order: "asc" },
-          include: {
+          select: {
+            id: true,
+            title: true,
             lessons: {
               where: { isPublished: true },
               orderBy: { order: "asc" },
-              include: { progress: { where: { userId: user!.id } } },
+              select: {
+                id: true,
+                title: true,
+                progress: { where: { userId: user!.id }, select: { id: true } },
+              },
             },
           },
         },

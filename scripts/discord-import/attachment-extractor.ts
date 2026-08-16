@@ -6,6 +6,18 @@ import { uploadMarketAttachment } from "../../lib/supabase/market-research-stora
 
 const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 const THUMBNAIL_WIDTH = 480;
+const MIME_BY_EXT: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".mp4": "video/mp4",
+  ".m4v": "video/mp4",
+  ".mov": "video/quicktime",
+  ".webm": "video/webm",
+  ".mkv": "video/x-matroska",
+};
 
 export interface ExtractedAttachment {
   storageKey: string;
@@ -53,7 +65,7 @@ export async function extractAndUploadAttachment(params: {
   let width: number | null = null;
   let height: number | null = null;
   let thumbnailStorageKey: string | null = null;
-  let mimeType = ext ? `image/${ext.replace(".", "")}` : "application/octet-stream";
+  let mimeType = MIME_BY_EXT[ext] ?? "application/octet-stream";
 
   if (IMAGE_EXT.has(ext)) {
     try {

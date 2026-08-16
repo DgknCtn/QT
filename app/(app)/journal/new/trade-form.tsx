@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import { saveTrade } from "./actions";
 import { updateTrade } from "@/app/(app)/journal/[id]/actions";
 import { uploadScreenshot } from "@/lib/supabase/storage";
@@ -133,14 +134,18 @@ export function TradeForm({
         uploadedUrls.push({ url, type: sc.type });
       }
       if (tradeId) {
-        await updateTrade(tradeId, userId, form, uploadedUrls);
+        await updateTrade(tradeId, form, uploadedUrls);
+        toast.success("İşlem güncellendi");
         router.push(`/journal/${tradeId}`);
       } else {
-        await saveTrade(userId, form, uploadedUrls);
+        await saveTrade(form, uploadedUrls);
+        toast.success("İşlem kaydedildi");
         router.push("/journal");
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Save failed");
+      const message = e instanceof Error ? e.message : "Save failed";
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }

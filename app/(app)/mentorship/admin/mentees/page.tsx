@@ -4,38 +4,31 @@ import { redirect } from "next/navigation";
 import { approveMentee, rejectMentee } from "../../actions";
 import Link from "next/link";
 
-export default async function AdminMenteesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  if (!dbUser || dbUser.role !== "ADMIN") redirect("/mentorship");
-
-  // Total published lessons across all courses
-  const totalLessons = await prisma.lesson.count({ where: { isPublished: true } });
-
-  const profiles = await prisma.menteeProfile.findMany({
+function getProfiles() {
+  return prisma.menteeProfile.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       user: { select: { email: true } },
       progress: { select: { id: true } },
     },
   });
+}
 
-  const pending  = profiles.filter(p => p.status === "PENDING");
-  const active   = profiles.filter(p => p.status === "ACTIVE");
-  const rejected = profiles.filter(p => p.status === "REJECTED");
+type Profile = Awaited<ReturnType<typeof getProfiles>>[number];
 
-  const statusBadge = (s: string) => {
-    if (s === "ACTIVE")  return { label: "Aktif",      color: "#34c97e", bg: "rgba(52,201,126,0.12)" };
-    if (s === "PENDING") return { label: "Bekliyor",   color: "#f59e0b", bg: "rgba(245,158,11,0.12)" };
-    return                      { label: "Reddedildi", color: "#ef4444", bg: "rgba(239,68,68,0.12)" };
-  };
+function statusBadge(s: string) {
+  if (s === "ACTIVE")  return { label: "Aktif",      color: "#34c97e", bg: "rgba(52,201,126,0.12)" };
+  if (s === "PENDING") return { label: "Bekliyor",   color: "#f59e0b", bg: "rgba(245,158,11,0.12)" };
+  return                      { label: "Reddedildi", color: "#ef4444", bg: "rgba(239,68,68,0.12)" };
+}
 
-  type Profile = typeof profiles[number];
-
-  const Section = ({ title, items, showProgress }: { title: string; items: Profile[]; showProgress?: boolean }) => (
+/** Defined at module scope: declaring a component inside another component
+    recreates its type on every render and remounts the subtree. */
+function Section({ title, items, showProgress, totalLessons }: {
+  title: string; items: Profile[]; showProgress?: boolean; totalLessons: number;
+}) {
+  return (
     <div>
       <h2 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>{title}</h2>
       {items.length === 0 ? (
@@ -139,6 +132,27 @@ export default async function AdminMenteesPage() {
       )}
     </div>
   );
+}
+
+export default async function AdminMenteesPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!dbUser || dbUser.role !== "ADMIN") redirect("/mentorship");
+
+  // Total published lessons across all courses
+  const totalLessons = await prisma.lesson.count({ where: { isPublished: true } });
+
+  const profiles = await getProfiles();
+
+  const pending  = profiles.filter(p => p.status === "PENDING");
+  const active   = profiles.filter(p => p.status === "ACTIVE");
+  const rejected = profiles.filter(p => p.status === "REJECTED");
+
+
+
 
   return (
     <div className="p-6 max-w-4xl space-y-8">
@@ -146,9 +160,9 @@ export default async function AdminMenteesPage() {
         <Link href="/mentorship/admin" className="text-xs" style={{ color: "var(--color-text-muted)" }}>← Admin</Link>
         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Mentee Yönetimi</h1>
       </div>
-      <Section title={`Onay Bekleyen (${pending.length})`}   items={pending} />
-      <Section title={`Aktif Mentee'ler (${active.length})`} items={active}  showProgress />
-      <Section title={`Reddedilenler (${rejected.length})`}  items={rejected} />
+      <Section title={`Onay Bekleyen (${pending.length})`}   items={pending}  totalLessons={totalLessons} />
+      <Section title={`Aktif Mentee'ler (${active.length})`} items={active}   totalLessons={totalLessons} showProgress />
+      <Section title={`Reddedilenler (${rejected.length})`}  items={rejected} totalLessons={totalLessons} />
     </div>
   );
 }

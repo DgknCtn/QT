@@ -1,9 +1,9 @@
-const CACHE = "qt-v1";
-const PRECACHE = ["/dashboard", "/journal", "/daily-prep", "/offline"];
+const CACHE = "qt-v2";
+const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(["/qtlogo.png"]))
+    caches.open(CACHE).then((c) => c.addAll(["/qtlogo.png", OFFLINE_URL]))
   );
   self.skipWaiting();
 });
@@ -36,7 +36,17 @@ self.addEventListener("fetch", (e) => {
         }
         return res;
       })
-      .catch(() => caches.match(request))
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        // A navigation with nothing cached would otherwise show the browser's
+        // own error page; serve our offline screen instead.
+        if (request.mode === "navigate") {
+          const offline = await caches.match(OFFLINE_URL);
+          if (offline) return offline;
+        }
+        return Response.error();
+      })
   );
 });
 

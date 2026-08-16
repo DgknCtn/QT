@@ -1,8 +1,11 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
+import { useStoredValue, writeStoredValue } from "@/lib/use-stored-value";
 
 type Theme = "dark" | "light";
+
+const STORAGE_KEY = "qt-theme";
 
 const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
   theme: "dark",
@@ -14,22 +17,18 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const stored = useStoredValue(STORAGE_KEY, "dark");
+  const theme: Theme = stored === "light" ? "light" : "dark";
 
+  // Mirroring state onto the <html> element is a genuine external side effect,
+  // so it belongs in an effect. The inline script in app/layout.tsx sets this
+  // before hydration; this keeps it in sync on later changes.
   useEffect(() => {
-    const saved = localStorage.getItem("qt-theme") as Theme | null;
-    const initial = saved ?? "dark";
-    setTheme(initial);
-    document.documentElement.setAttribute("data-theme", initial);
-  }, []);
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   function toggle() {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("qt-theme", next);
-      document.documentElement.setAttribute("data-theme", next);
-      return next;
-    });
+    writeStoredValue(STORAGE_KEY, theme === "dark" ? "light" : "dark");
   }
 
   return (

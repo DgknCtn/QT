@@ -28,6 +28,9 @@ export default async function MentorshipAdminPage() {
   ]);
 
   // Average completion + stalled mentees (no progress in 7+ days)
+  // Server Component: renders once per request, so reading the clock here is
+  // deterministic for that render.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
   const completions = activeMentees.map((m) => ({
@@ -97,7 +100,7 @@ export default async function MentorshipAdminPage() {
           className="rounded-xl p-5 border flex flex-col gap-2 hover:border-[var(--color-accent)] transition-colors"
           style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Mentee Yönetimi</span>
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>Onay bekleyen ve aktif mentee'leri yönet</span>
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>Onay bekleyen ve aktif mentee&apos;leri yönet</span>
         </Link>
         <Link href="/mentorship/admin/courses"
           className="rounded-xl p-5 border flex flex-col gap-2 hover:border-[var(--color-accent)] transition-colors"

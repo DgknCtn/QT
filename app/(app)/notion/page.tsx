@@ -46,7 +46,7 @@ export default async function NotionPage() {
                 style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-bg-border)", color: "var(--color-text-primary)" }} />
             </div>
             <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-              💡 Notion sayfasında <strong>"Share → Share to web"</strong> aç, üretilen <code>notion.site</code> linkini kullan.
+              💡 Notion sayfasında <strong>&quot;Share → Share to web&quot;</strong> aç, üretilen <code>notion.site</code> linkini kullan.
             </div>
             <button type="submit"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"

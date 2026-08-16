@@ -1,8 +1,11 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useMemo, type ReactNode } from "react";
+import { useStoredValue, writeStoredValue } from "@/lib/use-stored-value";
 
 export type DisplayTz = "ET" | "TR";
+
+const STORAGE_KEY = "mkt-clock-tz";
 
 interface ClockTzCtx {
   displayTz: DisplayTz;
@@ -12,22 +15,16 @@ interface ClockTzCtx {
 const ClockTzContext = createContext<ClockTzCtx>({ displayTz: "ET", toggleTz: () => {} });
 
 export function ClockTzProvider({ children }: { children: ReactNode }) {
-  const [displayTz, setDisplayTz] = useState<DisplayTz>("ET");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("mkt-clock-tz");
-    if (saved === "TR" || saved === "ET") setDisplayTz(saved);
-  }, []);
+  const stored = useStoredValue(STORAGE_KEY, "ET");
+  const displayTz: DisplayTz = stored === "TR" ? "TR" : "ET";
 
   const toggleTz = useCallback(() => {
-    setDisplayTz((prev) => {
-      const next: DisplayTz = prev === "ET" ? "TR" : "ET";
-      localStorage.setItem("mkt-clock-tz", next);
-      return next;
-    });
-  }, []);
+    writeStoredValue(STORAGE_KEY, displayTz === "ET" ? "TR" : "ET");
+  }, [displayTz]);
 
-  return <ClockTzContext.Provider value={{ displayTz, toggleTz }}>{children}</ClockTzContext.Provider>;
+  const value = useMemo(() => ({ displayTz, toggleTz }), [displayTz, toggleTz]);
+
+  return <ClockTzContext.Provider value={value}>{children}</ClockTzContext.Provider>;
 }
 
 export function useClockTz() {

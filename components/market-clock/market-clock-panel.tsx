@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useMarketClock, type QIndex } from "./use-market-clock";
 
 function shiftTime(etH: number, etM: number, offsetHours: number): string {
@@ -27,9 +26,8 @@ export function MarketClockPanel() {
     cycles, toggleTz, tzOffsetHours,
     sessionRemainingLabel, nextSessionName,
     marketClosed, marketStatusLabel,
+    ready,
   } = useMarketClock();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
 
   return (
     <div
@@ -41,7 +39,7 @@ export function MarketClockPanel() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "var(--color-text-muted)" }}>
             Aktif Session: <span style={{ color: marketClosed ? "var(--color-text-muted)" : "var(--color-accent)" }}>{session.name}</span>
-            {mounted && marketClosed && (
+            {ready && marketClosed && (
               <span className="ml-2 text-[9px] font-bold px-1 py-0.5 rounded align-middle" style={{ background: "rgba(90,90,106,0.18)", color: "var(--color-text-muted)" }}>
                 MARKET KAPALI
               </span>
@@ -51,7 +49,7 @@ export function MarketClockPanel() {
             {String(session.startEtH).padStart(2, "0")}:00 – {String(session.endEtH === 24 ? 0 : session.endEtH).padStart(2, "0")}:00 ET · 4 × 90dk
           </p>
           <p className="text-xs mt-0.5" suppressHydrationWarning style={{ color: "var(--color-text-secondary)" }}>
-            {mounted
+            {ready
               ? (marketClosed
                   ? marketStatusLabel
                   : <>Bitişe {sessionRemainingLabel} · Sıradaki: <span style={{ color: "var(--color-accent)" }}>{nextSessionName}</span></>)
@@ -61,10 +59,10 @@ export function MarketClockPanel() {
         <div className="text-right flex items-center gap-2">
           <div>
             <p className="text-2xl font-mono font-bold leading-none" style={{ color: "var(--color-text-primary)", letterSpacing: "0.06em" }} suppressHydrationWarning>
-              {mounted ? displayTime : ""}
+              {ready ? displayTime : ""}
             </p>
             <p className="text-xs mt-0.5 text-right" style={{ color: "var(--color-text-muted)" }} suppressHydrationWarning>
-              {mounted
+              {ready
                 ? (displayTz === "ET" ? `${etDateLabel} · New York` : `${trDateLabel} · Istanbul (${etDateLabel} ${etTime} ET)`)
                 : ""}
             </p>
@@ -72,7 +70,8 @@ export function MarketClockPanel() {
           {/* TZ toggle */}
           <button
             onClick={toggleTz}
-            title={`ET: ${etTime}  ·  TR: ${trTime}`}
+            aria-label={`Saat dilimini ${displayTz === "ET" ? "TR" : "ET"} olarak değiştir`}
+            title={ready ? `ET: ${etTime}  ·  TR: ${trTime}` : undefined}
             className="flex flex-col items-center px-1.5 py-1 rounded border text-xs font-bold leading-none gap-0.5 transition-colors"
             style={{
               background: "var(--color-bg-surface)",

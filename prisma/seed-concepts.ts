@@ -169,7 +169,7 @@ async function main() {
         whenToUse: c.whenToUse,
         commonMistakes: c.commonMistakes,
         checklistQuestions: c.checklistQuestions,
-        confidenceLevel: "NEW",
+        // Learning state is per-user now (ConceptProgress) -- not seed data.
         isSystemConcept: true,
       },
     });

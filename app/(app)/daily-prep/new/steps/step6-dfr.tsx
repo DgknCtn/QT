@@ -14,7 +14,7 @@ const THREE_STATE = ["YES", "NO", "UNSURE"];
 
 type Props = { data: PrepFormData; update: (p: Partial<PrepFormData>) => void };
 
-function calcScore(dfr: PrepFormData["dfr"], htfBias: string): { score: number; band: string; label: string } {
+function calcScore(dfr: PrepFormData["dfr"]): { score: number; band: string; label: string } {
   let s = 0;
   if (dfr.q1Quality === "CONSOLIDATION") s += 2;
   if (dfr.q1Quality === "EXPANSION") s -= 2;
@@ -30,7 +30,7 @@ function calcScore(dfr: PrepFormData["dfr"], htfBias: string): { score: number; 
 
 export function Step6DFR({ data, update }: Props) {
   const dfr = data.dfr;
-  const { score, band, label } = calcScore(dfr, data.htfBias);
+  const { score, band, label } = calcScore(dfr);
   const bandColor = band === "HIGH" ? "var(--color-success)" : band === "MEDIUM" ? "var(--color-warning)" : "var(--color-danger)";
 
   function upd(field: keyof typeof dfr, value: unknown) {
