@@ -30,6 +30,7 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
   const ssmtRaw = prep.ssmtSummary as Record<string, unknown> | null;
   const confirmRaw = prep.confirmationSummary as Record<string, unknown> | null;
   const newsRaw = prep.newsSummary as { events?: NewsEvent[] } | null;
+  const entryRaw = prep.entrySummary as Record<string, unknown> | null;
 
   const initialData: PrepFormData = {
     session: prep.session ?? "",
@@ -54,6 +55,7 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
     q1Quality: prep.q1Quality ?? "",
     expectedBehavior: prep.expectedBehavior ?? "",
     trueOpens: trueOpens as Record<string, TrueOpenEntry>,
+    currentPrice: prep.currentPrice != null ? String(prep.currentPrice) : "",
     dfr: {
       dfrType:          String(dfrRaw?.dfrType ?? ""),
       dfrHigh:          String(dfrRaw?.dfrHigh ?? ""),
@@ -87,20 +89,23 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
       notes:            String(confirmRaw?.notes ?? ""),
     },
     entry: {
-      entryModel:  "",
-      entryPrice:  "",
-      stopPrice:   "",
-      stopLogic:   "",
-      tp1:         "",
-      tp2:         "",
-      tp3:         "",
-      mainDol:     "",
-      riskPercent: "",
-      riskUsd:     "",
+      entryModel:  String(entryRaw?.entryModel ?? ""),
+      entryPrice:  String(entryRaw?.entryPrice ?? ""),
+      stopPrice:   String(entryRaw?.stopPrice ?? ""),
+      stopLogic:   String(entryRaw?.stopLogic ?? ""),
+      tp1:         String(entryRaw?.tp1 ?? ""),
+      tp2:         String(entryRaw?.tp2 ?? ""),
+      tp3:         String(entryRaw?.tp3 ?? ""),
+      mainDol:     String(entryRaw?.mainDol ?? ""),
+      riskPercent: String(entryRaw?.riskPercent ?? ""),
+      riskUsd:     String(entryRaw?.riskUsd ?? ""),
     },
     goNoGoStatus: prep.goNoGoStatus ?? "",
     goNoGoReason: prep.goNoGoReason ?? "",
     notes: prep.notes ?? "",
+    // Rozetler yalnızca yeni prep akışında anlamlı; düzenlemede her alan zaten
+    // kullanıcının kendi kaydettiği veri.
+    autoFilled: [],
   };
 
   return (

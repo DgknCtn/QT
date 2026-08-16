@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronRight, CheckCircle2, Circle, AlertCircle, Clock, RotateCcw, Trash2 } from "lucide-react";
+import { useIsHydrated } from "@/lib/use-stored-value";
+import { usePrepDraft, prepDraftKey } from "@/lib/use-prep-draft";
+import { computePrepAutoFill, describeAutoFill, type PrepAutoFill } from "@/lib/prep/clock-autofill";
+import { applyCarryOver, carriedFieldKeys, type PrepCarryOver } from "@/lib/prep/carry-over";
 import { Step1Market } from "./steps/step1-market";
 import { Step2Narrative } from "./steps/step2-narrative";
 import { Step3Calendar } from "./steps/step3-calendar";
@@ -12,8 +16,8 @@ import { Step7SSMT } from "./steps/step7-ssmt";
 import { Step8Confirmation } from "./steps/step8-confirmation";
 import { Step9Entry } from "./steps/step9-entry";
 import { Step10GoNoGo } from "./steps/step10-gonogo";
-import { saveDailyPrep, updateDailyPrep, type CalendarEventItem } from "./actions";
-import type { PrepFormData } from "./types";
+import { saveDailyPrep, updateDailyPrep, type CalendarEventItem, type TrueOpenLevel } from "./actions";
+import { createEmptyPrepForm, type PrepFormData } from "./types";
 
 const STEPS = [
   { id: 1, label: "Market & Session",    required: true },
@@ -27,95 +31,6 @@ const STEPS = [
   { id: 9, label: "Entry Plan",          required: true },
   { id: 10, label: "GO / NO-GO",         required: true },
 ];
-
-const EMPTY_FORM: PrepFormData = {
-  // Step 1
-  session: "",
-  marketGroup: "",
-  triad: "",
-  primaryInstrument: "",
-  secondaryInstruments: [],
-  // Step 2
-  htfBias: "",
-  htfBiasConfidence: "MEDIUM",
-  htfInvalidation: "",
-  htfBiasExplanation: "",
-  weeklyPo3State: "UNKNOWN",
-  dailyPo3State: "UNKNOWN",
-  mmxmStage: "UNKNOWN",
-  mainLiquidityTarget: "",
-  customLiqTarget: "",
-  // Step 3
-  newsEvents: [],
-  // Step 4
-  activeCycleWeekly: "",
-  activeCycleDaily: "",
-  active90mCycle: "",
-  activeMicroCycle: "",
-  q1Quality: "",
-  expectedBehavior: "",
-  // Step 5
-  trueOpens: {
-    TYO: { price: "", position: "", interpretation: "", notes: "" },
-    TMO: { price: "", position: "", interpretation: "", notes: "" },
-    TWO: { price: "", position: "", interpretation: "", notes: "" },
-    TDO: { price: "", position: "", interpretation: "", notes: "" },
-    TSO: { price: "", position: "", interpretation: "", notes: "" },
-    TMSO: { price: "", position: "", interpretation: "", notes: "" },
-  },
-  // Step 6
-  dfr: {
-    dfrType: "",
-    dfrHigh: "",
-    dfrLow: "",
-    dfrMid: "",
-    q1Quality: "",
-    highLowEqualsQ1: "",
-    alignsWithBias: false,
-    nearPriorPoi: false,
-    notes: "",
-  },
-  // Step 7
-  ssmt: {
-    formed: "",
-    ssmtType: "",
-    locationType: "",
-    locationPrice: "",
-    timeframe: "",
-    assetABehavior: "",
-    assetBBehavior: "",
-    assetCBehavior: "",
-    strongAsset: "",
-    weakAsset: "",
-    alignsWithBias: "",
-    randomSmtFlag: false,
-    notes: "",
-  },
-  // Step 8
-  confirmation: {
-    confirmationType: "",
-    timeframe: "",
-    tfAlignmentValid: "",
-    notes: "",
-  },
-  // Step 9
-  entry: {
-    entryModel: "",
-    entryPrice: "",
-    stopPrice: "",
-    stopLogic: "",
-    tp1: "",
-    tp2: "",
-    tp3: "",
-    mainDol: "",
-    riskPercent: "",
-    riskUsd: "",
-  },
-  // Step 10
-  goNoGoStatus: "",
-  goNoGoReason: "",
-  notes: "",
-};
 
 function completionForStep(step: number, data: PrepFormData): "complete" | "partial" | "empty" {
   switch (step) {
@@ -136,6 +51,11 @@ function completionForStep(step: number, data: PrepFormData): "complete" | "part
   }
 }
 
+/** Kopyalanan alanların rozet anahtarları — saatten gelenlerden ayırt edilir. */
+function carryKeys(carry: PrepCarryOver): string[] {
+  return carriedFieldKeys(carry).map((key) => `carry:${key}`);
+}
+
 function StepIcon({ status }: { status: "complete" | "partial" | "empty" }) {
   if (status === "complete") return <CheckCircle2 size={14} style={{ color: "var(--color-success)" }} />;
   if (status === "partial") return <AlertCircle size={14} style={{ color: "var(--color-warning)" }} />;
@@ -146,19 +66,119 @@ export function PrepWizard({
   calendarEvents = [],
   initialData,
   prepId,
+  carryOver = null,
+  applyCarryOverOnLoad = false,
+  trueOpenLevels = {},
 }: {
   calendarEvents?: CalendarEventItem[];
   initialData?: PrepFormData;
   prepId?: string;
+  carryOver?: PrepCarryOver | null;
+  applyCarryOverOnLoad?: boolean;
+  trueOpenLevels?: Record<string, TrueOpenLevel[]>;
 }) {
-  const [data, setData] = useState<PrepFormData>(initialData ?? EMPTY_FORM);
+  const isEdit = Boolean(prepId);
+
+  const [data, setData] = useState<PrepFormData>(() => {
+    if (initialData) return initialData;
+    const empty = createEmptyPrepForm();
+    // `?from=last` ile gelindiyse alanlar daha ilk render'da dolu gelsin.
+    if (applyCarryOverOnLoad && carryOver) {
+      return { ...applyCarryOver(empty, carryOver), autoFilled: carryKeys(carryOver) };
+    }
+    return empty;
+  });
   const [open, setOpen] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
+  // ── Taslak ────────────────────────────────────────────────────────────────
+  const hydrated = useIsHydrated();
+  const draftKey = prepDraftKey(prepId);
+  const { draft, save: saveDraft, clear: clearDraft, dismiss: dismissDraft } = usePrepDraft(draftKey);
+  const [draftHandled, setDraftHandled] = useState(false);
+  const skipFirstAutosave = useRef(true);
+
+  useEffect(() => {
+    // İlk render'da yazma: dokunulmamış boş formdan hayalet taslak oluşmasın.
+    if (skipFirstAutosave.current) {
+      skipFirstAutosave.current = false;
+      return;
+    }
+    saveDraft(data);
+  }, [data, saveDraft]);
+
+  function restoreDraft() {
+    if (draft) setData(draft.data);
+    setDraftHandled(true);
+  }
+
+  function ignoreDraft() {
+    dismissDraft();
+    setDraftHandled(true);
+  }
+
+  // ── Market saatinden doldurma ─────────────────────────────────────────────
+  //
+  // Efekt içinde setState YOK (repo kuralı: react-hooks/set-state-in-effect).
+  // Saatin önerisi render sırasında türetilir ve forma "boş alanın varsayılanı"
+  // olarak uygulanır. Kullanıcı bir alana kendi değerini yazdığı anda kendi
+  // değeri kazanır; "Temizle" ise öneriyi tamamen kapatır.
+  const [suggestionsOff, setSuggestionsOff] = useState(false);
+
+  // Mount'ta bir kez hesaplanır (her render'da hesaplansa dakika değiştikçe
+  // zıplardı). Sunucuda `null`; `hydrated` kapısı sayesinde hidrasyon render'ı
+  // da öneriyi kullanmaz, yani sunucu markup'ıyla çakışma olmaz.
+  const [clockSuggestion] = useState<PrepAutoFill | null>(() =>
+    typeof window === "undefined" ? null : computePrepAutoFill(new Date()),
+  );
+  const suggestion =
+    !hydrated || isEdit || suggestionsOff || (draft && !draftHandled) ? null : clockSuggestion;
+  const clockFill = suggestion && !suggestion.marketClosed ? suggestion : null;
+
+  /** Kullanıcının yazdığı değer + saatin önerisi (boş alanlar için). */
+  const effectiveData: PrepFormData = clockFill
+    ? {
+        ...data,
+        session: data.session || clockFill.session || "",
+        activeCycleWeekly: data.activeCycleWeekly || clockFill.activeCycleWeekly || "",
+        activeCycleDaily: data.activeCycleDaily || clockFill.activeCycleDaily || "",
+        active90mCycle: data.active90mCycle || clockFill.active90mCycle || "",
+        activeMicroCycle: data.activeMicroCycle || clockFill.activeMicroCycle || "",
+        autoFilled: [
+          ...data.autoFilled,
+          // Yalnızca gerçekten saatten gelen alanlar rozet alır.
+          ...(["session", "activeCycleWeekly", "activeCycleDaily", "active90mCycle", "activeMicroCycle"] as const).filter(
+            (key) => !data[key] && clockFill[key],
+          ),
+        ],
+      }
+    : data;
+
+  const autoFillSummary = clockFill ? describeAutoFill(clockFill) : null;
+  const autoFillNote = suggestion?.marketClosed ? suggestion.note : null;
+
+  /** Adım 1'deki "Son prep'ten doldur" — navigasyonsuz. */
+  function applyCarryOverNow() {
+    if (!carryOver) return;
+    setData((prev) => ({
+      ...applyCarryOver(prev, carryOver),
+      autoFilled: [...new Set([...prev.autoFilled, ...carryKeys(carryOver)])],
+    }));
+  }
+
   function update(partial: Partial<PrepFormData>) {
-    setData((prev) => ({ ...prev, ...partial }));
+    setData((prev) => ({
+      ...prev,
+      ...partial,
+      // Kullanıcı bir alana dokunduğu anda o alanın rozeti düşer (önekli
+      // anahtarlar dahil). Adım 5 gibi rozetini kendi yöneten adımlar
+      // autoFilled'ı açıkça geçirir; o zaman verdiği liste korunur.
+      autoFilled:
+        partial.autoFilled ??
+        prev.autoFilled.filter((key) => !(key.replace(/^(carry|level):/, "") in partial)),
+    }));
   }
 
   function toggleStep(id: number) {
@@ -166,7 +186,7 @@ export function PrepWizard({
   }
 
   const totalScore = STEPS.filter((s) => s.required).reduce((acc, s) => {
-    const status = completionForStep(s.id, data);
+    const status = completionForStep(s.id, effectiveData);
     return acc + (status === "complete" ? 1 : 0);
   }, 0);
   const requiredCount = STEPS.filter((s) => s.required).length;
@@ -177,10 +197,13 @@ export function PrepWizard({
     setError("");
     try {
       if (prepId) {
-        await updateDailyPrep(prepId, data);
+        await updateDailyPrep(prepId, effectiveData);
       } else {
-        await saveDailyPrep(data);
+        await saveDailyPrep(effectiveData);
       }
+      // Kalıcı kayıt başarılı: taslak artık gereksiz, dönüşte sorulmasın.
+      clearDraft();
+      setDraftHandled(true);
       setSaved(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -189,8 +212,67 @@ export function PrepWizard({
     }
   }
 
+  const draftSavedAt = draft
+    ? new Date(draft.savedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+    : null;
+
   return (
     <div className="space-y-2">
+      {/* Kurtarılabilir taslak. Yalnızca hidrasyondan sonra render edilir ki
+          sunucu markup'ıyla çakışmasın. */}
+      {hydrated && draft && !draftHandled && (
+        <div
+          className="rounded-xl border px-4 py-3 mb-2 flex items-center gap-3 flex-wrap"
+          style={{ background: "rgba(245,158,11,0.08)", borderColor: "rgba(245,158,11,0.3)" }}
+        >
+          <RotateCcw size={14} style={{ color: "var(--color-warning)" }} />
+          <p className="text-xs flex-1" style={{ color: "var(--color-text-secondary)" }}>
+            Kaydedilmemiş taslak bulundu ({draftSavedAt}).
+          </p>
+          <button
+            onClick={restoreDraft}
+            className="px-3 py-1 rounded-lg text-xs font-medium"
+            style={{ background: "var(--color-warning)", color: "#fff" }}
+          >
+            Geri yükle
+          </button>
+          <button
+            onClick={ignoreDraft}
+            className="px-3 py-1 rounded-lg text-xs font-medium border"
+            style={{ borderColor: "var(--color-bg-border)", color: "var(--color-text-muted)" }}
+          >
+            Yoksay
+          </button>
+        </div>
+      )}
+
+      {/* Market saatinden doldurma özeti */}
+      {autoFillSummary && (
+        <div
+          className="rounded-xl border px-4 py-2.5 mb-2 flex items-center gap-3 flex-wrap"
+          style={{ background: "rgba(79,142,247,0.06)", borderColor: "rgba(79,142,247,0.3)" }}
+        >
+          <Clock size={14} style={{ color: "var(--color-accent)" }} />
+          <p className="text-xs flex-1" style={{ color: "var(--color-text-secondary)" }}>
+            Market saatinden dolduruldu: {autoFillSummary}
+          </p>
+          <button onClick={() => setSuggestionsOff(true)} className="text-xs" style={{ color: "var(--color-accent)" }}>
+            Temizle
+          </button>
+        </div>
+      )}
+
+      {/* Market kapalı notu */}
+      {autoFillNote && (
+        <div
+          className="rounded-xl border px-4 py-2.5 mb-2 flex items-center gap-3"
+          style={{ background: "var(--color-bg-surface)", borderColor: "var(--color-bg-border)" }}
+        >
+          <Clock size={14} style={{ color: "var(--color-text-muted)" }} />
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{autoFillNote}</p>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="rounded-xl border p-4 mb-4 flex items-center gap-4"
         style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
@@ -206,15 +288,35 @@ export function PrepWizard({
             />
           </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || pct < 60}
-          className="px-4 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-40"
-          style={{ background: "var(--color-accent)", color: "#fff" }}
-        >
-          {saving ? "Saving…" : saved ? "Saved ✓" : prepId ? "Update" : "Save as Draft"}
-        </button>
+        <div className="flex items-center gap-2">
+          {hydrated && draft && draftHandled && (
+            <button
+              onClick={clearDraft}
+              title="Kayıtlı taslağı sil"
+              className="p-1.5 rounded-lg transition-colors"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={saving || pct < 60}
+            title={pct < 60 ? "Kaydetmek için zorunlu adımların en az %60'ı tamamlanmalı" : undefined}
+            className="px-4 py-1.5 rounded-lg text-xs font-medium transition-opacity disabled:opacity-40"
+            style={{ background: "var(--color-accent)", color: "#fff" }}
+          >
+            {saving ? "Saving…" : saved ? "Saved ✓" : prepId ? "Update" : "Save as Draft"}
+          </button>
+        </div>
       </div>
+
+      {/* Kaydetme kilidi neden kapalı — eskiden hiçbir açıklama yoktu. */}
+      {pct < 60 && (
+        <p className="text-xs -mt-2 mb-2" style={{ color: "var(--color-text-muted)" }}>
+          Kaydetmek için zorunlu adımların en az %60&apos;ı tamamlanmalı (şu an %{pct}).
+        </p>
+      )}
 
       {error && (
         <p className="text-xs rounded-lg px-3 py-2 mb-2" style={{ background: "rgba(239,68,68,0.1)", color: "var(--color-danger)" }}>
@@ -259,16 +361,16 @@ export function PrepWizard({
             {/* Body */}
             {isOpen && (
               <div className="px-4 pb-4 pt-1 border-t" style={{ borderColor: "var(--color-bg-border)" }}>
-                {step.id === 1 && <Step1Market data={data} update={update} />}
-                {step.id === 2 && <Step2Narrative data={data} update={update} />}
-                {step.id === 3 && <Step3Calendar data={data} update={update} calendarEvents={calendarEvents} />}
-                {step.id === 4 && <Step4Cycle data={data} update={update} />}
-                {step.id === 5 && <Step5TrueOpens data={data} update={update} />}
-                {step.id === 6 && <Step6DFR data={data} update={update} />}
-                {step.id === 7 && <Step7SSMT data={data} update={update} />}
-                {step.id === 8 && <Step8Confirmation data={data} update={update} />}
-                {step.id === 9 && <Step9Entry data={data} update={update} />}
-                {step.id === 10 && <Step10GoNoGo data={data} update={update} onSave={handleSave} saving={saving} />}
+                {step.id === 1 && <Step1Market data={effectiveData} update={update} onApplyCarryOver={carryOver && !isEdit ? applyCarryOverNow : undefined} />}
+                {step.id === 2 && <Step2Narrative data={effectiveData} update={update} />}
+                {step.id === 3 && <Step3Calendar data={effectiveData} update={update} calendarEvents={calendarEvents} />}
+                {step.id === 4 && <Step4Cycle data={effectiveData} update={update} />}
+                {step.id === 5 && <Step5TrueOpens data={effectiveData} update={update} trueOpenLevels={trueOpenLevels} />}
+                {step.id === 6 && <Step6DFR data={effectiveData} update={update} />}
+                {step.id === 7 && <Step7SSMT data={effectiveData} update={update} />}
+                {step.id === 8 && <Step8Confirmation data={effectiveData} update={update} />}
+                {step.id === 9 && <Step9Entry data={effectiveData} update={update} />}
+                {step.id === 10 && <Step10GoNoGo data={effectiveData} update={update} onSave={handleSave} saving={saving} />}
               </div>
             )}
           </div>

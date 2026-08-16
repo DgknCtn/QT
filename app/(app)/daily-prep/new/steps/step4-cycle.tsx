@@ -1,5 +1,6 @@
 "use client";
 
+import { AutoFillBadge } from "@/components/ui-kit/auto-filled-hint";
 import type { PrepFormData } from "../types";
 
 const WEEKLY = [
@@ -32,8 +33,13 @@ const BEHAVIORS = ["EXPANSION", "CONSOLIDATION", "REVERSAL", "CONTINUATION", "WA
 
 type Props = { data: PrepFormData; update: (p: Partial<PrepFormData>) => void };
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs font-semibold uppercase tracking-wide mb-2 mt-1" style={{ color: "var(--color-text-muted)" }}>{children}</p>;
+function SectionTitle({ children, autoFilled, field }: { children: React.ReactNode; autoFilled?: string[]; field?: string }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-wide mb-2 mt-1 flex items-center gap-1.5" style={{ color: "var(--color-text-muted)" }}>
+      {children}
+      {autoFilled && field && <AutoFillBadge autoFilled={autoFilled} field={field} />}
+    </p>
+  );
 }
 
 function ChipRow({ items, selected, onSelect }: { items: { value: string; label: string }[]; selected: string; onSelect: (v: string) => void }) {
@@ -64,27 +70,36 @@ export function Step4Cycle({ data, update }: Props) {
   return (
     <div className="space-y-4 pt-3">
       <div>
-        <SectionTitle>Weekly Cycle</SectionTitle>
+        <SectionTitle autoFilled={data.autoFilled} field="activeCycleWeekly">Weekly Cycle</SectionTitle>
         <ChipRow items={WEEKLY} selected={data.activeCycleWeekly} onSelect={(v) => update({ activeCycleWeekly: v })} />
       </div>
 
       <div>
-        <SectionTitle>Daily Session</SectionTitle>
+        <SectionTitle autoFilled={data.autoFilled} field="activeCycleDaily">Daily Session</SectionTitle>
         <ChipRow items={DAILY} selected={data.activeCycleDaily} onSelect={(v) => update({ activeCycleDaily: v })} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <SectionTitle>Active 90m Quarter</SectionTitle>
+          <SectionTitle autoFilled={data.autoFilled} field="active90mCycle">Active 90m Quarter</SectionTitle>
           <ChipRow items={QUARTERS} selected={data.active90mCycle} onSelect={(v) => update({ active90mCycle: v })} />
         </div>
         <div>
-          <SectionTitle>Micro Quarter</SectionTitle>
-          <ChipRow
-            items={[...QUARTERS, { value: "DISABLED", label: "Disabled" }]}
-            selected={data.activeMicroCycle}
-            onSelect={(v) => update({ activeMicroCycle: v })}
-          />
+          <SectionTitle autoFilled={data.autoFilled} field="activeMicroCycle">Micro Quarter</SectionTitle>
+          {/* Eskiden burada bir "Disabled" çipi vardı; QuarterCycle enum'unda
+              böyle bir değer yok ve seçilince kayıt Prisma hatasıyla patlıyordu.
+              Yerine seçimi kaldıran bir bağlantı kondu. */}
+          <ChipRow items={QUARTERS} selected={data.activeMicroCycle} onSelect={(v) => update({ activeMicroCycle: v })} />
+          {data.activeMicroCycle && (
+            <button
+              type="button"
+              onClick={() => update({ activeMicroCycle: "" })}
+              className="text-xs mt-1.5"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Seçimi kaldır
+            </button>
+          )}
         </div>
       </div>
 

@@ -75,6 +75,12 @@ model DailyPrep {
   ssmtSummary          Json?
   confirmationSummary  Json?
   newsSummary          Json?
+  /// Step 9 giriş planı: entryModel, entryPrice, stopPrice, stopLogic, tp1-3,
+  /// mainDol, riskPercent, riskUsd. Diğer *Summary alanları gibi serbest Json.
+  entrySummary         Json?
+  /// Step 5'te bir kez girilen anlık fiyat. True Open'ların premium/discount
+  /// yorumu bundan türetilir (lib/prep/true-open.ts).
+  currentPrice         Float?
   goNoGoStatus         GoNoGoStatus?
   goNoGoReason         String?
   completionScore      Float             @default(0)

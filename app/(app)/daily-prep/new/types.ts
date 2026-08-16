@@ -3,6 +3,11 @@ export type TrueOpenEntry = {
   position: string; // ABOVE | BELOW | AT
   interpretation: string; // PREMIUM | DISCOUNT | NEUTRAL
   notes: string;
+  /**
+   * Kullanıcı bu satırın konumunu/yorumunu elle seçtiyse true olur ve satır
+   * anlık fiyattan bir daha türetilmez. Taslakta ve Json özetinde saklanır.
+   */
+  manual?: boolean;
 };
 
 export type NewsEvent = {
@@ -43,6 +48,8 @@ export type PrepFormData = {
   expectedBehavior: string;
   // Step 5
   trueOpens: Record<string, TrueOpenEntry>;
+  /** Adım 5'te bir kez girilen anlık fiyat; premium/discount bundan türetilir. */
+  currentPrice: string;
   // Step 6
   dfr: {
     dfrType: string;
@@ -95,4 +102,108 @@ export type PrepFormData = {
   goNoGoStatus: string;
   goNoGoReason: string;
   notes: string;
+
+  /**
+   * Otomatik doldurulan / kopyalanan alanların anahtarları — yalnızca rozet
+   * göstermek için. Veritabanına yazılmaz, sadece state ve taslakta yaşar.
+   */
+  autoFilled: string[];
 };
+
+/**
+ * Boş form. Fabrika fonksiyonu, paylaşılan sabit değil: iç içe nesneler
+ * (trueOpens, dfr, ssmt…) sabit olsaydı iki sihirbaz örneği aynı nesneyi
+ * paylaşırdı.
+ */
+export function createEmptyPrepForm(): PrepFormData {
+  return {
+    // Step 1
+    session: "",
+    marketGroup: "",
+    triad: "",
+    primaryInstrument: "",
+    secondaryInstruments: [],
+    // Step 2
+    htfBias: "",
+    htfBiasConfidence: "MEDIUM",
+    htfInvalidation: "",
+    htfBiasExplanation: "",
+    weeklyPo3State: "UNKNOWN",
+    dailyPo3State: "UNKNOWN",
+    mmxmStage: "UNKNOWN",
+    mainLiquidityTarget: "",
+    customLiqTarget: "",
+    // Step 3
+    newsEvents: [],
+    // Step 4
+    activeCycleWeekly: "",
+    activeCycleDaily: "",
+    active90mCycle: "",
+    activeMicroCycle: "",
+    q1Quality: "",
+    expectedBehavior: "",
+    // Step 5
+    trueOpens: {
+      TYO: { price: "", position: "", interpretation: "", notes: "" },
+      TMO: { price: "", position: "", interpretation: "", notes: "" },
+      TWO: { price: "", position: "", interpretation: "", notes: "" },
+      TDO: { price: "", position: "", interpretation: "", notes: "" },
+      TSO: { price: "", position: "", interpretation: "", notes: "" },
+      TMSO: { price: "", position: "", interpretation: "", notes: "" },
+    },
+    currentPrice: "",
+    // Step 6
+    dfr: {
+      dfrType: "",
+      dfrHigh: "",
+      dfrLow: "",
+      dfrMid: "",
+      q1Quality: "",
+      highLowEqualsQ1: "",
+      alignsWithBias: false,
+      nearPriorPoi: false,
+      notes: "",
+    },
+    // Step 7
+    ssmt: {
+      formed: "",
+      ssmtType: "",
+      locationType: "",
+      locationPrice: "",
+      timeframe: "",
+      assetABehavior: "",
+      assetBBehavior: "",
+      assetCBehavior: "",
+      strongAsset: "",
+      weakAsset: "",
+      alignsWithBias: "",
+      randomSmtFlag: false,
+      notes: "",
+    },
+    // Step 8
+    confirmation: {
+      confirmationType: "",
+      timeframe: "",
+      tfAlignmentValid: "",
+      notes: "",
+    },
+    // Step 9
+    entry: {
+      entryModel: "",
+      entryPrice: "",
+      stopPrice: "",
+      stopLogic: "",
+      tp1: "",
+      tp2: "",
+      tp3: "",
+      mainDol: "",
+      riskPercent: "",
+      riskUsd: "",
+    },
+    // Step 10
+    goNoGoStatus: "",
+    goNoGoReason: "",
+    notes: "",
+    autoFilled: [],
+  };
+}

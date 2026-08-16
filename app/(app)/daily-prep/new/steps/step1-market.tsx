@@ -1,5 +1,7 @@
 "use client";
 
+import { Copy } from "lucide-react";
+import { AutoFillBadge } from "@/components/ui-kit/auto-filled-hint";
 import type { PrepFormData } from "../types";
 
 const SESSIONS = ["ASIA", "LONDON", "NY_AM", "NY_PM"];
@@ -17,16 +19,36 @@ const INSTRUMENTS: Record<string, string[]> = {
   BTC_ETH_TOTAL3: ["BTC", "ETH", "TOTAL3"],
 };
 
-type Props = { data: PrepFormData; update: (p: Partial<PrepFormData>) => void };
+type Props = {
+  data: PrepFormData;
+  update: (p: Partial<PrepFormData>) => void;
+  /** Son prep'ten doldurma; kopyalanacak bir prep yoksa tanımsız gelir. */
+  onApplyCarryOver?: () => void;
+};
 
-export function Step1Market({ data, update }: Props) {
+export function Step1Market({ data, update, onApplyCarryOver }: Props) {
   const instruments = data.triad ? INSTRUMENTS[data.triad] ?? [] : [];
+  const isEmpty = !data.triad && !data.session && !data.primaryInstrument;
 
   return (
     <div className="space-y-4 pt-3">
+      {/* Boş formda tek tıkla son prep'in bağlamını getir. */}
+      {isEmpty && onApplyCarryOver && (
+        <button
+          type="button"
+          onClick={onApplyCarryOver}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border text-xs font-medium transition-colors"
+          style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}
+        >
+          <Copy size={12} /> Son prep&apos;ten doldur
+        </button>
+      )}
+
       {/* Session */}
       <div>
-        <label className="step-label">Session Focus</label>
+        <label className="step-label">
+          Session Focus <AutoFillBadge autoFilled={data.autoFilled} field="session" />
+        </label>
         <div className="grid grid-cols-4 gap-2">
           {SESSIONS.map((s) => (
             <button
@@ -48,7 +70,7 @@ export function Step1Market({ data, update }: Props) {
 
       {/* Triad */}
       <div>
-        <label className="step-label">Triad</label>
+        <label className="step-label">Triad <AutoFillBadge autoFilled={data.autoFilled} field="triad" /></label>
         <div className="space-y-1.5">
           {TRIADS.map((t) => (
             <button
@@ -72,7 +94,7 @@ export function Step1Market({ data, update }: Props) {
       {/* Primary instrument */}
       {instruments.length > 0 && (
         <div>
-          <label className="step-label">Primary Instrument</label>
+          <label className="step-label">Primary Instrument <AutoFillBadge autoFilled={data.autoFilled} field="primaryInstrument" /></label>
           <div className="flex gap-2">
             {instruments.map((inst) => (
               <button

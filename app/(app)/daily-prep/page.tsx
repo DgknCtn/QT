@@ -1,21 +1,19 @@
 import Link from "next/link";
-import { Plus, ClipboardList, Trash2, Eye, Pencil } from "lucide-react";
+import { Plus, ClipboardList, Trash2, Eye, Pencil, Copy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { deleteDailyPrep } from "./actions";
+import { GoNoGoBadge } from "@/components/ui-kit/badge";
 
+// Map'ler Session/Bias enum'larıyla birebir. (Eskiden enum'da olmayan
+// NEW_YORK/OVERNIGHT ve BULLISH/BEARISH anahtarları vardı, gerçek değerler ise
+// hiç eşleşmiyordu.) GO/NO-GO için ortak ui-kit rozeti kullanılıyor.
 const SESSION_LABEL: Record<string, string> = {
-  LONDON: "London", NEW_YORK: "New York", ASIA: "Asia", OVERNIGHT: "Overnight",
+  LONDON: "London", NY_AM: "NY AM", NY_PM: "NY PM", ASIA: "Asia",
 };
 const BIAS_COLOR: Record<string, string> = {
-  BULLISH: "#34c97e", BEARISH: "#ef4444", WAIT: "#f59e0b", NEUTRAL: "#6b7280",
-};
-const GONOGO_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-  GO:        { label: "Go",        color: "#34c97e", bg: "rgba(52,201,126,0.12)" },
-  NO_GO:     { label: "No Go",     color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  WAIT:      { label: "Bekle",     color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  REDUCED:   { label: "Azaltılmış", color: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
+  LONG: "#34c97e", SHORT: "#ef4444", WAIT: "#f59e0b", NEUTRAL: "#6b7280",
 };
 
 export default async function DailyPrepPage() {
@@ -47,11 +45,20 @@ export default async function DailyPrepPage() {
             {preps.length} kayıt
           </p>
         </div>
-        <Link href="/daily-prep/new"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-          style={{ background: "var(--color-accent)", color: "#fff" }}>
-          <Plus size={12} /> New Prep
-        </Link>
+        <div className="flex items-center gap-2">
+          {preps.length > 0 && (
+            <Link href="/daily-prep/new?from=last"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium"
+              style={{ borderColor: "var(--color-bg-border)", color: "var(--color-text-secondary)" }}>
+              <Copy size={12} /> Son prep&apos;ten kopyala
+            </Link>
+          )}
+          <Link href="/daily-prep/new"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ background: "var(--color-accent)", color: "#fff" }}>
+            <Plus size={12} /> New Prep
+          </Link>
+        </div>
       </div>
 
       {preps.length === 0 ? (
@@ -81,9 +88,9 @@ export default async function DailyPrepPage() {
             </thead>
             <tbody>
               {preps.map((prep, idx) => {
-                const gonogo = prep.goNoGoStatus ? GONOGO_LABEL[prep.goNoGoStatus] : null;
                 const biasColor = BIAS_COLOR[prep.htfBias] ?? "var(--color-text-muted)";
-                const pct = Math.round(prep.completionScore * 100);
+                // completionScore zaten 0-100; ×100 yapılınca "8000%" görünüyordu.
+                const pct = Math.round(prep.completionScore);
                 return (
                   <tr key={prep.id}
                     style={{ borderTop: idx > 0 ? "1px solid var(--color-bg-border)" : undefined, background: "var(--color-bg-surface)" }}>
@@ -110,14 +117,7 @@ export default async function DailyPrepPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {gonogo ? (
-                        <span className="text-xs px-2 py-0.5 rounded font-medium"
-                          style={{ color: gonogo.color, background: gonogo.bg }}>
-                          {gonogo.label}
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--color-text-muted)" }}>—</span>
-                      )}
+                      <GoNoGoBadge status={prep.goNoGoStatus} fallback="—" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">

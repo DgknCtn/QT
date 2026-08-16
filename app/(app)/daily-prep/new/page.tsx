@@ -1,13 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import { PrepWizard } from "./prep-wizard";
-import { getCalendarEventsForDate } from "./actions";
+import { getCalendarEventsForDate, getLastPrepCarryOver, getTrueOpenLevels } from "./actions";
 import { format } from "date-fns";
 
-export default async function NewPrepPage() {
+export default async function NewPrepPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  // Next 16'da searchParams bir Promise.
+  const { from } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const calendarEvents = await getCalendarEventsForDate(user!.id, new Date());
+  const [calendarEvents, carryOver, trueOpenLevels] = await Promise.all([
+    getCalendarEventsForDate(user!.id, new Date()),
+    // `?from=last` ile gelindiyse alanlar hazır dolu açılır; her hâlükârda
+    // çekilir ki sihirbaz "Son prep'ten doldur" düğmesini gösterebilsin.
+    getLastPrepCarryOver(),
+    getTrueOpenLevels(),
+  ]);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -19,7 +31,12 @@ export default async function NewPrepPage() {
           New Daily Prep
         </h2>
       </div>
-      <PrepWizard calendarEvents={calendarEvents} />
+      <PrepWizard
+        calendarEvents={calendarEvents}
+        carryOver={carryOver}
+        applyCarryOverOnLoad={from === "last"}
+        trueOpenLevels={trueOpenLevels}
+      />
     </div>
   );
 }
