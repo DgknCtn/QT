@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { format, isSameDay } from "date-fns";
-import { Plus, Pencil, Trash2, AlertTriangle, Eye, Ban } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Eye, Ban, Globe } from "lucide-react";
 import { EventForm } from "./event-form";
 import { toast } from "sonner";
 import { deleteEvent } from "./actions";
 
 type CalendarEvent = {
   id: string;
+  /** null = global (seeded) event, shared by every account. */
+  userId: string | null;
   dateTime: Date;
   currency: string;
   eventName: string;
@@ -41,7 +43,16 @@ const riskTagColor: Record<string, string> = {
   DATA_HIGH_LOW_RELEVANT: "var(--color-accent)",
 };
 
-export function CalendarClient({ events }: { events: CalendarEvent[] }) {
+export function CalendarClient({
+  events,
+  isAdmin = false,
+}: {
+  events: CalendarEvent[];
+  isAdmin?: boolean;
+}) {
+  // Global rows are the shared economic calendar -- read-only unless admin.
+  const canEdit = (ev: CalendarEvent) => ev.userId !== null || isAdmin;
+
   const [showForm, setShowForm] = useState(false);
   const [editEvent, setEditEvent] = useState<CalendarEvent | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -177,21 +188,34 @@ export function CalendarClient({ events }: { events: CalendarEvent[] }) {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => { setEditEvent(ev); setShowForm(true); }}
-                          className="p-1 rounded hover:bg-white/5 transition-colors"
-                          style={{ color: "var(--color-text-muted)" }}
-                        >
-                          <Pencil size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(ev.id)}
-                          disabled={deleting === ev.id}
-                          className="p-1 rounded hover:bg-white/5 transition-colors"
-                          style={{ color: "var(--color-text-muted)", opacity: deleting === ev.id ? 0.5 : 1 }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        {ev.userId === null && (
+                          <span
+                            className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded"
+                            style={{ background: "var(--color-bg-border)", color: "var(--color-text-muted)" }}
+                            title="Genel takvim etkinliği — tüm hesaplarda görünür"
+                          >
+                            <Globe size={10} /> Genel
+                          </span>
+                        )}
+                        {canEdit(ev) && (
+                          <>
+                            <button
+                              onClick={() => { setEditEvent(ev); setShowForm(true); }}
+                              className="p-1 rounded hover:bg-white/5 transition-colors"
+                              style={{ color: "var(--color-text-muted)" }}
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(ev.id)}
+                              disabled={deleting === ev.id}
+                              className="p-1 rounded hover:bg-white/5 transition-colors"
+                              style={{ color: "var(--color-text-muted)", opacity: deleting === ev.id ? 0.5 : 1 }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

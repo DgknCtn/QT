@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { ensureUser, requireUserId } from "@/lib/auth";
+import { economicEventScope } from "@/lib/economic-events";
 import type { PrepFormData } from "./types";
 import { revalidatePath } from "next/cache";
 
@@ -21,7 +22,7 @@ export async function getCalendarEventsForDate(userId: string, date: Date): Prom
   end.setHours(23, 59, 59, 999);
 
   const events = await prisma.economicEvent.findMany({
-    where: { userId, dateTime: { gte: start, lte: end } },
+    where: { ...economicEventScope(userId), dateTime: { gte: start, lte: end } },
     orderBy: { dateTime: "asc" },
   });
 

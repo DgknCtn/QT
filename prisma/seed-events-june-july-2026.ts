@@ -5,12 +5,11 @@
  * Run: npx dotenv-cli -e .env -- npx tsx prisma/seed-events-june-july-2026.ts
  */
 import { PrismaClient } from "@prisma/client";
+import { upsertGlobalEvents } from "./upsert-global-events";
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DIRECT_URL } },
 });
-
-const USER_ID = "fdbe609d-f687-4b34-bebf-7ea6e78812d6";
 
 function utc(dateStr: string, utcHour: number, utcMin: number): Date {
   const d = new Date(`${dateStr}T${String(utcHour).padStart(2,"0")}:${String(utcMin).padStart(2,"0")}:00Z`);
@@ -330,22 +329,7 @@ const events = [
 ];
 
 async function main() {
-  console.log(`🌱 Seeding ${events.length} economic events…\n`);
-
-  let created = 0;
-  const skipped = 0;
-
-  for (const ev of events) {
-    await prisma.economicEvent.upsert({
-      where: { id: ev.id },
-      update: { dateTime: ev.dateTime },
-      create: { ...ev, userId: USER_ID, source: "MANUAL" },
-    });
-    console.log(`  ✅ ${ev.eventName} → ${ev.dateTime.toISOString()}`);
-    created++;
-  }
-
-  console.log(`\n✨ Done! Created: ${created}, Already existed: ${skipped}`);
+  await upsertGlobalEvents(prisma, events);
 }
 
 main()

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { economicEventScope } from "@/lib/economic-events";
 import Link from "next/link";
 import { format, startOfDay, endOfDay } from "date-fns";
 import {
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
           select: { pnlCurrency: true },
         }).catch(() => []),
         prisma.economicEvent.findMany({
-          where: { userId: user.id, dateTime: { gte: todayStart, lte: todayEnd } },
+          where: { ...economicEventScope(user.id), dateTime: { gte: todayStart, lte: todayEnd } },
           orderBy: { dateTime: "asc" },
         }).catch(() => []),
       ])

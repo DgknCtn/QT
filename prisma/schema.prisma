@@ -347,9 +347,13 @@ model ConceptProgress {
   @@map("concept_progress")
 }
 
+/// `userId == null` is a GLOBAL event: seeded from the economic calendar and
+/// visible to every account. A non-null `userId` is a private event the user
+/// added themselves. Always read through `economicEventScope()` in
+/// `lib/economic-events.ts` so both kinds show up.
 model EconomicEvent {
   id                   String        @id @default(cuid())
-  userId               String
+  userId               String?
   dateTime             DateTime
   currency             String
   eventName            String
@@ -362,9 +366,10 @@ model EconomicEvent {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dateTime])
+  @@index([dateTime])
   @@map("economic_events")
 }
 
