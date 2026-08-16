@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { writeStoredValue } from "@/lib/use-stored-value";
 
-const STORAGE_KEY = "qt-notification-prefs";
+export const PREFS_STORAGE_KEY = "qt-notification-prefs";
+const STORAGE_KEY = PREFS_STORAGE_KEY;
 const FIRED_KEY   = "qt-notification-fired";
 
 export type NotifPrefs = {
@@ -30,7 +32,8 @@ export function loadPrefs(): NotifPrefs {
 }
 
 export function savePrefs(prefs: NotifPrefs) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+  // Shared writer so useStoredValue readers (settings UI) re-render.
+  writeStoredValue(STORAGE_KEY, JSON.stringify(prefs));
 }
 
 function todayKey() {

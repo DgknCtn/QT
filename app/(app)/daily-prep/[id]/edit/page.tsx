@@ -114,7 +114,6 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
         </h2>
       </div>
       <PrepWizard
-        userId={user.id}
         calendarEvents={calendarEvents}
         initialData={initialData}
         prepId={id}

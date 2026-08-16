@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { addDays, subDays } from "date-fns";
 import { CalendarClient } from "./calendar-client";
@@ -11,28 +11,38 @@ export default async function CalendarPage({
   searchParams: Promise<{ qYear?: string; qMonth?: string }>;
 }) {
   const sp = await searchParams;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-
-  const events = dbUser
-    ? await prisma.economicEvent.findMany({
-        where: {
-          userId: user.id,
-          dateTime: { gte: subDays(new Date(), 7), lte: addDays(new Date(), 30) },
-        },
-        orderBy: { dateTime: "asc" },
-      }).catch(() => [])
-    : [];
+  const userId = await requireUserId();
 
   const now = new Date();
   const qYear = parseInt(sp.qYear ?? String(now.getFullYear()), 10);
   const qMonth = parseInt(sp.qMonth ?? String(now.getMonth() + 1), 10);
 
+  // Two different ranges on purpose: the list below shows what's coming up,
+  // while the quarter grid shows whichever month the user navigated to.
+  // Deriving the grid from the rolling window meant other months rendered
+  // with no event markers at all.
+  const [events, monthEvents] = await Promise.all([
+    prisma.economicEvent.findMany({
+      where: {
+        userId,
+        dateTime: { gte: subDays(now, 7), lte: addDays(now, 30) },
+      },
+      orderBy: { dateTime: "asc" },
+    }),
+    prisma.economicEvent.findMany({
+      where: {
+        userId,
+        dateTime: {
+          gte: new Date(qYear, qMonth - 1, 1),
+          lt: new Date(qYear, qMonth, 1),
+        },
+      },
+      select: { dateTime: true, impact: true },
+    }),
+  ]);
+
   const eventsByDate: Record<string, { impact: string }[]> = {};
-  for (const ev of events) {
+  for (const ev of monthEvents) {
     const d = new Date(ev.dateTime);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     (eventsByDate[key] ??= []).push({ impact: ev.impact });
@@ -58,7 +68,7 @@ export default async function CalendarPage({
         <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
           Events
         </h2>
-        <CalendarClient userId={user.id} events={events as any} />
+        <CalendarClient events={events} />
       </div>
     </div>
   );

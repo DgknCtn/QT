@@ -26,6 +26,7 @@ export function MarketMessageCard({
     thumbnailUrl: signedUrls[a.thumbnailStorageKey ?? ""] ?? signedUrls[a.storageKey] ?? null,
     fullUrl: signedUrls[a.storageKey] ?? null,
     originalFilename: a.originalFilename,
+    mimeType: a.mimeType,
   }));
 
   const isOdin = message.author.toLowerCase() === "odin";

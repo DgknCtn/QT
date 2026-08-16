@@ -1,25 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Circle, RotateCcw, AlertTriangle, Info, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Circle, RotateCcw, AlertTriangle, Info, Zap, Search, X, ChevronDown } from "lucide-react";
+import { EDU_TABS, EDU_SECTIONS, EDU_SECTION_COUNT, sectionsByTab, searchSections, type EduTab, type EduSection } from "./sections";
+import { useReadProgress } from "./use-read-progress";
+import { useStoredValue, writeStoredValue } from "@/lib/use-stored-value";
 
-type Tab = "ozet" | "k1" | "k2" | "k3" | "k4" | "k5";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "ozet", label: "Master Özet" },
-  { id: "k1",   label: "K1: Temeller" },
-  { id: "k2",   label: "K2: CIC Ailesi" },
-  { id: "k3",   label: "K3: Zaman & Alan" },
-  { id: "k4",   label: "K4: Karar" },
-  { id: "k5",   label: "K5: Montaj" },
-];
+type Tab = EduTab;
 
 // ─── Reusable layout pieces ────────────────────────────────────────────────
 
-function Card({ title, children }: { title?: string; children: React.ReactNode }) {
+function Card({ id, title, children }: { id?: string; title?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border p-4 space-y-3"
-      style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+    <div
+      id={id}
+      className="rounded-xl border p-4 space-y-3"
+      style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)", scrollMarginTop: 160 }}
+    >
       {title && (
         <p className="text-xs font-semibold uppercase tracking-wide"
           style={{ color: "var(--color-text-muted)" }}>{title}</p>
@@ -93,28 +90,28 @@ function MasterOzet() {
         </p>
       </Callout>
 
-      <Card title="Katmanların Zincirdeki Yeri">
+      <Card id="ozet-zincir-yeri" title="Katmanların Zincirdeki Yeri">
         <ul className="space-y-2">
           <li className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
             <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>K1 + K2</span>
-            {" "}→ "crack nerede, hangi tip" (teyit aşaması)
+            {" "}→ &quot;crack nerede, hangi tip&quot; (teyit aşaması)
           </li>
           <li className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
             <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>K3</span>
-            {" "}→ "hangi TF&apos;de konfirme, fiyat hangi alanda" (konumlandırma)
+            {" "}→ &quot;hangi TF&apos;de konfirme, fiyat hangi alanda&quot; (konumlandırma)
           </li>
           <li className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
             <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>K4</span>
-            {" "}→ "ne yapacağım" (karar)
+            {" "}→ &quot;ne yapacağım&quot; (karar)
           </li>
           <li className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
             <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>K5</span>
-            {" "}→ "ben ne zaman, neyle yapacağım" (montaj)
+            {" "}→ &quot;ben ne zaman, neyle yapacağım&quot; (montaj)
           </li>
         </ul>
       </Card>
 
-      <Card title="Katman Özeti — Hızlı Bakış">
+      <Card id="ozet-hizli-bakis" title="Katman Özeti — Hızlı Bakış">
         <div className="space-y-3">
           {[
             { k: "K1", title: "Temeller", desc: "Fraktal çeyrek · True Open (Q2 açılışı) · Q1 akumüle → Q2 expansion · AMD(X) fazları · NQ-ES-YM Triad" },
@@ -147,7 +144,7 @@ function MasterOzet() {
           <Info size={14} className="flex-shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
           <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
             Bu sistem strateji sorununu çözer, execution sorununu çözmez. Asıl iş: bu zinciri her seans AYNI disiplinle uygulamak.
-            İzlenen metrik "kaç işlem" değil → <strong>8 soruyu geçen setup kalitesi + bias/narrative isabeti.</strong>
+            İzlenen metrik &quot;kaç işlem&quot; değil → <strong>8 soruyu geçen setup kalitesi + bias/narrative isabeti.</strong>
           </p>
         </div>
       </Callout>
@@ -158,7 +155,7 @@ function MasterOzet() {
 function Katman1() {
   return (
     <div className="space-y-4">
-      <Card title="1. Fraktal Çeyrek Yapısı">
+      <Card id="k1-fraktal-ceyrek" title="1. Fraktal Çeyrek Yapısı">
         <Table
           headers={["Döngü", "Bölünme"]}
           rows={[
@@ -172,7 +169,7 @@ function Katman1() {
         />
       </Card>
 
-      <Card title="Günlük Döngü — NY Saatleri">
+      <Card id="k1-gunluk-dongu" title="Günlük Döngü — NY Saatleri">
         <Table
           headers={["Çeyrek", "Seans", "NY Saati"]}
           rows={[
@@ -187,7 +184,7 @@ function Katman1() {
         </p>
       </Card>
 
-      <Card title="2. True Opens (TXO)">
+      <Card id="k1-true-opens" title="2. True Opens (TXO)">
         <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
           <strong>Kural:</strong> Her döngünün Q2&apos;sinin açılış fiyatı = o döngünün True Open&apos;ı. <strong>Statik, değişmez.</strong>
         </p>
@@ -210,7 +207,7 @@ function Katman1() {
         />
       </Card>
 
-      <Card title="3. Q1'in Fonksiyonu">
+      <Card id="k1-q1-fonksiyon" title="3. Q1'in Fonksiyonu">
         <div className="flex gap-3 flex-wrap">
           <div className="flex-1 min-w-[180px] rounded-lg p-3" style={{ background: "rgba(52,201,126,0.08)", border: "1px solid rgba(52,201,126,0.2)" }}>
             <p className="text-xs font-semibold mb-1" style={{ color: "var(--color-success)" }}>✓ İstenen Senaryo</p>
@@ -224,7 +221,7 @@ function Katman1() {
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Q1 ayrıca DFR&apos;ın çıktığı yerdir (Katman 3).</p>
       </Card>
 
-      <Card title="4. Triad + AMD(X) Fazları">
+      <Card id="k1-triad-amd" title="4. Triad + AMD(X) Fazları">
         <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
           <strong>Triad:</strong> NQ – ES – YM. Tüm CIC&apos;ler bu üçlü arasında okunur.
         </p>
@@ -329,7 +326,7 @@ function Katman2() {
         </p>
       </Callout>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div id="k2-cic-araclari" className="grid gap-3 sm:grid-cols-2" style={{ scrollMarginTop: 160 }}>
         {tools.map((t) => (
           <Card key={t.name}>
             <div className="flex items-start justify-between gap-2">
@@ -364,7 +361,7 @@ function Katman2() {
         ))}
       </div>
 
-      <Card title="Özet Tablo">
+      <Card id="k2-ozet-tablo" title="Özet Tablo">
         <Table
           headers={["Araç", "Neye bakar", "Rev/Cont", "Ön şart"]}
           rows={[
@@ -395,7 +392,7 @@ function Katman2() {
 function Katman3() {
   return (
     <div className="space-y-4">
-      <Card title="TF Alignment — İki Ayrı Tablo">
+      <Card id="k3-tf-alignment" title="TF Alignment — İki Ayrı Tablo">
         <Callout variant="warn">
           <div className="flex gap-2">
             <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
@@ -443,11 +440,11 @@ function Katman3() {
         <ul className="space-y-1.5">
           <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>· Grafiği ilk açınca <strong>1H altına asla inme</strong> (analiz monthly&apos;den başlar).</li>
           <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>· <strong>LTF yalnızca entry için</strong>, analiz için DEĞİL. HTF yapı/narrative belirler, LTF tetik.</li>
-          <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>· Büyük TF&apos;de CIC → uzun sürede konfirme. "Previous Month High CIC&apos;ine 1m reversal" = saçma.</li>
+          <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>· Büyük TF&apos;de CIC → uzun sürede konfirme. &quot;Previous Month High CIC&apos;ine 1m reversal&quot; = saçma.</li>
         </ul>
       </Card>
 
-      <Card title="DFR — Defining Range">
+      <Card id="k3-dfr" title="DFR — Defining Range">
         <p className="text-xs leading-relaxed mb-3" style={{ color: "var(--color-text-secondary)" }}>
           Q1&apos;i üçe böl: T1 / T2 / T3. <strong>T1 önemsiz.</strong> DFR = <strong>T2 + T3</strong> (Q1&apos;in 2/3 ve 3/3&apos;ü). 0.5 noktası = POC.
         </p>
@@ -480,10 +477,10 @@ function Katman3() {
         </ul>
       </Card>
 
-      <Card title="Doubling B2B Theory">
+      <Card id="k3-doubling-b2b" title="Doubling B2B Theory">
         <Callout variant="warn">
           <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            PO4&apos;teki "Doubling Theory"den FARKLI. B2B = Back to Back. SSMT ve DFR&apos;a odaklı.
+            PO4&apos;teki &quot;Doubling Theory&quot;den FARKLI. B2B = Back to Back. SSMT ve DFR&apos;a odaklı.
           </p>
         </Callout>
 
@@ -526,28 +523,45 @@ const CHECKLIST_QUESTIONS = [
   "Price-based POI var mı çevrede? (PXH/PXL çevresinde crack)",
 ];
 
+const CHECKLIST_KEY = "katmanlar-checklist";
+
 function Katman4() {
-  const [checked, setChecked] = useState<boolean[]>(Array(8).fill(false));
+  // localStorage is the source of truth, so there is no read-on-mount effect.
+  const raw = useStoredValue(CHECKLIST_KEY, "[]");
+  const checked = useMemo<boolean[]>(() => {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length === 8) return arr.map(Boolean);
+    } catch {
+      // yoksay — bozuk/erişilemez storage
+    }
+    return Array(8).fill(false);
+  }, [raw]);
+
+  const writeChecked = (next: boolean[]) => {
+    writeStoredValue(CHECKLIST_KEY, JSON.stringify(next));
+  };
+
   const allPassed = checked.every(Boolean);
   const passedCount = checked.filter(Boolean).length;
 
   return (
     <div className="space-y-4">
-      <Card title="Bias vs Narrative">
+      <Card id="k4-bias-narrative" title="Bias vs Narrative">
         <div className="flex gap-3 flex-wrap">
           <div className="flex-1 min-w-[140px] rounded-lg p-3" style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)" }}>
             <p className="text-xs font-bold mb-1" style={{ color: "var(--color-accent)" }}>BIAS = Yön</p>
-            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Marketin gideceği yön (long/short). "Nereye?"</p>
+            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Marketin gideceği yön (long/short). &quot;Nereye?&quot;</p>
           </div>
           <div className="flex-1 min-w-[140px] rounded-lg p-3" style={{ background: "rgba(52,201,126,0.08)", border: "1px solid rgba(52,201,126,0.2)" }}>
             <p className="text-xs font-bold mb-1" style={{ color: "var(--color-success)" }}>NARRATIVE = Bölge</p>
-            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>O yönde işlem kuracağın bölgeler. "Nerelerden?"</p>
+            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>O yönde işlem kuracağın bölgeler. &quot;Nerelerden?&quot;</p>
           </div>
         </div>
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Önce yön, sonra o yön içindeki giriş noktaları. İki ayrı katman.</p>
       </Card>
 
-      <Card title="Bias Belirleme — İki Ayak">
+      <Card id="k4-bias-belirleme" title="Bias Belirleme — İki Ayak">
         <SectionTitle>QT Ayağı</SectionTitle>
         <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
           Previous X H/L&apos;lerde oluşan cracklar, market structure&apos;ı destekleyen yönde.
@@ -563,7 +577,7 @@ function Katman4() {
         </p>
       </Card>
 
-      <Card title="MMxM — Market Maker X Model">
+      <Card id="k4-mmxm" title="MMxM — Market Maker X Model">
         <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
           Her model <strong>accumulation</strong> ile başlar. Satış tarafı (sol) / Alış tarafı (sağ), ortada <strong>SMR (Smart Money Reversal)</strong>.
         </p>
@@ -575,9 +589,9 @@ function Katman4() {
       </Card>
 
       {/* 8 SORU CHECKLİST */}
-      <Card title="8 Soruluk Narrative Checklist">
+      <Card id="k4-checklist" title="8 Soruluk Narrative Checklist">
         <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
-          İşleme girmeden önce sırayla sor. Her soru bir filtre — "crack gördüm gireyim" dürtüsünü keser.
+          İşleme girmeden önce sırayla sor. Her soru bir filtre — &quot;crack gördüm gireyim&quot; dürtüsünü keser.
         </p>
 
         {allPassed && (
@@ -595,7 +609,7 @@ function Katman4() {
           {CHECKLIST_QUESTIONS.map((q, i) => (
             <button
               key={i}
-              onClick={() => setChecked((prev) => { const n = [...prev]; n[i] = !n[i]; return n; })}
+              onClick={() => writeChecked(checked.map((v, idx) => (idx === i ? !v : v)))}
               className="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
               style={{
                 background: checked[i] ? "rgba(52,201,126,0.08)" : "var(--color-bg-surface)",
@@ -618,7 +632,7 @@ function Katman4() {
             {passedCount}/8 soru geçildi
           </span>
           <button
-            onClick={() => setChecked(Array(8).fill(false))}
+            onClick={() => writeChecked(Array(8).fill(false))}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
             style={{ color: "var(--color-text-muted)", background: "var(--color-bg-surface)", border: "1px solid var(--color-bg-border)" }}
           >
@@ -627,7 +641,7 @@ function Katman4() {
         </div>
       </Card>
 
-      <Card title="DOL / POI — Nereye Bakacaksın">
+      <Card id="k4-dol-poi" title="DOL / POI — Nereye Bakacaksın">
         <Callout variant="warn">
           <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
             Belirli previous H/L&apos;ler DIŞINDA hiçbir H/L seni ilgilendirmez. Dışı = engineering liquidity = stop yeri.
@@ -644,7 +658,7 @@ function Katman4() {
         </p>
       </Card>
 
-      <Card title="Entry / Stop / TP">
+      <Card id="k4-entry-stop-tp" title="Entry / Stop / TP">
         <SectionTitle>Reversal Şartı — Üstün Kural</SectionTitle>
         <Callout variant="warn">
           <p className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
@@ -696,7 +710,7 @@ function Katman4() {
           <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>1. Bias = yön, Narrative = bölge. Önce yön, sonra giriş noktaları.</li>
           <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>2. <strong>Crack yoksa reversal yok</strong> — cracksiz pullback fake.</li>
           <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>3. Stop her zaman crack&apos;in 1 tık dışı, swing&apos;e değil (Turtle Soup koruması).</li>
-          <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>4. 8 soru = girmeden önceki filtre. Hepsi geçmeden "crack gördüm gireyim" yok.</li>
+          <li className="text-xs" style={{ color: "var(--color-text-secondary)" }}>4. 8 soru = girmeden önceki filtre. Hepsi geçmeden &quot;crack gördüm gireyim&quot; yok.</li>
         </ul>
       </Callout>
     </div>
@@ -706,7 +720,7 @@ function Katman4() {
 function Katman5() {
   return (
     <div className="space-y-4">
-      <Card title="Çalışma Düzeni → Seans Ayrımı">
+      <Card id="k5-calisma-duzeni" title="Çalışma Düzeni → Seans Ayrımı">
         <Table
           headers={["Gün Tipi", "Seans", "TR Saati", "Karakter"]}
           rows={[
@@ -722,13 +736,13 @@ function Katman5() {
         </Callout>
       </Card>
 
-      <Card title="Neden AM Ana Seans?">
+      <Card id="k5-neden-am" title="Neden AM Ana Seans?">
         <ul className="space-y-2">
           <li className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-            · AM = günün <strong>Q3&apos;ü = distribution</strong> fazı. "Trade edilmesi en kolay faz" — önceki çeyrekler trendi belirlemiş.
+            · AM = günün <strong>Q3&apos;ü = distribution</strong> fazı. &quot;Trade edilmesi en kolay faz&quot; — önceki çeyrekler trendi belirlemiş.
           </li>
           <li className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-            · PM (Q4/X) continuation mı reversal mı belirsiz; AM "yön belli, dağıtımı sür" karakterinde.
+            · PM (Q4/X) continuation mı reversal mı belirsiz; AM &quot;yön belli, dağıtımı sür&quot; karakterinde.
           </li>
           <li className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
             · Asıl crack araçları AM&apos;de CANLI: <strong>9:30 açılışı, 10:00 kuralı, NYAM DFR</strong> (en yüksek olasılıklı DFR).
@@ -736,7 +750,7 @@ function Katman5() {
         </ul>
       </Card>
 
-      <Card title="NY AM Saatleri — Ana Seans (Yaz, TR)">
+      <Card id="k5-ny-am-saatleri" title="NY AM Saatleri — Ana Seans (Yaz, TR)">
         <Table
           headers={["Olay", "NY", "TR", "Kullanım"]}
           rows={[
@@ -749,7 +763,7 @@ function Katman5() {
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Aktif blok: TR 14:30–19:00.</p>
       </Card>
 
-      <Card title="NY PM Saatleri — İkincil (Yaz, TR)">
+      <Card id="k5-ny-pm-saatleri" title="NY PM Saatleri — İkincil (Yaz, TR)">
         <Table
           headers={["TXO", "NY", "TR", "Kullanım"]}
           rows={[
@@ -761,7 +775,7 @@ function Katman5() {
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Aktif blok: TR 20:30–23:30. Hard cutoff: 23:30.</p>
       </Card>
 
-      <Card title="Senin Cycle'ların">
+      <Card id="k5-cycles" title="Senin Cycle'ların">
         <div className="space-y-3">
           <div className="rounded-lg p-3" style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-bg-border)" }}>
             <p className="text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>Daily Cycle SSMT (6H çeyrekler) — Konfirme TF: 15m</p>
@@ -778,7 +792,7 @@ function Katman5() {
         </div>
       </Card>
 
-      <Card title="Enstrüman / Risk (BEM Funding — CFD)">
+      <Card id="k5-enstruman-risk" title="Enstrüman / Risk (BEM Funding — CFD)">
         <Table
           headers={["CFD", "Futures Eşdeğeri", "Not"]}
           rows={[
@@ -793,7 +807,7 @@ function Katman5() {
         </ul>
       </Card>
 
-      <Card title="Kış Uyarısı (Kasım Sonrası)">
+      <Card id="k5-kis-uyarisi" title="Kış Uyarısı (Kasım Sonrası)">
         <Callout variant="warn">
           <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
             ABD yaz saatinden çıkınca fark 8 saat → tüm NY saatleri TR&apos;de <strong>+1 saat</strong> kayar.
@@ -803,7 +817,7 @@ function Katman5() {
         </Callout>
       </Card>
 
-      <Card title="En Kritik Kural — Önce Bir Seansı Oturt">
+      <Card id="k5-kritik-kural" title="En Kritik Kural — Önce Bir Seansı Oturt">
         <ul className="space-y-2">
           <li className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>· İlk haftalar <strong>iki seansı birden CANLI trade etme.</strong></li>
           <li className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>· <strong>AM&apos;i</strong> oturt (replay + küçük lot). PM&apos;i bu sürede sadece <strong>gözlemle.</strong></li>
@@ -839,38 +853,218 @@ function Katman5() {
   );
 }
 
+// ─── Arama kutusu ──────────────────────────────────────────────────────────
+
+function SearchBox({ onJump }: { onJump: (s: EduSection) => void }) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const results = useMemo(() => searchSections(q).slice(0, 8), [q]);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const tabLabel = (t: EduTab) => EDU_TABS.find((x) => x.id === t)?.label ?? t;
+
+  return (
+    <div ref={boxRef} className="relative">
+      <div className="flex items-center gap-2 rounded-lg border px-3 py-2"
+        style={{ background: "var(--color-bg-surface)", borderColor: "var(--color-bg-border)" }}>
+        <Search size={14} style={{ color: "var(--color-text-muted)" }} />
+        <input
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Ara: SSMT, DFR, checklist, entry…"
+          className="flex-1 bg-transparent text-sm outline-none"
+          style={{ color: "var(--color-text-primary)" }}
+        />
+        {q && (
+          <button onClick={() => { setQ(""); setOpen(false); }} aria-label="Temizle">
+            <X size={14} style={{ color: "var(--color-text-muted)" }} />
+          </button>
+        )}
+      </div>
+
+      {open && q && (
+        <div className="absolute z-30 mt-1 w-full rounded-lg border overflow-hidden shadow-lg"
+          style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+          {results.length === 0 ? (
+            <p className="px-3 py-2.5 text-xs" style={{ color: "var(--color-text-muted)" }}>Sonuç yok</p>
+          ) : (
+            results.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => { onJump(s); setOpen(false); setQ(""); }}
+                className="w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 transition-colors hover:bg-[var(--color-bg-hover)]"
+              >
+                <span className="text-xs" style={{ color: "var(--color-text-primary)" }}>{s.title}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0"
+                  style={{ background: "var(--color-bg-surface)", color: "var(--color-text-muted)" }}>{tabLabel(s.tab)}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── İçindekiler (ToC) ─────────────────────────────────────────────────────
+
+function TableOfContents({
+  tab, isRead, toggle, onJump,
+}: {
+  tab: EduTab;
+  isRead: (id: string) => boolean;
+  toggle: (id: string) => void;
+  onJump: (s: EduSection) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const sections = sectionsByTab(tab);
+  const readCount = sections.filter((s) => isRead(s.id)).length;
+
+  return (
+    <div className="rounded-xl border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="w-full flex items-center justify-between px-3 py-2.5"
+      >
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+          İçindekiler · {readCount}/{sections.length}
+        </span>
+        <ChevronDown size={14} style={{ color: "var(--color-text-muted)", transform: collapsed ? "rotate(-90deg)" : "none", transition: "transform 150ms" }} />
+      </button>
+      {!collapsed && (
+        <div className="px-2 pb-2 space-y-0.5">
+          {sections.map((s) => {
+            const done = isRead(s.id);
+            return (
+              <div key={s.id} className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-[var(--color-bg-hover)]">
+                <button onClick={() => toggle(s.id)} aria-label={done ? "Okunmadı işaretle" : "Okundu işaretle"} className="flex-shrink-0">
+                  {done
+                    ? <CheckCircle2 size={15} style={{ color: "var(--color-success)" }} />
+                    : <Circle size={15} style={{ color: "var(--color-text-muted)" }} />}
+                </button>
+                <button
+                  onClick={() => onJump(s)}
+                  className="flex-1 text-left text-xs leading-tight truncate"
+                  style={{ color: done ? "var(--color-text-muted)" : "var(--color-text-secondary)" }}
+                  title={s.title}
+                >
+                  {s.title}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ─────────────────────────────────────────────────────────────
 
 export default function KatmanlarPage() {
   const [active, setActive] = useState<Tab>("ozet");
+  const { ready, isRead, toggle } = useReadProgress();
+  const pendingScroll = useRef<string | null>(null);
+
+  const scrollToId = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Sekme değişince beklemedeki scroll'u uygula (içerik yeni render olduğundan)
+  useEffect(() => {
+    if (pendingScroll.current) {
+      const id = pendingScroll.current;
+      pendingScroll.current = null;
+      requestAnimationFrame(() => scrollToId(id));
+    }
+  }, [active]);
+
+  const jumpTo = (s: EduSection) => {
+    if (s.tab === active) {
+      scrollToId(s.id);
+    } else {
+      pendingScroll.current = s.id;
+      setActive(s.tab);
+    }
+  };
+
+  const totalRead = ready ? EDU_SECTIONS.filter((s) => isRead(s.id)).length : 0;
+  const tabSections = sectionsByTab(active);
+  const tabRead = tabSections.filter((s) => isRead(s.id)).length;
+  const tabPct = tabSections.length ? Math.round((tabRead / tabSections.length) * 100) : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      {/* Header */}
-      <div>
-        <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Quarterly Theory</p>
-        <h2 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>Education</h2>
-      </div>
+      {/* Sticky üst blok: başlık + arama + sekmeler + ilerleme */}
+      <div
+        className="sticky top-0 z-20 -mx-1 px-1 pt-1 pb-2 space-y-3"
+        style={{ background: "var(--color-bg-base)" }}
+      >
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Quarterly Theory</p>
+            <h2 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>Education</h2>
+          </div>
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }} suppressHydrationWarning>
+            {ready ? `Toplam ${totalRead}/${EDU_SECTION_COUNT} okundu` : ""}
+          </p>
+        </div>
 
-      {/* Tab bar */}
-      <div className="overflow-x-auto -mx-1 px-1">
-        <div className="flex gap-1 min-w-max pb-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActive(tab.id)}
-              className="px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0"
-              style={{
-                background: active === tab.id ? "var(--color-accent)" : "var(--color-bg-elevated)",
-                color: active === tab.id ? "#fff" : "var(--color-text-secondary)",
-                border: `1px solid ${active === tab.id ? "var(--color-accent)" : "var(--color-bg-border)"}`,
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <SearchBox onJump={jumpTo} />
+
+        {/* Tab bar — her sekmede okundu/sayı rozeti */}
+        <div className="overflow-x-auto -mx-1 px-1">
+          <div className="flex gap-1 min-w-max pb-1">
+            {EDU_TABS.map((tab) => {
+              const secs = sectionsByTab(tab.id);
+              const r = ready ? secs.filter((s) => isRead(s.id)).length : 0;
+              const isActive = active === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActive(tab.id)}
+                  className="px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-1.5"
+                  style={{
+                    background: isActive ? "var(--color-accent)" : "var(--color-bg-elevated)",
+                    color: isActive ? "#fff" : "var(--color-text-secondary)",
+                    border: `1px solid ${isActive ? "var(--color-accent)" : "var(--color-bg-border)"}`,
+                  }}
+                >
+                  {tab.label}
+                  <span
+                    className="text-[10px] px-1 rounded"
+                    suppressHydrationWarning
+                    style={{
+                      background: isActive ? "rgba(255,255,255,0.2)" : "var(--color-bg-surface)",
+                      color: isActive ? "#fff" : (r === secs.length && r > 0 ? "var(--color-success)" : "var(--color-text-muted)"),
+                    }}
+                  >
+                    {r}/{secs.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Okuma ilerleme çubuğu (aktif sekme) */}
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--color-bg-border)" }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${tabPct}%`, background: "var(--color-success)" }} suppressHydrationWarning />
         </div>
       </div>
+
+      {/* İçindekiler */}
+      <TableOfContents tab={active} isRead={isRead} toggle={toggle} onJump={jumpTo} />
 
       {/* Content */}
       {active === "ozet" && <MasterOzet />}

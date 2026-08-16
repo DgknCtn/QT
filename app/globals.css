@@ -90,6 +90,15 @@ body {
   50%  { transform: translate(18%, -14%) scale(1.35); }
   100% { transform: translate(0%, 20%) scale(1.05); }
 }
+/* The auth screen always renders on its own dark ground (AuthBackground paints
+   #070810), so its text tokens must not follow the app theme -- in light mode
+   they would resolve to near-black on that dark card. */
+.auth-screen {
+  --color-text-primary: #f5f6f8;
+  --color-text-secondary: rgba(255, 255, 255, 0.72);
+  --color-text-muted: rgba(255, 255, 255, 0.5);
+}
+
 .auth-aurora {
   position: absolute;
   border-radius: 50%;

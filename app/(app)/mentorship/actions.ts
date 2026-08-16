@@ -1,37 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { ensureUser, requireAdmin } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
-// ─── Auth helpers ──────────────────────────────────────────────────────────
-
-async function getSessionUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  return user;
-}
-
-async function requireAdmin() {
-  const user = await getSessionUser();
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  if (!dbUser || dbUser.role !== "ADMIN") throw new Error("Not authorized");
-  return dbUser;
-}
-
-async function ensureUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  const dbUser = await prisma.user.upsert({
-    where: { id: user.id },
-    update: {},
-    create: { id: user.id, email: user.email ?? "", role: "STUDENT" },
-  });
-  return dbUser;
-}
 
 // ─── Mentee actions ────────────────────────────────────────────────────────
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useMemo, useRef } from "react";
+import { useStoredValue, writeStoredValue } from "@/lib/use-stored-value";
 import { Search, SlidersHorizontal, X, Clock } from "lucide-react";
 
 interface FilterValues {
@@ -48,7 +49,8 @@ function saveToHistory(v: FilterValues) {
   const existing = loadHistory();
   const filtered = existing.filter((e) => filterLabel(e) !== label);
   const next = [v, ...filtered].slice(0, MAX_HISTORY);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  // writeStoredValue (not localStorage directly) so useStoredValue readers refresh.
+  writeStoredValue(HISTORY_KEY, JSON.stringify(next));
 }
 
 export function JournalFilters({ initialValues }: { initialValues: FilterValues }) {
@@ -68,12 +70,16 @@ export function JournalFilters({ initialValues }: { initialValues: FilterValues 
     dateTo:     initialValues.dateTo ?? "",
     search:     initialValues.search ?? "",
   });
-  const [history, setHistory] = useState<FilterValues[]>([]);
+  const historyRaw = useStoredValue(HISTORY_KEY, "[]");
+  const history = useMemo<FilterValues[]>(() => {
+    try {
+      const parsed = JSON.parse(historyRaw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [historyRaw]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setHistory(loadHistory());
-  }, []);
 
   function applyVals(next: FilterValues) {
     setVals(next);
@@ -85,7 +91,6 @@ export function JournalFilters({ initialValues }: { initialValues: FilterValues 
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         saveToHistory(next);
-        setHistory(loadHistory());
       }, 1500);
     }
   }

@@ -24,13 +24,11 @@ export function AccountCard({ account, todayPnl }: Props) {
 
   // Phase calculations
   const phase1Target = account.startingBalance * 0.09;
-  const phase1Pct = Math.min((profit / phase1Target) * 100, 100);
   const phase1Done = profitPct >= 9;
 
   const p2Base = account.phase2StartBalance ?? account.currentEquity;
   const phase2Profit = account.currentEquity - p2Base;
   const phase2Target = p2Base * 0.04;
-  const phase2Pct = Math.min(phase2Target > 0 ? (phase2Profit / phase2Target) * 100 : 0, 100);
   const phase2Done = account.phase === 2 && phase2Profit / p2Base * 100 >= 4;
 
   const STATUS_COLORS: Record<string, string> = {
@@ -176,7 +174,7 @@ export function AccountCard({ account, todayPnl }: Props) {
       {!isAtRisk && isWarning && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium" style={{ background: "color-mix(in srgb, var(--color-risk-warning) 15%, transparent)", color: "var(--color-risk-warning)" }}>
           <AlertTriangle size={14} />
-          Risk limitinin %70'ine ulaşıldı — dikkatli ol.
+          Risk limitinin %70&apos;ine ulaşıldı — dikkatli ol.
         </div>
       )}
       {account.phase === 3 && (

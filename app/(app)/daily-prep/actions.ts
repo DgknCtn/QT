@@ -1,16 +1,14 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function deleteDailyPrep(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
-  await prisma.dailyPrep.deleteMany({ where: { id, userId: user.id } });
+  await prisma.dailyPrep.deleteMany({ where: { id, userId } });
   revalidatePath("/daily-prep");
   redirect("/daily-prep");
 }

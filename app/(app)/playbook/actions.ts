@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -19,9 +19,7 @@ export async function savePlaybook(
     isActive: boolean;
   }
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getSessionUser();
 
   const payload = {
     userId: user.id,
@@ -49,9 +47,7 @@ export async function savePlaybook(
 }
 
 export async function deletePlaybook(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getSessionUser();
 
   await prisma.playbookEntry.deleteMany({ where: { id, userId: user.id } });
   revalidatePath("/playbook");

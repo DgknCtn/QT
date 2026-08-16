@@ -429,10 +429,22 @@ async function main() {
   ];
 
   for (const c of concepts) {
+    // Learning state is per-user (ConceptProgress); the concept row holds only
+    // the shared, curated content.
+    const { confidenceLevel, userNotes, ...content } = c as typeof c & {
+      userNotes?: string;
+    };
+
     await prisma.concept.upsert({
-      where:  { id: c.id },
+      where:  { id: content.id },
       update: {},
-      create: c,
+      create: content,
+    });
+
+    await prisma.conceptProgress.upsert({
+      where:  { userId_conceptId: { userId: USER_ID, conceptId: content.id } },
+      update: {},
+      create: { userId: USER_ID, conceptId: content.id, confidenceLevel, userNotes: userNotes ?? null },
     });
   }
   console.log("✅ Knowledge Concepts created:", concepts.length);

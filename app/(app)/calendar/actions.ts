@@ -1,46 +1,62 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { ensureUser, requireUserId } from "@/lib/auth";
+import {
+  optionalEnum,
+  optionalInt,
+  optionalString,
+  requiredEnum,
+  requiredString,
+  FormValidationError,
+} from "@/lib/schemas/form";
 import { revalidatePath } from "next/cache";
 import type { EventRiskTag } from "@prisma/client";
 
-async function ensureUser(userId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  await prisma.user.upsert({
-    where: { id: userId },
-    update: {},
-    create: { id: userId, email: user?.email ?? "", name: user?.user_metadata?.name ?? null },
-  });
-}
+const IMPACTS = ["HIGH", "MEDIUM", "LOW"] as const;
+const RISK_TAGS = [
+  "IGNORE", "WATCH", "HIGH_RISK", "NO_TRADE_WINDOW", "DATA_HIGH_LOW_RELEVANT",
+] as const satisfies readonly EventRiskTag[];
 
-export async function saveEvent(userId: string, form: FormData): Promise<void> {
-  await ensureUser(userId);
+export async function saveEvent(form: FormData): Promise<void> {
+  // userId comes from the session, never from the caller -- a client-supplied
+  // id would let anyone write into another user's calendar.
+  const user = await ensureUser();
 
-  const id = form.get("id") as string | null;
+  const id = optionalString(form, "id");
+
+  const date = requiredString(form, "date", "Tarih");
+  const time = requiredString(form, "time", "Saat");
+  const dateTime = new Date(`${date}T${time}:00`);
+  if (Number.isNaN(dateTime.getTime())) {
+    throw new FormValidationError(`Tarih/saat geçersiz: "${date} ${time}".`);
+  }
+
   const data = {
-    dateTime: new Date(`${form.get("date")}T${form.get("time")}:00`),
-    currency: (form.get("currency") as string).toUpperCase(),
-    eventName: form.get("eventName") as string,
-    impact: (form.get("impact") as "HIGH" | "MEDIUM" | "LOW") ?? "MEDIUM",
-    userRiskTag: ((form.get("userRiskTag") as string) || null) as EventRiskTag | null,
-    noTradeBeforeMinutes: form.get("noTradeBefore") ? parseInt(form.get("noTradeBefore") as string, 10) : null,
-    noTradeAfterMinutes: form.get("noTradeAfter") ? parseInt(form.get("noTradeAfter") as string, 10) : null,
-    notes: (form.get("notes") as string) || null,
+    dateTime,
+    currency: requiredString(form, "currency", "Para birimi").toUpperCase(),
+    eventName: requiredString(form, "eventName", "Etkinlik adı"),
+    impact: requiredEnum(form, "impact", IMPACTS, "Etki"),
+    userRiskTag: optionalEnum(form, "userRiskTag", RISK_TAGS, "Risk etiketi"),
+    noTradeBeforeMinutes: optionalInt(form, "noTradeBefore", "İşlem yok (önce, dk)"),
+    noTradeAfterMinutes: optionalInt(form, "noTradeAfter", "İşlem yok (sonra, dk)"),
+    notes: optionalString(form, "notes"),
   };
 
   if (id) {
-    await prisma.economicEvent.update({ where: { id }, data });
+    // updateMany + userId scoping: a guessed id belonging to someone else
+    // matches nothing instead of overwriting their row.
+    await prisma.economicEvent.updateMany({ where: { id, userId: user.id }, data });
   } else {
-    await prisma.economicEvent.create({ data: { userId, ...data } });
+    await prisma.economicEvent.create({ data: { userId: user.id, ...data } });
   }
 
   revalidatePath("/calendar");
   revalidatePath("/dashboard");
 }
 
-export async function deleteEvent(userId: string, eventId: string): Promise<void> {
+export async function deleteEvent(eventId: string): Promise<void> {
+  const userId = await requireUserId();
   await prisma.economicEvent.deleteMany({ where: { id: eventId, userId } });
   revalidatePath("/calendar");
   revalidatePath("/dashboard");

@@ -1,38 +1,40 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { ensureUser, getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  optionalDate,
+  optionalString,
+  requiredDate,
+  requiredEnum,
+  requiredInt,
+  requiredNumber,
+  requiredString,
+} from "@/lib/schemas/form";
 import type { AccountStatus } from "@prisma/client";
 
-async function ensureUser(userId: string, email: string) {
-  await prisma.user.upsert({
-    where:  { id: userId },
-    update: {},
-    create: { id: userId, email },
-  });
-}
+const ACCOUNT_STATUSES = ["ACTIVE", "PASSED", "FAILED", "REVIEW"] as const satisfies readonly AccountStatus[];
 
 export async function saveAccount(accountId: string | null, form: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
-  await ensureUser(user.id, user.email ?? "");
+  const user = await ensureUser();
 
+  // Validated rather than cast: a blank money field used to become NaN and fail
+  // deep inside Prisma with an opaque message.
   const data = {
     userId:          user.id,
-    firmName:        (form.get("firmName") as string).trim(),
-    phase:           parseInt(form.get("phase") as string, 10),
-    accountId:       (form.get("accountId") as string) || null,
-    startingBalance: parseFloat(form.get("startingBalance") as string),
-    currentEquity:   parseFloat(form.get("currentEquity") as string),
-    profitTarget:    parseFloat(form.get("profitTarget") as string),
-    maxDailyLoss:    parseFloat(form.get("maxDailyLoss") as string),
-    maxTotalLoss:    parseFloat(form.get("maxTotalLoss") as string),
-    status:          (form.get("status") as AccountStatus) || "ACTIVE",
-    startDate:       new Date(form.get("startDate") as string),
-    endDate:         form.get("endDate") ? new Date(form.get("endDate") as string) : null,
-    notes:           (form.get("notes") as string) || null,
+    firmName:        requiredString(form, "firmName", "Firma adı"),
+    phase:           requiredInt(form, "phase", "Faz"),
+    accountId:       optionalString(form, "accountId"),
+    startingBalance: requiredNumber(form, "startingBalance", "Başlangıç bakiyesi"),
+    currentEquity:   requiredNumber(form, "currentEquity", "Güncel bakiye"),
+    profitTarget:    requiredNumber(form, "profitTarget", "Kâr hedefi"),
+    maxDailyLoss:    requiredNumber(form, "maxDailyLoss", "Maks. günlük zarar"),
+    maxTotalLoss:    requiredNumber(form, "maxTotalLoss", "Maks. toplam zarar"),
+    status:          requiredEnum(form, "status", ACCOUNT_STATUSES, "Durum"),
+    startDate:       requiredDate(form, "startDate", "Başlangıç tarihi"),
+    endDate:         optionalDate(form, "endDate", "Bitiş tarihi"),
+    notes:           optionalString(form, "notes"),
   };
 
   if (accountId) {
@@ -44,17 +46,13 @@ export async function saveAccount(accountId: string | null, form: FormData) {
 }
 
 export async function deleteAccount(accountId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const user = await getSessionUser();
   await prisma.fundedAccount.delete({ where: { id: accountId, userId: user.id } });
   revalidatePath("/accounts");
 }
 
 export async function advancePhase(accountId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const user = await getSessionUser();
 
   const account = await prisma.fundedAccount.findFirst({ where: { id: accountId, userId: user.id } });
   if (!account) throw new Error("Account not found");
@@ -78,9 +76,7 @@ export async function advancePhase(accountId: string) {
 }
 
 export async function logEquity(accountId: string, form: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const user = await getSessionUser();
 
   const account = await prisma.fundedAccount.findFirst({ where: { id: accountId, userId: user.id } });
   if (!account) throw new Error("Account not found");

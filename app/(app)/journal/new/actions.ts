@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { ensureUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { assertValidTrade } from "@/lib/schemas/trade";
 
@@ -36,22 +36,13 @@ function computeProcessScore(form: Record<string, unknown>, mistakeTags: string[
   return { score: s, grade };
 }
 
-async function ensureUser(userId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  await prisma.user.upsert({
-    where: { id: userId },
-    update: {},
-    create: { id: userId, email: user?.email ?? "", name: user?.user_metadata?.name ?? null },
-  });
-}
-
 export async function saveTrade(
-  userId: string,
   form: Record<string, unknown>,
   screenshots: { url: string; type: string }[]
 ): Promise<void> {
-  await ensureUser(userId);
+  // userId is derived from the session, never accepted from the caller --
+  // otherwise a client could write trades into someone else's journal.
+  const { id: userId } = await ensureUser();
   assertValidTrade(form);
 
   const mistakeTags = (form.mistakeTags as string[]) ?? [];

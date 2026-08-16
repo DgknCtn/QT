@@ -62,7 +62,7 @@ export default async function DailyPrepPage() {
           <Link href="/daily-prep/new"
             className="px-4 py-2 rounded-lg text-sm font-medium"
             style={{ background: "var(--color-accent)", color: "#fff" }}>
-            İlk prep'i oluştur
+            İlk prep&apos;i oluştur
           </Link>
         </div>
       ) : (

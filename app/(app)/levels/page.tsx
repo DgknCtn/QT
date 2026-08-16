@@ -14,7 +14,6 @@ const TYPE_LABELS: Record<string, string> = {
   CUSTOM_POI: "Custom POI", CUSTOM_TOI: "Custom TOI",
 };
 
-const TF_ORDER = ["MONTHLY","WEEKLY","DAILY","H4","H1","M90","M15","M5","M1","S15","CUSTOM"];
 
 function statusDot(status: LevelStatus) {
   const colors: Record<LevelStatus, string> = {

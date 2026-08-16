@@ -10,8 +10,12 @@ function numFromForm(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// `.optional()` matters: without it a *missing* key fails with zod's internal
+// "expected nonoptional, received undefined" message, which contradicts the
+// contract above and would surface to the user verbatim.
 const num = z
   .unknown()
+  .optional()
   .transform(numFromForm)
   .refine((n) => n === null || Number.isFinite(n), "Geçersiz sayı");
 

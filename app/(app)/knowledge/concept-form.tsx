@@ -16,8 +16,6 @@ type Concept = {
   whenNotToUse: string | null;
   requiredConditions: string | null;
   commonMistakes: string | null;
-  userNotes: string | null;
-  confidenceLevel: string;
 };
 
 const CATEGORIES = [
@@ -25,7 +23,6 @@ const CATEGORIES = [
   "CONFIRMATION", "DFR", "BIAS_NARRATIVE", "RISK_EXECUTION",
 ];
 
-const CONFIDENCE_LEVELS = ["NEW", "LEARNING", "PRACTICING", "COMFORTABLE", "MASTERED"];
 
 export function ConceptForm({ concept }: { concept?: Concept }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -78,12 +75,6 @@ export function ConceptForm({ concept }: { concept?: Concept }) {
                 ))}
               </select>
             </div>
-            <div>
-              <label className={labelCls}>Confidence Level</label>
-              <select name="confidenceLevel" defaultValue={concept?.confidenceLevel ?? "NEW"} className={inputCls}>
-                {CONFIDENCE_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </div>
           </div>
 
           <div>
@@ -115,11 +106,6 @@ export function ConceptForm({ concept }: { concept?: Concept }) {
           <div>
             <label className={labelCls}>Common Mistakes</label>
             <textarea name="commonMistakes" defaultValue={concept?.commonMistakes ?? ""} rows={2} placeholder="What do most people get wrong?" className={areaCls} style={{ resize: "vertical" }} />
-          </div>
-
-          <div>
-            <label className={labelCls}>Personal Notes</label>
-            <textarea name="userNotes" defaultValue={concept?.userNotes ?? ""} rows={3} placeholder="Your own observations, examples, edge cases…" className={areaCls} style={{ resize: "vertical" }} />
           </div>
 
           {error && <p className="text-xs" style={{ color: "var(--color-danger)" }}>{error}</p>}

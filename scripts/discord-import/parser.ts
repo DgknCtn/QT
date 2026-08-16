@@ -150,6 +150,20 @@ export function parseExportFile(filePath: string): ParsedExport {
               title.match(/Image:\s*(.+?)\s*\(/)?.[1]?.trim() ?? path.basename(decoded);
             attachments.push({ originalFilename, relativeFilePath: decoded });
           });
+        // Video attachments render as <video class="chatlog__attachment-media"><source ...></video>
+        // rather than <img>, with the filename in the <source>'s title attribute.
+        $container
+          .find(".chatlog__attachment video.chatlog__attachment-media source")
+          .each((_, source) => {
+            const $source = $(source);
+            const src = $source.attr("src");
+            const title = $source.attr("title") ?? "";
+            if (!src) return;
+            const decoded = decodeURIComponent(src);
+            const originalFilename =
+              title.match(/Video:\s*(.+?)\s*\(/)?.[1]?.trim() ?? path.basename(decoded);
+            attachments.push({ originalFilename, relativeFilePath: decoded });
+          });
 
         messages.push({ sourceMessageId, author: currentAuthor, timestampRaw, contentText, attachments });
       });
