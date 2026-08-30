@@ -12,35 +12,35 @@ datasource db {
 // ─── Models ────────────────────────────────────────────────────────────────
 
 model User {
-  id                  String   @id @default(cuid())
-  email               String   @unique
-  name                String?
-  role                UserRole @default(STUDENT)
-  timezone            String   @default("America/New_York")
-  preferredSessions   String[] @default(["NY_AM"])
-  maxRiskPerTrade     Float    @default(1.0)
-  maxDailyRisk        Float    @default(3.0)
-  defaultMarkets      String[] @default([])
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  role              UserRole @default(STUDENT)
+  timezone          String   @default("America/New_York")
+  preferredSessions String[] @default(["NY_AM"])
+  maxRiskPerTrade   Float    @default(1.0)
+  maxDailyRisk      Float    @default(3.0)
+  defaultMarkets    String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  dailyPreps     DailyPrep[]
-  levels         Level[]
-  dfrs           DFR[]
-  ssmtEvents     SSMTEvent[]
-  confirmations  Confirmation[]
-  trades         Trade[]
-  tags           Tag[]
-  screenshots    Screenshot[]
-  economicEvents EconomicEvent[]
-  fundedAccounts FundedAccount[]
-  monthlyGoals   MonthlyGoal[]
-  menteeProfile    MenteeProfile?
-  playbookEntries  PlaybookEntry[]
-  weeklyReviews    WeeklyReview[]
-  mentorNotes      MentorNote[]
-  brokerTrades     BrokerTrade[]
-  conceptProgress  ConceptProgress[]
+  dailyPreps      DailyPrep[]
+  levels          Level[]
+  dfrs            DFR[]
+  ssmtEvents      SSMTEvent[]
+  confirmations   Confirmation[]
+  trades          Trade[]
+  tags            Tag[]
+  screenshots     Screenshot[]
+  economicEvents  EconomicEvent[]
+  fundedAccounts  FundedAccount[]
+  monthlyGoals    MonthlyGoal[]
+  menteeProfile   MenteeProfile?
+  playbookEntries PlaybookEntry[]
+  weeklyReviews   WeeklyReview[]
+  mentorNotes     MentorNote[]
+  brokerTrades    BrokerTrade[]
+  conceptProgress ConceptProgress[]
 
   @@map("users")
 }
@@ -131,7 +131,7 @@ model Level {
 }
 
 model DFR {
-  id                 String           @id @default(cuid())
+  id                 String        @id @default(cuid())
   userId             String
   dailyPrepId        String?
   dfrType            DFRType
@@ -151,13 +151,13 @@ model DFR {
   projectionNeg2     Float?
   q1Quality          DFRq1Quality?
   highLowEqualsQ1    ThreeState?
-  dfrQualityScore    Int              @default(0)
+  dfrQualityScore    Int           @default(0)
   dfrQualityBand     QualityBand?
   alignsWithBias     Boolean?
   nearPriorPoi       Boolean?
   notes              String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   dailyPrep DailyPrep? @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
@@ -168,7 +168,7 @@ model DFR {
 }
 
 model SSMTEvent {
-  id                String        @id @default(cuid())
+  id                String       @id @default(cuid())
   userId            String
   dailyPrepId       String?
   marketGroup       MarketGroup
@@ -184,10 +184,10 @@ model SSMTEvent {
   strongAsset       String?
   weakAsset         String?
   alignsWithBias    ThreeState?
-  randomSmtFlag     Boolean       @default(false)
+  randomSmtFlag     Boolean      @default(false)
   notes             String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   dailyPrep     DailyPrep?     @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
@@ -723,16 +723,16 @@ enum EventRiskTag {
 // ─── Monthly Goal ─────────────────────────────────────────────────────────────
 
 model MonthlyGoal {
-  id             String   @id @default(cuid())
-  userId         String
-  year           Int
-  month          Int
-  targetR        Float?
-  targetWinRate  Float?
-  targetTrades   Int?
-  notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  year          Int
+  month         Int
+  targetR       Float?
+  targetWinRate Float?
+  targetTrades  Int?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -743,25 +743,25 @@ model MonthlyGoal {
 // ─── Funded Account ────────────────────────────────────────────────────────────
 
 model FundedAccount {
-  id              String        @id @default(cuid())
-  userId          String
-  firmName        String
-  phase           Int           @default(1)
-  accountId       String?
-  startingBalance Float
-  currentEquity   Float
+  id                 String        @id @default(cuid())
+  userId             String
+  firmName           String
+  phase              Int           @default(1)
+  accountId          String?
+  startingBalance    Float
+  currentEquity      Float
   profitTarget       Float
   phase2StartBalance Float?
   maxDailyLoss       Float
-  maxTotalLoss    Float
-  status          AccountStatus @default(ACTIVE)
-  startDate       DateTime
-  endDate         DateTime?
-  notes           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  maxTotalLoss       Float
+  status             AccountStatus @default(ACTIVE)
+  startDate          DateTime
+  endDate            DateTime?
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   equityLogs EquityLog[]
 
   @@index([userId])
@@ -769,9 +769,9 @@ model FundedAccount {
 }
 
 model EquityLog {
-  id        String        @id @default(cuid())
+  id        String   @id @default(cuid())
   accountId String
-  date      DateTime      @default(now())
+  date      DateTime @default(now())
   equity    Float
   pnlToday  Float?
   note      String?
@@ -850,11 +850,11 @@ model Course {
 }
 
 model Chapter {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   courseId    String
   title       String
   description String?
-  order       Int      @default(0)
+  order       Int     @default(0)
 
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
@@ -972,7 +972,8 @@ model BrokerTrade {
   account     String?
   instrument  String
   direction   String
-  quantity    Int
+  // Float, Int değil: kripto pozisyonları ondalıklı (0.881 ZEC gibi).
+  quantity    Float
   entryPrice  Float
   exitPrice   Float
   entryTime   DateTime
@@ -987,12 +988,33 @@ model BrokerTrade {
   chartUrl    String?
   externalRef String
   rawRow      Json?
-  createdAt   DateTime @default(now())
+
+  // Perp funding maliyeti (pozitif = ödedin, negatif = sana ödendi).
+  // İşlem komisyonundan ayrı tutuluyor: uzun tutulan pozisyonlarda asıl
+  // sızıntı burada olabilir ve komisyonla toplanınca görünmez olur.
+  fundingFee Float?
+
+  // Borsadan bağımsız coin kimliği: "PUMP-USDT-SWAP" ve "PUMPUSDT" -> "PUMP".
+  // instrument ham hâliyle korunur; bu alan iki borsadaki aynı coin'i
+  // yan yana koymayı sağlar.
+  baseAsset String?
+
+  // Pozisyonun açılış anının Quarterly Theory karşılığı — import sırasında
+  // ET'ye göre hesaplanır. Türetilebilir ama kaydediliyor: seans/çeyrek
+  // kırılımlı analiz SQL tarafında groupBy ile yapılabilsin diye.
+  // Tradovate satırlarında null kalır.
+  session      Session?
+  quarter90    QuarterCycle?
+  quarterMicro QuarterCycle?
+
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, externalRef])
   @@index([userId, entryTime])
+  @@index([userId, source])
+  @@index([userId, baseAsset])
   @@map("broker_trades")
 }
 
@@ -1025,11 +1047,11 @@ model MarketWeek {
 }
 
 model MarketDay {
-  id           String    @id @default(cuid())
-  date         DateTime  @unique
+  id           String   @id @default(cuid())
+  date         DateTime @unique
   marketWeekId String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   marketWeek MarketWeek?     @relation(fields: [marketWeekId], references: [id], onDelete: SetNull)
   messages   MarketMessage[]

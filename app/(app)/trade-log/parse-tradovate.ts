@@ -1,30 +1,9 @@
 import Papa from "papaparse";
 import { createHash } from "crypto";
+import { walkFlatToFlat, summarizeCycle } from "@/lib/broker/cycle-engine";
+import type { ParsedTradeRow, ParseResult } from "@/lib/broker/parsed-row";
 
-export type ParsedTradeRow = {
-  key: string;
-  source: "TRADOVATE";
-  account: string | null;
-  instrument: string;
-  direction: "LONG" | "SHORT";
-  quantity: number;
-  entryPrice: number;
-  exitPrice: number;
-  entryTime: string; // ISO
-  exitTime: string; // ISO
-  durationSec: number;
-  grossPnl: number | null;
-  commission: number | null;
-  fees: number | null;
-  netPnl: number | null;
-  externalRef: string;
-  needsManualPnl: boolean;
-};
-
-export type ParseResult = {
-  rows: ParsedTradeRow[];
-  warnings: string[];
-};
+export type { ParsedTradeRow, ParseResult } from "@/lib/broker/parsed-row";
 
 // $ value per 1.00 point move, per contract. Extend as needed.
 const CONTRACT_MULTIPLIERS: Record<string, number> = {
@@ -142,23 +121,13 @@ export function parseTradovateCsv(csvText: string, userId: string): ParseResult 
   const rows: ParsedTradeRow[] = [];
 
   for (const groupFills of groups.values()) {
-    groupFills.sort((a, b) => a.time.getTime() - b.time.getTime());
+    const { cycles, leftover } = walkFlatToFlat(groupFills);
 
-    let position = 0;
-    let cycle: Fill[] = [];
-
-    for (const f of groupFills) {
-      const signedQty = f.side === "Buy" ? f.qty : -f.qty;
-      cycle.push(f);
-      position += signedQty;
-
-      if (position === 0 && cycle.length > 0) {
-        rows.push(buildTradeRow(cycle, userId, warnings));
-        cycle = [];
-      }
+    for (const cycle of cycles) {
+      rows.push(buildTradeRow(cycle, userId, warnings));
     }
 
-    if (cycle.length > 0) {
+    if (leftover.length > 0) {
       warnings.push(
         `${groupFills[0].root} için pozisyon dönem sonunda flat'a dönmedi — açık kalan fill'ler içe aktarılmadı.`
       );
@@ -171,25 +140,8 @@ export function parseTradovateCsv(csvText: string, userId: string): ParseResult 
 
 function buildTradeRow(cycle: Fill[], userId: string, warnings: string[]): ParsedTradeRow {
   const first = cycle[0];
-  const direction: "LONG" | "SHORT" = first.side === "Buy" ? "LONG" : "SHORT";
-  const openingSide = first.side;
-
-  const opening = cycle.filter((f) => f.side === openingSide);
-  const closing = cycle.filter((f) => f.side !== openingSide);
-
-  const entryQty = opening.reduce((s, f) => s + f.qty, 0);
-  const exitQty = closing.reduce((s, f) => s + f.qty, 0);
-  const quantity = Math.min(entryQty, exitQty) || entryQty || exitQty;
-
-  const entryPrice = opening.length
-    ? opening.reduce((s, f) => s + f.price * f.qty, 0) / entryQty
-    : first.price;
-  const exitPrice = closing.length
-    ? closing.reduce((s, f) => s + f.price * f.qty, 0) / exitQty
-    : first.price;
-
-  const entryTime = new Date(Math.min(...opening.map((f) => f.time.getTime())));
-  const exitTime = new Date(Math.max(...closing.map((f) => f.time.getTime()), entryTime.getTime()));
+  const { direction, quantity, entryPrice, exitPrice, entryTime, exitTime, durationSec } =
+    summarizeCycle(cycle);
 
   const commission = cycle.reduce((s, f) => s + f.commission, 0);
   const fees = cycle.reduce((s, f) => s + f.fees, 0);
@@ -204,8 +156,6 @@ function buildTradeRow(cycle: Fill[], userId: string, warnings: string[]): Parse
   if (needsManualPnl) {
     warnings.push(`${first.root} için point-value tanımlı değil — P&L manuel girilmeli.`);
   }
-
-  const durationSec = Math.max(0, Math.round((exitTime.getTime() - entryTime.getTime()) / 1000));
 
   const externalRef = createHash("sha256")
     .update(`${userId}|${first.account ?? ""}|${first.root}|${entryTime.toISOString()}|${exitTime.toISOString()}|${quantity}`)
@@ -229,5 +179,12 @@ function buildTradeRow(cycle: Fill[], userId: string, warnings: string[]): Parse
     netPnl,
     externalRef,
     needsManualPnl,
+    fundingFee: null, // vadeli kontratta funding yok
+    baseAsset: first.root,
+    // QT çeyreği yalnızca Binance import'unda doldurulur; Tradovate satırları
+    // eski kayıtlarla tutarlı kalsın diye boş bırakılıyor.
+    session: null,
+    quarter90: null,
+    quarterMicro: null,
   };
 }

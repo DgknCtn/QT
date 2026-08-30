@@ -5,6 +5,7 @@ import { ClipboardList, ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { ImportUploader } from "./import-uploader";
 import { TradeRow } from "./trade-row";
+import { DEDICATED_SOURCES, BROKER_SOURCES } from "@/lib/broker/sources";
 
 const PAGE_SIZE = 100;
 
@@ -20,17 +21,27 @@ export default async function TradeLogPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  // Kendi sayfası olan borsalar (Binance, OKX) buraya karıştırılmaz: yüzlerce
+  // kripto round-trip'i vadeli işlem istatistiklerini boğar ve iki tarafın da
+  // kazanma oranı anlamsızlaşır.
+  const where = { userId: user.id, source: { notIn: DEDICATED_SOURCES } };
+
   // Aggregate stats over ALL trades (cheap, indexed) — independent of pagination.
-  const [totalCount, agg, winCount, decidedCount, trades] = await Promise.all([
-    prisma.brokerTrade.count({ where: { userId: user.id } }),
-    prisma.brokerTrade.aggregate({ where: { userId: user.id }, _sum: { netPnl: true } }),
-    prisma.brokerTrade.count({ where: { userId: user.id, netPnl: { gt: 0 } } }),
-    prisma.brokerTrade.count({ where: { userId: user.id, netPnl: { not: null } } }),
+  const [totalCount, agg, winCount, decidedCount, trades, dedicatedCounts] = await Promise.all([
+    prisma.brokerTrade.count({ where }),
+    prisma.brokerTrade.aggregate({ where, _sum: { netPnl: true } }),
+    prisma.brokerTrade.count({ where: { ...where, netPnl: { gt: 0 } } }),
+    prisma.brokerTrade.count({ where: { ...where, netPnl: { not: null } } }),
     prisma.brokerTrade.findMany({
-      where: { userId: user.id },
+      where,
       orderBy: { entryTime: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
+    }),
+    prisma.brokerTrade.groupBy({
+      by: ["source"],
+      where: { userId: user.id, source: { in: DEDICATED_SOURCES } },
+      _count: { _all: true },
     }),
   ]);
 
@@ -56,6 +67,23 @@ export default async function TradeLogPage({
               {totalNet >= 0 ? "+" : ""}${totalNet.toFixed(2)}
             </span>
           </p>
+          {dedicatedCounts.length > 0 && (
+            <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+              Ayrıca{" "}
+              {dedicatedCounts.map((c, i) => {
+                const info = BROKER_SOURCES[c.source as keyof typeof BROKER_SOURCES];
+                return (
+                  <span key={c.source}>
+                    {i > 0 && ", "}
+                    <Link href={info.href ?? "#"} className="underline" style={{ color: "var(--color-accent)" }}>
+                      {c._count._all} {info.label}
+                    </Link>
+                  </span>
+                );
+              })}{" "}
+              pozisyonu ayrı sayfada.
+            </p>
+          )}
         </div>
         <ImportUploader />
       </div>

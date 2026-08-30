@@ -13,9 +13,12 @@ type Row = {
   entryPrice: number;
   exitPrice: number;
   netPnl: number | null;
+  session?: string | null;
+  quarter90?: string | null;
 };
 
-export function TradeRow({ trade }: { trade: Row }) {
+/** `showQuarter` yalnızca QT çeyreği doldurulan kaynaklarda (Binance) anlamlı. */
+export function TradeRow({ trade, showQuarter = false }: { trade: Row; showQuarter?: boolean }) {
   const router = useRouter();
 
   return (
@@ -29,6 +32,11 @@ export function TradeRow({ trade }: { trade: Row }) {
       </td>
       <td className="px-3 py-2 font-medium" style={{ color: "var(--color-text-primary)" }}>{trade.instrument}</td>
       <td className="px-3 py-2" style={{ color: trade.direction === "LONG" ? "var(--color-long)" : "var(--color-short)" }}>{trade.direction}</td>
+      {showQuarter && (
+        <td className="px-3 py-2 whitespace-nowrap" style={{ color: "var(--color-text-muted)" }}>
+          {trade.session ? `${trade.session.replace("_", " ")} · ${trade.quarter90 ?? ""}` : "—"}
+        </td>
+      )}
       <td className="px-3 py-2 text-right" style={{ color: "var(--color-text-secondary)" }}>{trade.quantity}</td>
       <td className="px-3 py-2 text-right font-mono" style={{ color: "var(--color-text-secondary)" }}>{trade.entryPrice}</td>
       <td className="px-3 py-2 text-right font-mono" style={{ color: "var(--color-text-secondary)" }}>{trade.exitPrice}</td>

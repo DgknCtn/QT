@@ -10,6 +10,8 @@ import {
   Calculator,
   Layers,
   ListChecks,
+  Bitcoin,
+  CandlestickChart,
   Radar,
   Target,
   NotebookPen,
@@ -50,7 +52,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/katmanlar",  label: "Education",  icon: Layers,          group: "Home" },
   { href: "/journal",    label: "Journal",    icon: BookOpen,        group: "Home",
     quickAdd: { label: "Add Trade", href: "/journal/new" } },
-  { href: "/trade-log",  label: "Trade Log",  icon: ListChecks,      group: "Home" },
+  { href: "/binance-log", label: "Binance Log", icon: Bitcoin,          group: "Home" },
+  { href: "/okx-log",     label: "OKX Log",     icon: CandlestickChart, group: "Home" },
   { href: "/calendar",   label: "Calendar",   icon: Calendar,        group: "Home" },
 
   { href: "/analytics",  label: "Analytics",  icon: BarChart3,       group: "Analyze" },
@@ -65,6 +68,10 @@ export const NAV_ITEMS: NavItem[] = [
   // DELIBERATELY HIDDEN from the sidebar (owner's decision) -- reachable by
   // direct URL only. They are listed here purely so the top bar can title them.
   // Do not add a `group` to these without asking first.
+  //
+  // /trade-log is hidden but MUST NOT be deleted: /trade-log/[id] is the
+  // detail page every broker log links to, Binance and OKX rows included.
+  { href: "/trade-log",     label: "Trade Log",      icon: ListChecks },
   { href: "/levels",        label: "Levels",         icon: TrendingUp,
     quickAdd: { label: "Add Level", href: "/levels/new" } },
   { href: "/setups",        label: "Setups",         icon: Target },
