@@ -19,10 +19,9 @@ type Props = {
   initialEmail: string;
   initialTimezone: string;
   initialMaxRisk: number;
-  initialMaxDaily: number;
 };
 
-export function SettingsForm({ initialName, initialEmail, initialTimezone, initialMaxRisk, initialMaxDaily }: Props) {
+export function SettingsForm({ initialName, initialEmail, initialTimezone, initialMaxRisk }: Props) {
   const [state, formAction, pending] = useActionState(saveSettings, { error: "", success: false });
 
   return (
@@ -59,8 +58,16 @@ export function SettingsForm({ initialName, initialEmail, initialTimezone, initi
           </select>
         </Field>
 
+        {/*
+          Burada eskiden bir de "Max daily risk (%)" vardi. Kaldirildi: Risk
+          Guard'daki gunluk zarar limitiyle ayni niyetin ikinci, uygulanamaz
+          kopyasiydi. Ikisi de "gunluk risk" gibi gorundugu icin kullanici
+          yuzdeyi doldurup kaydediyor, "Kaydedildi" goruyor ama dashboard'daki
+          uyari kalkmiyordu — cunku o yuzdeyi hicbir sorgu okumuyordu.
+          Gun ici durma kurali tek yerde: Risk Guard karti.
+        */}
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Max risk per trade (%)">
+          <Field label="İşlem başına risk (%)">
             <input
               name="maxRiskPerTrade"
               defaultValue={initialMaxRisk}
@@ -71,18 +78,15 @@ export function SettingsForm({ initialName, initialEmail, initialTimezone, initi
               className="field-input"
             />
           </Field>
-          <Field label="Max daily risk (%)">
-            <input
-              name="maxDailyRisk"
-              defaultValue={initialMaxDaily}
-              type="number"
-              step="0.25"
-              min="0.1"
-              max="20"
-              className="field-input"
-            />
-          </Field>
         </div>
+        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          Risk hesaplayıcı bu değeri varsayılan olarak kullanır. Gün içi durma
+          kuralı ayrı:{" "}
+          <a href="#risk-guard" className="underline" style={{ color: "var(--color-accent)" }}>
+            Risk Guard
+          </a>{" "}
+          kartındaki günlük zarar limiti.
+        </p>
       </Section>
 
       {/* Default sessions */}

@@ -56,7 +56,7 @@ export function RiskGuardPanel({
   if (state.disabled) {
     return (
       <Link
-        href="/settings"
+        href="/settings#risk-guard"
         className="flex items-center gap-2.5 rounded-xl border px-4 py-3 transition-colors hover-surface"
         style={{ borderColor: "var(--color-bg-border)", background: "var(--color-bg-elevated)" }}
       >
