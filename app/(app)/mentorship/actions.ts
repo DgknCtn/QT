@@ -125,8 +125,32 @@ export async function deleteLesson(id: string, courseId: string) {
 
 // ─── Progress actions ──────────────────────────────────────────────────────
 
+/**
+ * Ders erisiminin action seviyesindeki kapisi.
+ *
+ * Arayuz onaylanmamis menteelere ders gostermiyordu, ama `"use server"`
+ * export'lari dogrudan cagrilabilir: oturumu olan herhangi biri istedigi
+ * lessonId icin ilerleme yazabiliyordu. Arayuzdeki kisit, yetki kontrolu
+ * yerine gecmez.
+ */
+async function requireActiveMenteeForLesson(userId: string, lessonId: string) {
+  const profile = await prisma.menteeProfile.findUnique({
+    where: { userId },
+    select: { status: true },
+  });
+  if (profile?.status !== "ACTIVE") throw new Error("Mentorluk erişimin aktif değil.");
+
+  // Ders (ve icinde bulundugu kurs) gercekten yayinda mi.
+  const lesson = await prisma.lesson.findFirst({
+    where: { id: lessonId, isPublished: true, chapter: { course: { isPublished: true } } },
+    select: { id: true },
+  });
+  if (!lesson) throw new Error("Ders bulunamadı.");
+}
+
 export async function markLessonComplete(lessonId: string) {
   const user = await ensureUser();
+  await requireActiveMenteeForLesson(user.id, lessonId);
   await prisma.lessonProgress.upsert({
     where:  { userId_lessonId: { userId: user.id, lessonId } },
     update: {},

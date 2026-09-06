@@ -20,9 +20,17 @@ model User {
   preferredSessions String[] @default(["NY_AM"])
   maxRiskPerTrade   Float    @default(1.0)
   maxDailyRisk      Float    @default(3.0)
-  defaultMarkets    String[] @default([])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+
+  // Risk Guard. Bunlar tavsiye değil, gün içi durma kuralı: aşıldığında
+  // dashboard "bugün bitti" der. Analiz gerekçesi: 146 pozisyonluk gerçek
+  // veride günlük -$200 limiti sonucu -430.87'den +61.82'ye taşıyordu ve
+  // bunun için 146 işlemin yalnızca 9'unun alınmaması yetiyordu.
+  // 0 = kural kapalı.
+  dailyLossLimitUsd    Float    @default(0)
+  maxConsecutiveLosses Int      @default(0)
+  defaultMarkets       String[] @default([])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   dailyPreps      DailyPrep[]
   levels          Level[]
@@ -254,10 +262,11 @@ model Trade {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dailyPrep   DailyPrep?   @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
-  tags        TradeTag[]
-  screenshots Screenshot[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPrep    DailyPrep?    @relation(fields: [dailyPrepId], references: [id], onDelete: SetNull)
+  tags         TradeTag[]
+  screenshots  Screenshot[]
+  brokerTrades BrokerTrade[]
 
   @@index([userId, date])
   @@index([userId, instrument])
@@ -989,6 +998,12 @@ model BrokerTrade {
   externalRef String
   rawRow      Json?
 
+  // Borsadan gelen pozisyonu manuel günlük kaydına bağlar.
+  // İki tablo bugüne kadar birbirini hiç görmedi: QT bağlamı (setup, seans,
+  // süreç notu) `Trade`'de, gerçek P&L burada duruyordu. "SSMT + PSP ile
+  // girdiklerim gerçekte ne getirdi" sorusu ancak bu bağla cevaplanabiliyor.
+  tradeId String?
+
   // Perp funding maliyeti (pozitif = ödedin, negatif = sana ödendi).
   // İşlem komisyonundan ayrı tutuluyor: uzun tutulan pozisyonlarda asıl
   // sızıntı burada olabilir ve komisyonla toplanınca görünmez olur.
@@ -1009,10 +1024,12 @@ model BrokerTrade {
 
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trade Trade? @relation(fields: [tradeId], references: [id], onDelete: SetNull)
 
   @@unique([userId, externalRef])
   @@index([userId, entryTime])
+  @@index([tradeId])
   @@index([userId, source])
   @@index([userId, baseAsset])
   @@map("broker_trades")

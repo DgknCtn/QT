@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { AccountCard } from "./account-card";
 import { GoalsPanel } from "../goals/goals-panel";
+import { formatUsd } from "@/lib/money";
 
 export default async function AccountsPage() {
   const supabase = await createClient();
@@ -67,7 +68,7 @@ export default async function AccountsPage() {
               <p className="text-xl font-black font-mono flex items-center gap-1"
                 style={{ color: totalProfit >= 0 ? "#34c97e" : "#ef4444" }}>
                 {totalProfit >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                {totalProfit >= 0 ? "+" : ""}${Math.abs(totalProfit).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                {formatUsd(totalProfit, { decimals: 0, signed: true })}
               </p>
               <p className="text-xs mt-0.5" style={{ color: totalProfit >= 0 ? "#34c97e" : "#ef4444" }}>
                 {totalProfitPct >= 0 ? "+" : ""}{totalProfitPct.toFixed(2)}%
@@ -77,7 +78,7 @@ export default async function AccountsPage() {
               <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Bugünkü P&L</p>
               <p className="text-xl font-black font-mono"
                 style={{ color: todayPnlTotal > 0 ? "#34c97e" : todayPnlTotal < 0 ? "#ef4444" : "var(--color-text-primary)" }}>
-                {todayPnlTotal >= 0 ? "+" : ""}${Math.abs(todayPnlTotal).toFixed(0)}
+                {formatUsd(todayPnlTotal, { decimals: 0, signed: true })}
               </p>
             </div>
             <div>

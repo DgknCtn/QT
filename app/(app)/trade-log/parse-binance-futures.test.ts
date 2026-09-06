@@ -249,6 +249,27 @@ describe("parseBinanceFuturesCsv", () => {
     expect(warnings.join(" ")).toMatch(/BNB/);
   });
 
+  it("USDT dışı fee net P&L'den düşülmez, ayrı tutulur", () => {
+    // Regresyon: BNB cinsinden bir fee doğrudan USDT kârından çıkarılıyordu.
+    // Birim olarak geçersiz; artık netPnl'e karışmıyor.
+    const { rows } = parseBinanceFuturesCsv(
+      csv([
+        row({ time: "2026-08-20 10:00:00", symbol: "SOLUSDT", side: "BUY", price: 100, qty: 1, fee: "0.5BNB", tradeId: "1" }),
+        row({ time: "2026-08-20 10:02:00", symbol: "SOLUSDT", side: "SELL", price: 101, qty: 1, fee: "0.002USDT", pnl: 1, tradeId: "2" }),
+      ]),
+      "u1",
+      UTC3
+    );
+
+    const t = rows[0];
+    expect(t.grossPnl).toBeCloseTo(1, 6);
+    // Yalnızca USDT fee düşülür; 0.5 BNB netPnl'i 0.5 USDT azaltmaz.
+    expect(t.fees).toBeCloseTo(0.002, 6);
+    expect(t.netPnl).toBeCloseTo(1 - 0.002, 6);
+    expect(t.uncountedFees).toEqual({ BNB: 0.5 });
+    expect(t.costDataIncomplete).toBe(true);
+  });
+
   it("externalRef Trade ID'lerden türer, yani tekrar import'ta aynı kalır", () => {
     const input = csv([
       row({ time: "2026-08-20 10:00:00", symbol: "SOLUSDT", side: "BUY", price: 100, qty: 1, tradeId: "555" }),

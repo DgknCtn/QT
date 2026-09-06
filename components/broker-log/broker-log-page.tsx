@@ -10,6 +10,7 @@ import { QuarterMatrix } from "./quarter-matrix";
 import { SymbolTable } from "./symbol-table";
 import { BROKER_SOURCES, type BrokerSource } from "@/lib/broker/sources";
 import { buildQuarterCells, buildSymbolStats, buildFeeSummary } from "@/lib/broker/stats";
+import { formatUsd } from "@/lib/money";
 
 const PAGE_SIZE = 100;
 
@@ -116,14 +117,14 @@ export async function BrokerLogPage({
             />
             <StatCard
               label="Brüt P&L"
-              value={`${fee.gross >= 0 ? "+" : ""}$${fee.gross.toFixed(2)}`}
+              value={formatUsd(fee.gross, { signed: true })}
               valueColor={fee.gross >= 0 ? "var(--color-success)" : "var(--color-danger)"}
               sub="maliyet öncesi"
             />
             {info.hasFunding ? (
               <StatCard
                 label="Funding"
-                value={`${fee.funding > 0 ? "−" : "+"}$${Math.abs(fee.funding).toFixed(2)}`}
+                value={formatUsd(-fee.funding, { signed: true })}
                 valueColor={fee.funding > 0 ? "var(--color-warning)" : "var(--color-success)"}
                 sub={fee.funding > 0 ? "ödedin" : "sana ödendi"}
               />

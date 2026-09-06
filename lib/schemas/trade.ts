@@ -4,9 +4,24 @@ import { z } from "zod";
  * Only enforces rules when the relevant fields are present — empty optional
  * fields are allowed (e.g. NO_TRADE / MISSED rows, or partial drafts). */
 
-function numFromForm(v: unknown): number | null {
-  if (v === undefined || v === null || v === "") return null;
-  const n = typeof v === "number" ? v : parseFloat(String(v));
+/** Alan gercekten bos mu (opsiyonel ve girilmemis). */
+const EMPTY = Symbol("empty");
+
+/**
+ * Form degerini sayiya cevirir.
+ *
+ * Onemli ayrim: **bos alan** ile **gecersiz deger** ayni sey degil. Eskiden
+ * ikisi de `null` oluyordu, yani `"abc"` ve `"100abc"` sessizce "girilmemis"
+ * sayilip kabul ediliyordu — risk-kritik bir formda bir stop fiyatinin
+ * kaybolmasi demek. Bos -> EMPTY, gecersiz -> NaN, gecerli -> sayi.
+ */
+function numFromForm(v: unknown): number | typeof EMPTY | null {
+  if (v === undefined || v === null || (typeof v === "string" && v.trim() === "")) return EMPTY;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const raw = String(v).trim();
+  // parseFloat "100abc"i 100 olarak okur; tam sayisal olmayan girdi reddedilir.
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(raw)) return null;
+  const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -17,7 +32,10 @@ const num = z
   .unknown()
   .optional()
   .transform(numFromForm)
-  .refine((n) => n === null || Number.isFinite(n), "Geçersiz sayı");
+  .refine((n) => n !== null, "Geçersiz sayı")
+  // Dogrulamadan sonra EMPTY'yi null'a indiriyoruz: asagidaki kurallar
+  // "deger yok" halini zaten null olarak ele aliyor.
+  .transform((n) => (n === EMPTY ? null : (n as number)));
 
 const tradeIntegritySchema = z
   .object({

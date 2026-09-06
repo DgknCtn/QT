@@ -66,6 +66,7 @@ export function PrepWizard({
   calendarEvents = [],
   initialData,
   prepId,
+  userId,
   carryOver = null,
   applyCarryOverOnLoad = false,
   trueOpenLevels = {},
@@ -73,6 +74,8 @@ export function PrepWizard({
   calendarEvents?: CalendarEventItem[];
   initialData?: PrepFormData;
   prepId?: string;
+  /** Taslak anahtarini kullaniciya baglar — ortak cihazda sizinti olmasin. */
+  userId: string;
   carryOver?: PrepCarryOver | null;
   applyCarryOverOnLoad?: boolean;
   trueOpenLevels?: Record<string, TrueOpenLevel[]>;
@@ -95,7 +98,7 @@ export function PrepWizard({
 
   // ── Taslak ────────────────────────────────────────────────────────────────
   const hydrated = useIsHydrated();
-  const draftKey = prepDraftKey(prepId);
+  const draftKey = prepDraftKey(userId, prepId);
   const { draft, save: saveDraft, clear: clearDraft, dismiss: dismissDraft } = usePrepDraft(draftKey);
   const [draftHandled, setDraftHandled] = useState(false);
   const skipFirstAutosave = useRef(true);

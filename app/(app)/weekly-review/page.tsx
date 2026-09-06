@@ -6,6 +6,7 @@ import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReviewForm } from "./review-form";
+import { formatUsd } from "@/lib/money";
 
 const GRADE_COLORS: Record<string, string> = {
   A_PLUS: "#34c97e", B: "#6366f1", C: "#f59e0b", RULE_BREAK: "#ef4444", UNREVIEWED: "#6b7280",
@@ -131,7 +132,7 @@ export default async function WeeklyReviewPage({
             <div className="rounded-xl border p-3 text-center" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
               <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Net P&L</p>
               <p className="text-2xl font-black" style={{ color: netPnl >= 0 ? "#34c97e" : "#ef4444" }}>
-                {netPnl >= 0 ? "+" : ""}${Math.abs(netPnl).toFixed(0)}
+                {formatUsd(netPnl, { decimals: 0, signed: true })}
               </p>
             </div>
           )}

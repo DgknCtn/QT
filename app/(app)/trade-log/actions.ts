@@ -7,6 +7,10 @@ import { parseTradovateCsv } from "./parse-tradovate";
 import { parseBinanceFuturesCsv } from "./parse-binance-futures";
 import { parseOkxCsv } from "./parse-okx";
 import type { ParsedTradeRow, ParseResult, BrokerSource } from "@/lib/broker/parsed-row";
+import { importPayloadSchema } from "@/lib/broker/parsed-row-schema";
+import { FormValidationError } from "@/lib/schemas/form";
+import { rankMatchCandidates, type ScoredCandidate } from "@/lib/broker/match";
+import { assertOwnsBrokerTrade, assertOwnsTrade } from "@/lib/auth/assert-owns";
 
 /**
  * CSV'yi seçilen brokera göre ayrıştırır. Henüz hiçbir şey kaydedilmez —
@@ -38,11 +42,25 @@ export async function parseImportFile(
   }
 }
 
+/**
+ * Önizlemede seçilen pozisyonları kaydeder.
+ *
+ * `rows` istemciden geliyor — ayrıştırma ayrı bir action'da yapıldığı için
+ * bu satırlar parser'ın ürettikleriyle aynı olmak zorunda değil. Bu yüzden
+ * kaydetmeden önce yeniden doğrulanıyorlar; `userId` zaten oturumdan geliyor.
+ */
 export async function commitImport(rows: ParsedTradeRow[]): Promise<{ imported: number; skipped: number }> {
   const userId = await requireUserId();
 
+  const parsed = importPayloadSchema.safeParse(rows);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    const where = first?.path.length ? ` (${first.path.join(".")})` : "";
+    throw new FormValidationError(`İçe aktarma verisi geçersiz${where}: ${first?.message ?? "bilinmeyen hata"}`);
+  }
+
   const result = await prisma.brokerTrade.createMany({
-    data: rows.map((r) => ({
+    data: parsed.data.map((r) => ({
       userId,
       source: r.source,
       account: r.account,
@@ -99,4 +117,63 @@ export async function updateBrokerTradeDetails(
   revalidatePath("/binance-log");
   revalidatePath("/okx-log");
   revalidatePath(`/trade-log/${id}`);
+}
+
+// ─── Journal eşleştirme ─────────────────────────────────────────────────────
+
+/**
+ * Bu broker pozisyonuna bağlanabilecek journal kayıtları, en olası önce.
+ *
+ * Şemadaki `BrokerTrade.tradeId` baştan beri vardı ama onu kuran bir akış
+ * yoktu: plan ile gerçek sonuç birbirini hiç görmüyordu.
+ */
+export async function getMatchCandidates(brokerTradeId: string): Promise<ScoredCandidate[]> {
+  const userId = await requireUserId();
+
+  const broker = await prisma.brokerTrade.findFirst({
+    where: { id: brokerTradeId, userId },
+    select: { instrument: true, direction: true, entryTime: true },
+  });
+  if (!broker) throw new Error("Pozisyon bulunamadı.");
+
+  // Pencere bilerek geniş: kullanıcı journal kaydının tarihini işlem
+  // gününden farklı girmiş olabilir. Eleme değil sıralama yapıyoruz.
+  const from = new Date(broker.entryTime);
+  from.setDate(from.getDate() - 3);
+  const to = new Date(broker.entryTime);
+  to.setDate(to.getDate() + 3);
+
+  const candidates = await prisma.trade.findMany({
+    where: { userId, date: { gte: from, lte: to } },
+    select: { id: true, date: true, instrument: true, direction: true, setupType: true, result: true },
+    orderBy: { date: "desc" },
+    take: 50,
+  });
+
+  return rankMatchCandidates(broker, candidates);
+}
+
+/**
+ * Broker pozisyonunu bir journal kaydına bağlar (veya `null` ile bağı koparır).
+ *
+ * Her iki tarafın sahipliği ayrı ayrı doğrulanır: `brokerTrade` filtresi
+ * `tradeId`'yi korumaz — bkz. lib/auth/assert-owns.ts.
+ */
+export async function linkBrokerTradeToJournal(
+  brokerTradeId: string,
+  tradeId: string | null,
+): Promise<void> {
+  const userId = await requireUserId();
+
+  await assertOwnsBrokerTrade(userId, brokerTradeId);
+  const ownedTradeId = await assertOwnsTrade(userId, tradeId);
+
+  await prisma.brokerTrade.updateMany({
+    where: { id: brokerTradeId, userId },
+    data: { tradeId: ownedTradeId },
+  });
+
+  revalidatePath("/trade-log");
+  revalidatePath(`/trade-log/${brokerTradeId}`);
+  revalidatePath("/analytics");
 }

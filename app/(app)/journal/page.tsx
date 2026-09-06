@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { JournalFilters } from "./journal-filters";
 import { ExportCsvButton } from "./export-csv-button";
 import { ResultBadge, GradeBadge } from "@/components/ui-kit/badge";
+import { formatUsd } from "@/lib/money";
 
 async function getUser() {
   const supabase = await createClient();
@@ -95,7 +96,7 @@ export default async function JournalPage({
             { label: "Trade",    value: total },
             { label: "Win Rate", value: total > 0 ? `${Math.round((wins / total) * 100)}%` : "—" },
             { label: "Avg R",    value: avgR },
-            { label: "Net P&L",  value: `${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}` },
+            { label: "Net P&L",  value: formatUsd(totalPnl, { decimals: 0, signed: true }) },
           ].map(({ label, value }) => (
             <div key={label}>
               <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</p>

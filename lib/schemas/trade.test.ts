@@ -77,3 +77,28 @@ describe("assertValidTrade", () => {
     ).not.toThrow();
   });
 });
+
+describe("sayısal doğrulama sıkılığı", () => {
+  it("tamamen sayısal olmayan girdiyi reddeder", () => {
+    // Eskiden parseFloat("abc") -> NaN -> null'a düşüyor ve "alan boş"
+    // sayılıyordu: risk-kritik bir stop fiyatı sessizce kayboluyordu.
+    expect(() => assertValidTrade({ entryPrice: "abc" })).toThrow(/Geçersiz sayı/);
+  });
+
+  it("sayıyla başlayan çöp girdiyi reddeder", () => {
+    // parseFloat("100abc") 100 döndürüyordu — kullanıcının yazdığından
+    // farklı bir değeri sessizce kaydetmek en kötü sonuç.
+    expect(() => assertValidTrade({ entryPrice: "100abc" })).toThrow(/Geçersiz sayı/);
+  });
+
+  it("boş opsiyonel alan hâlâ geçerli", () => {
+    expect(() => assertValidTrade({ entryPrice: "", stopPrice: undefined })).not.toThrow();
+    expect(() => assertValidTrade({})).not.toThrow();
+  });
+
+  it("geçerli sayı biçimlerini kabul eder", () => {
+    expect(() => assertValidTrade({ entryPrice: "20100.25" })).not.toThrow();
+    expect(() => assertValidTrade({ entryPrice: ".5" })).not.toThrow();
+    expect(() => assertValidTrade({ entryPrice: 20100 })).not.toThrow();
+  });
+});

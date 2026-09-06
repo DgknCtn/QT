@@ -62,14 +62,24 @@ export function MonthlyQuarterGrid({
           Aylık Quarter (Q1-Q4)
         </h3>
         <div className="flex items-center gap-3">
-          <Link href={prevLink} className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
-            <ArrowLeft size={14} />
+          <Link
+            href={prevLink}
+            aria-label="Önceki ay"
+            className="p-1 rounded hover:bg-white/5"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            <ArrowLeft size={14} aria-hidden="true" />
           </Link>
           <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
             {MONTH_NAMES[month - 1]} {year}
           </span>
-          <Link href={nextLink} className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
-            <ArrowRight size={14} />
+          <Link
+            href={nextLink}
+            aria-label="Sonraki ay"
+            className="p-1 rounded hover:bg-white/5"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </div>
       </div>

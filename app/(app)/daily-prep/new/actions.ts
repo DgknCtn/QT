@@ -3,8 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { ensureUser, requireUserId } from "@/lib/auth";
 import { economicEventScope } from "@/lib/economic-events";
+import { tradingDayRange } from "@/lib/time/trading-day";
 import type { PrepFormData } from "./types";
 import type { PrepCarryOver } from "@/lib/prep/carry-over";
+import { assertDecisionAllowed } from "@/lib/prep/go-rules";
 import type { LevelType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -17,11 +19,17 @@ export type CalendarEventItem = {
   userRiskTag: string | null;
 };
 
-export async function getCalendarEventsForDate(userId: string, date: Date): Promise<CalendarEventItem[]> {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+/**
+ * Bu dosya `"use server"`, yani her export çağrılabilir bir endpoint.
+ * `userId` bir zamanlar parametreydi ve doğrulanmıyordu — kimliği doğrulanmış
+ * herhangi biri başkasının id'sini geçip onun takvim kayıtlarını okuyabiliyordu.
+ * Kimlik artık oturumdan türetiliyor; her iki çağıran da zaten oturumdaydı.
+ */
+export async function getCalendarEventsForDate(date: Date): Promise<CalendarEventItem[]> {
+  const userId = await requireUserId();
+  // Haberin hangi gune dustugu piyasa gunune gore belirlenir; `setHours`
+  // sunucunun saat dilimine bagliydi ve DST gecislerinde ayrica kayiyordu.
+  const { start, end } = tradingDayRange(date);
 
   const events = await prisma.economicEvent.findMany({
     where: { ...economicEventScope(userId), dateTime: { gte: start, lte: end } },
@@ -169,6 +177,11 @@ export async function updateDailyPrep(prepId: string, data: PrepFormData): Promi
   // Derive userId from the authenticated session, not a client-supplied argument.
   const userId = await requireUserId();
 
+  // Karar kurallari sunucuda yeniden calisiyor. Istemcideki kilit yalnizca
+  // arayuz kolayligidir: kullanici GO secip geri donup stop'u silerse secim
+  // state'te kaliyor, ayrica "use server" action'i dogrudan cagrilabiliyor.
+  if (data.goNoGoStatus) assertDecisionAllowed(data, data.goNoGoStatus);
+
   const completionScore = computeCompletionScore(data);
 
   await prisma.dailyPrep.updateMany({
@@ -216,6 +229,11 @@ export async function updateDailyPrep(prepId: string, data: PrepFormData): Promi
 
 export async function saveDailyPrep(data: PrepFormData): Promise<void> {
   const { id: userId } = await ensureUser();
+
+  // Karar kurallari sunucuda yeniden calisiyor. Istemcideki kilit yalnizca
+  // arayuz kolayligidir: kullanici GO secip geri donup stop'u silerse secim
+  // state'te kaliyor, ayrica "use server" action'i dogrudan cagrilabiliyor.
+  if (data.goNoGoStatus) assertDecisionAllowed(data, data.goNoGoStatus);
 
   const completionScore = computeCompletionScore(data);
 

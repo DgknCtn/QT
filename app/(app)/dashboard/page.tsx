@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { economicEventScope } from "@/lib/economic-events";
 import Link from "next/link";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
+import { tradingDayRange } from "@/lib/time/trading-day";
 import {
   TrendingUp,
   AlertTriangle,
@@ -10,6 +11,10 @@ import {
 } from "lucide-react";
 import { MarketClockPanel } from "@/components/market-clock/market-clock-panel";
 import { GoNoGoBadge } from "@/components/ui-kit/badge";
+import { RiskGuardPanel } from "@/components/risk/risk-guard-panel";
+import { computeGuardState } from "@/lib/risk/guard";
+import { formatUsd } from "@/lib/money";
+import { tracked, failed } from "@/lib/data-quality";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -17,13 +22,17 @@ export default async function DashboardPage() {
   const greeting = getGreeting();
 
   const now = new Date();
-  const todayStart = startOfDay(now);
-  const todayEnd = endOfDay(now);
+  // Gun siniri piyasa gunune (ET) gore. `startOfDay` sunucunun saat dilimini
+  // kullaniyordu: sunucu UTC'de, kullanici UTC+3'te, piyasa ET'de oldugu icin
+  // ayni islem uc farkli "bugun"e dusebiliyordu.
+  const { start: todayStart, end: todayEnd } = tradingDayRange(now);
 
   const [
     todayPrep,
     todayTrades,
     todayEvents,
+    guardTrades,
+    limits,
   ] = user
     ? await Promise.all([
         prisma.dailyPrep.findFirst({
@@ -38,8 +47,45 @@ export default async function DashboardPage() {
           where: { ...economicEventScope(user.id), dateTime: { gte: todayStart, lte: todayEnd } },
           orderBy: { dateTime: "asc" },
         }).catch(() => []),
+        // Risk Guard gerçek broker P&L'ine bakar, manuel günlüğe değil:
+        // durma kararı gerçekleşen zarara göre verilmeli.
+        // Risk Guard'in verisi hata yutmadan geliyor: "islem yok" ile
+        // "veri alinamadi" ayni sey degil ve ikincisinde panel guvenli
+        // durum gostermemeli.
+        tracked(
+          prisma.brokerTrade.findMany({
+            where: { userId: user.id, exitTime: { gte: todayStart, lte: todayEnd } },
+            select: { entryTime: true, exitTime: true, netPnl: true },
+          }),
+          [] as { entryTime: Date; exitTime: Date; netPnl: number | null }[],
+        ),
+        prisma.user.findUnique({
+          where: { id: user.id },
+          select: { dailyLossLimitUsd: true, maxConsecutiveLosses: true },
+        }).catch(() => null),
       ])
-    : [null, [], []];
+    : [null, [], [], failed<{ entryTime: Date; exitTime: Date; netPnl: number | null }[]>([]), null];
+
+  // Risk panelinin kapsadigi son an. CSV ile beslenen veride son import'tan
+  // sonraki islemler sistemde yok; kullanici neye baktigini bilmeli.
+  const lastImported = user
+    ? await prisma.brokerTrade
+        .findFirst({
+          where: { userId: user.id },
+          orderBy: { exitTime: "desc" },
+          select: { exitTime: true },
+        })
+        .catch(() => null)
+    : null;
+
+  const guardState = computeGuardState(
+    guardTrades.value,
+    {
+      dailyLossLimitUsd: limits?.dailyLossLimitUsd ?? 0,
+      maxConsecutiveLosses: limits?.maxConsecutiveLosses ?? 0,
+    },
+    now
+  );
 
   const todayPnl = todayTrades.reduce((s, t) => s + (t.pnlCurrency ?? 0), 0);
   const hasTodayTrades = todayTrades.length > 0;
@@ -48,6 +94,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      <RiskGuardPanel
+        state={guardState}
+        dataStatus={guardTrades.status}
+        coveredUntil={lastImported?.exitTime ?? null}
+      />
+
       {/* Header */}
       <div>
         <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>
@@ -160,7 +212,7 @@ export default async function DashboardPage() {
         <div className="rounded-xl p-4 border" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
           <p className="text-xs mb-1 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Today&apos;s P&amp;L</p>
           <p className="text-2xl font-bold" style={{ color: hasTodayTrades ? (todayPnl > 0 ? "#34c97e" : todayPnl < 0 ? "#ef4444" : "var(--color-text-primary)") : "var(--color-text-muted)" }}>
-            {hasTodayTrades ? `${todayPnl >= 0 ? "+" : ""}$${Math.abs(todayPnl).toFixed(0)}` : "—"}
+            {hasTodayTrades ? formatUsd(todayPnl, { decimals: 0, signed: true }) : "—"}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
             {hasTodayTrades ? `${todayTrades.length} trade` : "no trades today"}

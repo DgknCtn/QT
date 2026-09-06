@@ -2,27 +2,10 @@
 
 import { useState } from "react";
 import { useStoredValue, writeStoredValue } from "@/lib/use-stored-value";
-
-const INSTRUMENTS: Record<string, { label: string; dollarPerPoint: number; tickSize: number; dollarPerTick: number; type: "futures" | "forex" | "crypto"; unit?: string }> = {
-  NQ:      { label: "NQ  (Nasdaq Futures)",    dollarPerPoint: 20,   tickSize: 0.25,   dollarPerTick: 5,     type: "futures" },
-  ES:      { label: "ES  (S&P 500 Futures)",   dollarPerPoint: 50,   tickSize: 0.25,   dollarPerTick: 12.5,  type: "futures" },
-  YM:      { label: "YM  (Dow Futures)",       dollarPerPoint: 5,    tickSize: 1,      dollarPerTick: 5,     type: "futures" },
-  RTY:     { label: "RTY (Russell Futures)",   dollarPerPoint: 50,   tickSize: 0.10,   dollarPerTick: 5,     type: "futures" },
-  MNQ:     { label: "MNQ (Micro Nasdaq)",      dollarPerPoint: 2,    tickSize: 0.25,   dollarPerTick: 0.5,   type: "futures" },
-  MES:     { label: "MES (Micro S&P)",         dollarPerPoint: 5,    tickSize: 0.25,   dollarPerTick: 1.25,  type: "futures" },
-  MYM:     { label: "MYM (Micro Dow)",         dollarPerPoint: 0.5,  tickSize: 1,      dollarPerTick: 0.5,   type: "futures" },
-  M2K:     { label: "M2K (Micro Russell)",     dollarPerPoint: 5,    tickSize: 0.10,   dollarPerTick: 0.5,   type: "futures" },
-  EURUSD:  { label: "EUR/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,     type: "forex" },
-  GBPUSD:  { label: "GBP/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,     type: "forex" },
-  AUDUSD:  { label: "AUD/USD",                 dollarPerPoint: 10,   tickSize: 0.0001, dollarPerTick: 1,     type: "forex" },
-  USDJPY:  { label: "USD/JPY",                 dollarPerPoint: 10,   tickSize: 0.01,   dollarPerTick: 1,     type: "forex" },
-  BTC:     { label: "BTC (Bitcoin)",           dollarPerPoint: 1,    tickSize: 1,      dollarPerTick: 1,     type: "crypto", unit: "BTC" },
-  ETH:     { label: "ETH (Ethereum)",          dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "ETH" },
-  SOL:     { label: "SOL (Solana)",            dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "SOL" },
-  BNB:     { label: "BNB",                     dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "BNB" },
-  XRP:     { label: "XRP (Ripple)",            dollarPerPoint: 1,    tickSize: 0.0001, dollarPerTick: 0.0001, type: "crypto", unit: "XRP" },
-  AVAX:    { label: "AVAX (Avalanche)",        dollarPerPoint: 1,    tickSize: 0.01,   dollarPerTick: 0.01,  type: "crypto", unit: "AVAX" },
-};
+import {
+  INSTRUMENTS, positionSize, usdPerTick, usdPerPricePoint, qtyDecimals,
+} from "@/lib/units/instruments";
+import { formatUsd } from "@/lib/money";
 
 const QUICK_RISKS = [0.5, 1, 1.5, 2];
 
@@ -53,33 +36,32 @@ export default function RiskCalculatorPage() {
     !isNaN(stopNum)    && stopNum > 0 &&
     entryNum !== stopNum;
 
-  const isCrypto = inst.type === "crypto";
-  const tickDecimals = (inst.tickSize.toString().split(".")[1] ?? "").length;
-  const contractDecimals = isCrypto ? 4 : 2;
-  const rTargetDecimals = isCrypto
-    ? Math.max(2, tickDecimals)
-    : instrument === "EURUSD" || instrument === "GBPUSD" || instrument === "AUDUSD"
-      ? 5
-      : instrument === "USDJPY" ? 3 : 2;
+  const contractDecimals = qtyDecimals(inst);
+  const rTargetDecimals = inst.priceDecimals;
 
   let riskDollar = 0;
   let pointsToStop = 0;
-  let contracts = 0;
-  let contractsFloor = 0;
   let direction: "LONG" | "SHORT" = "LONG";
+  // Birim modeli hesabı yapıyor; sayfa yalnızca sonucu gösteriyor.
+  // Eskiden burada futures/forex/kripto tek formülden geçiyordu ve forex'te
+  // lot yerine "10.000 kontrat" çıkıyordu.
+  let size: ReturnType<typeof positionSize> = null;
   const rTargets: { label: string; price: number }[] = [];
 
   if (valid) {
     riskDollar   = balanceNum * (riskPctNum / 100);
     pointsToStop = Math.abs(entryNum - stopNum);
-    contracts    = riskDollar / (pointsToStop * inst.dollarPerPoint);
-    contractsFloor = Math.floor(contracts);
     direction    = entryNum > stopNum ? "LONG" : "SHORT";
+    size         = positionSize(inst, riskDollar, entryNum, stopNum);
     const rUnit  = entryNum - stopNum;
     for (let r = 1; r <= 3; r++) {
       rTargets.push({ label: `${r}R`, price: entryNum + rUnit * r });
     }
   }
+
+  const qty = size?.qty ?? 0;
+  const rawQty = size?.rawQty ?? 0;
+  const perPointUsd = valid ? usdPerPricePoint(inst, entryNum) : inst.quotePerPricePoint;
 
   const inputCls = "w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors";
   const inputStyle = {
@@ -171,7 +153,8 @@ export default function RiskCalculatorPage() {
             </optgroup>
           </select>
           <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
-            {inst.dollarPerPoint}$/puan · tick: {inst.tickSize} · tick değeri: ${inst.dollarPerTick}
+            {formatUsd(perPointUsd)}/puan · tick: {inst.tickSize} · tick değeri: {formatUsd(usdPerTick(inst, valid ? entryNum : 1))}
+            {inst.quoteCurrency !== "USD" && inst.quoteCurrency !== "USDT" && " (kura göre)"}
           </p>
         </div>
 
@@ -224,9 +207,9 @@ export default function RiskCalculatorPage() {
           {/* Summary row */}
           <div className="grid grid-cols-3 gap-3 text-center">
             {[
-              { label: "Risk ($)", value: `$${fmt(riskDollar)}` },
-              { label: "Stop (puan)", value: fmt(pointsToStop, 2) },
-              { label: "$/Puan", value: `$${inst.dollarPerPoint}` },
+              { label: "Risk ($)", value: formatUsd(riskDollar) },
+              { label: "Stop (puan)", value: fmt(pointsToStop, rTargetDecimals) },
+              { label: "$/Puan", value: formatUsd(perPointUsd) },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-lg py-3" style={{ background: "var(--color-bg-surface)" }}>
                 <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>{label}</p>
@@ -238,21 +221,25 @@ export default function RiskCalculatorPage() {
           {/* Contract result — hero */}
           <div className="rounded-xl p-4 text-center" style={{ background: "rgba(99,102,241,0.1)", border: "1px solid var(--color-accent)" }}>
             <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
-              {isCrypto ? "Hesaplanan Miktar" : "Hesaplanan Kontrat"}
+              Hesaplanan Pozisyon Büyüklüğü
             </p>
             <p className="text-4xl font-black font-mono" style={{ color: "var(--color-accent)" }}>
-              {fmt(contracts, contractDecimals)}
+              {fmt(qty, contractDecimals)}
             </p>
             <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-              {isCrypto ? (
-                <>→ <strong style={{ color: "var(--color-text-primary)" }}>{fmt(contracts, 4)} {inst.unit ?? "birim"}</strong></>
-              ) : (
-                <>→ <strong style={{ color: "var(--color-text-primary)" }}>{contractsFloor} tam kontrat</strong>{" "}(aşağı yuvarlandı)</>
-              )}
+              → <strong style={{ color: "var(--color-text-primary)" }}>{fmt(qty, contractDecimals)} {size?.unitLabel ?? ""}</strong>
+              {" "}(işlem adımına aşağı yuvarlandı · ham: {fmt(rawQty, contractDecimals + 2)})
             </p>
-            {!isCrypto && contractsFloor === 0 && contracts > 0 && (
+            {size && (
+              <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                Bu büyüklükte fiili risk: {formatUsd(size.riskAtQtyUsd)} / {formatUsd(riskDollar)} bütçe
+              </p>
+            )}
+            {size?.belowMinimum && (
               <p className="text-xs mt-2" style={{ color: "#f59e0b" }}>
-                ⚠ Minimum 1 kontrat için hesap bakiyeni veya risk%&apos;ini artır
+                ⚠ Bu risk bütçesiyle minimum işlem büyüklüğü ({fmt(inst.minQty, contractDecimals)}{" "}
+                {size.unitLabel}) karşılanmıyor. Mikro kontrat / daha küçük enstrüman
+                değerlendirilebilir; uygun değilse bu işlemi geçmek de geçerli bir karardır.
               </p>
             )}
           </div>
@@ -268,7 +255,7 @@ export default function RiskCalculatorPage() {
                     {fmt(price, rTargetDecimals)}
                   </p>
                   <p className="text-xs" style={{ color: "#34c97e" }}>
-                    +${fmt(Math.abs(price - entryNum) * inst.dollarPerPoint * (isCrypto ? contracts : contractsFloor))}
+                    {formatUsd(Math.abs(price - entryNum) * perPointUsd * qty, { signed: true })}
                   </p>
                 </div>
               ))}

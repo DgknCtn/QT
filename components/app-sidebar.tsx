@@ -7,6 +7,8 @@ import { useIsHydrated, useMediaQuery, useStoredValue, writeStoredValue } from "
 import { Settings, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getNavGroups } from "@/lib/nav";
+import { clearAllPrepDrafts } from "@/lib/use-prep-draft";
+import { clearAppCaches } from "@/lib/offline-cache";
 
 const NAV_GROUPS = getNavGroups();
 
@@ -27,6 +29,11 @@ export function AppSidebar({ mobileOpen = false, onClose }: { mobileOpen?: boole
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    // Oturum kapaninca kullaniciya ait yerel iz de kalmamali: localStorage ve
+    // service worker cache'i oturumdan bagimsiz yasar. Ortak bir cihazda bir
+    // sonraki kisi bunlari gorebiliyordu.
+    clearAllPrepDrafts();
+    await clearAppCaches();
     router.push("/login");
   }
 

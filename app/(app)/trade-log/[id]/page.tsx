@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { TradeDetailForm } from "./trade-detail-form";
+import { JournalLink } from "./journal-link";
+import { formatUsd } from "@/lib/money";
 
 export default async function BrokerTradeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,7 +14,13 @@ export default async function BrokerTradeDetailPage({ params }: { params: Promis
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const trade = await prisma.brokerTrade.findFirst({ where: { id, userId: user.id } });
+  const trade = await prisma.brokerTrade.findFirst({
+    where: { id, userId: user.id },
+    include: {
+      // Bagli plan: setup ve tarih, pozisyonun yaninda gorunsun.
+      trade: { select: { id: true, date: true, instrument: true, setupType: true } },
+    },
+  });
   if (!trade) notFound();
 
   const netPnl = trade.netPnl ?? 0;
@@ -20,8 +28,8 @@ export default async function BrokerTradeDetailPage({ params }: { params: Promis
   return (
     <div className="max-w-3xl mx-auto space-y-4">
       <div className="flex items-center gap-3">
-        <Link href="/trade-log" className="p-1.5 rounded-lg" style={{ color: "var(--color-text-muted)" }}>
-          <ArrowLeft size={16} />
+        <Link href="/trade-log" aria-label="İşlem kayıtlarına dön" className="p-1.5 rounded-lg" style={{ color: "var(--color-text-muted)" }}>
+          <ArrowLeft size={16} aria-hidden="true" />
         </Link>
         <div>
           <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
@@ -38,7 +46,7 @@ export default async function BrokerTradeDetailPage({ params }: { params: Promis
           <div>
             <p className="text-xs uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Net P&L</p>
             <p className="text-3xl font-black" style={{ color: netPnl >= 0 ? "var(--color-success)" : "var(--color-danger)" }}>
-              {netPnl >= 0 ? "+" : ""}${netPnl.toFixed(2)}
+              {formatUsd(netPnl, { signed: true })}
             </p>
           </div>
           <div className="text-right text-xs" style={{ color: "var(--color-text-muted)" }}>
@@ -63,11 +71,13 @@ export default async function BrokerTradeDetailPage({ params }: { params: Promis
           <div>
             <p style={{ color: "var(--color-text-muted)" }}>Komisyon/Fee</p>
             <p className="font-mono font-semibold" style={{ color: "var(--color-text-primary)" }}>
-              ${((trade.commission ?? 0) + (trade.fees ?? 0)).toFixed(2)}
+              {formatUsd((trade.commission ?? 0) + (trade.fees ?? 0))}
             </p>
           </div>
         </div>
       </div>
+
+      <JournalLink brokerTradeId={trade.id} linked={trade.trade} />
 
       <TradeDetailForm
         tradeId={trade.id}

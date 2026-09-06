@@ -4,37 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { ensureUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { assertValidTrade } from "@/lib/schemas/trade";
+import { computeProcessScore } from "@/lib/journal/process-score";
+import { assertOwnsDailyPrep } from "@/lib/auth/assert-owns";
 
 function e<T>(v: string | undefined): T | undefined {
   return v && v.trim() !== "" ? (v as unknown as T) : undefined;
 }
 
-function computeProcessScore(form: Record<string, unknown>, mistakeTags: string[]): { score: number; grade: string } {
-  let s = 0;
-  if (form.dailyPrepId) s += 2;
-  if (form.setupType && form.setupType !== "CUSTOM") s += 2;
-  if (form.entryPrice && form.stopPrice) s += 1;
-  if (form.tp1) s += 1;
-  if (form.riskPercent) s += 1;
-  if (form.goStatusAtEntry === "GO") s += 2;
-  if (form.planFollowed === "YES") s += 2;
-
-  if (mistakeTags.includes("FOMO")) s -= 2;
-  if (!form.stopPrice) s -= 5;
-  if (!form.tp1 && form.result === "WIN") s -= 1;
-  if (form.goStatusAtEntry === "NO_GO_BUT_ENTERED") s -= 3;
-  if (mistakeTags.includes("News ignored")) s -= 3;
-  if (mistakeTags.includes("No HTF narrative")) s -= 2;
-  if (mistakeTags.includes("Wrong TF alignment")) s -= 2;
-
-  const grade =
-    s >= 10 ? "A_PLUS" :
-    s >= 6  ? "B" :
-    s >= 3  ? "C" :
-    "RULE_BREAK";
-
-  return { score: s, grade };
-}
 
 export async function saveTrade(
   form: Record<string, unknown>,
@@ -44,6 +20,10 @@ export async function saveTrade(
   // otherwise a client could write trades into someone else's journal.
   const { id: userId } = await ensureUser();
   assertValidTrade(form);
+
+  // Bagli prep'in bu kullaniciya ait oldugu, iliski kurulmadan once dogrulanir.
+  // Trade'in kendi userId filtresi bu iliskiyi korumuyor.
+  const ownedPrepId = await assertOwnsDailyPrep(userId, form.dailyPrepId as string | undefined);
 
   const mistakeTags = (form.mistakeTags as string[]) ?? [];
   const positiveTags = (form.positiveTags as string[]) ?? [];
@@ -75,7 +55,7 @@ export async function saveTrade(
       processGrade: grade as "A_PLUS" | "B" | "C" | "RULE_BREAK" | "UNREVIEWED",
       planFollowed: e(form.planFollowed as string) ?? null,
       goStatusAtEntry: e(form.goStatusAtEntry as string) ?? null,
-      dailyPrepId: (form.dailyPrepId as string) || null,
+      dailyPrepId: ownedPrepId,
       notes: (form.notes as string) || null,
     },
   });

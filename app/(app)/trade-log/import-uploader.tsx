@@ -6,6 +6,7 @@ import { parseImportFile, commitImport } from "./actions";
 import { guessUtcOffsetFromFilename } from "@/lib/broker/utc-offset";
 import type { ParsedTradeRow } from "@/lib/broker/parsed-row";
 import { BROKER_SOURCES, type BrokerSource } from "@/lib/broker/sources";
+import { formatUsd } from "@/lib/money";
 
 /** Kripto export'larının saatleri offset taşımaz; kullanıcı seçebilmeli. */
 const UTC_OFFSETS = [-8, -5, -4, 0, 1, 2, 3, 4, 5, 7, 8, 9];
@@ -223,7 +224,25 @@ export function ImportUploader({
                       <td className="py-1.5 pr-3 text-right font-mono" style={{ color: "var(--color-text-secondary)" }}>{r.entryPrice}</td>
                       <td className="py-1.5 pr-3 text-right font-mono" style={{ color: "var(--color-text-secondary)" }}>{r.exitPrice}</td>
                       <td className="py-1.5 pr-3 text-right font-mono" style={{ color: r.needsManualPnl ? "var(--color-warning)" : (r.netPnl ?? 0) >= 0 ? "var(--color-success)" : "var(--color-danger)" }}>
-                        {r.needsManualPnl ? "manuel gerekli" : `${(r.netPnl ?? 0) >= 0 ? "+" : ""}$${(r.netPnl ?? 0).toFixed(2)}`}
+                        {r.needsManualPnl ? "manuel gerekli" : formatUsd(r.netPnl, { signed: true })}
+                        {/* "Sonuc kesin" ile "sonuc yaklasik" ayri seyler:
+                            donusturulemeyen komisyon veya eksik funding varsa
+                            kullanici bunu rakamin yaninda gormeli. */}
+                        {r.costDataIncomplete && !r.needsManualPnl && (
+                          <span
+                            className="ml-1 cursor-help"
+                            style={{ color: "var(--color-warning)" }}
+                            title={
+                              r.uncountedFees && Object.keys(r.uncountedFees).length > 0
+                                ? `Eksik maliyet verisi: ${Object.entries(r.uncountedFees)
+                                    .map(([a, v]) => `${v} ${a}`)
+                                    .join(", ")} komisyonu kur bilgisi olmadığı için düşülmedi.`
+                                : "Eksik maliyet verisi: funding bu export'ta yok."
+                            }
+                          >
+                            ~
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

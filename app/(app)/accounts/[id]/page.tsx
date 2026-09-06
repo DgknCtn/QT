@@ -37,8 +37,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Back + Header */}
       <div className="flex items-center gap-3">
-        <Link href="/accounts" className="p-1.5 rounded-lg" style={{ color: "var(--color-text-muted)", border: "1px solid var(--color-bg-border)" }}>
-          <ArrowLeft size={16} />
+        <Link href="/accounts" aria-label="Hesaplara dön" className="p-1.5 rounded-lg" style={{ color: "var(--color-text-muted)", border: "1px solid var(--color-bg-border)" }}>
+          <ArrowLeft size={16} aria-hidden="true" />
         </Link>
         <div>
           <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>

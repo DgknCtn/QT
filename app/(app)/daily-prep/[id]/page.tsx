@@ -50,8 +50,9 @@ export default async function DailyPrepDetailPage({ params }: { params: Promise<
           href="/daily-prep"
           className="p-1.5 rounded-lg transition-colors"
           style={{ color: "var(--color-text-muted)" }}
+          aria-label="Daily Prep listesine dön"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={16} aria-hidden="true" />
         </Link>
         <div>
           <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>

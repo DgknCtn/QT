@@ -6,16 +6,27 @@ import { ArrowLeft, ArrowRight, Download } from "lucide-react";
 import { CumulativeRChart } from "./cumulative-r-chart";
 import { PnlHeatmap } from "./pnl-heatmap";
 import { StatCard } from "@/components/ui-kit/stat-card";
+import { DiagnosticsPanel } from "@/components/risk/diagnostics-panel";
+import { computePerformance, computeAfterLoss } from "@/lib/risk/performance";
+import { formatUsd } from "@/lib/money";
+import { maxDrawdownR } from "@/lib/risk/drawdown";
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
 type Trade = Awaited<ReturnType<typeof loadTrades>>[number];
 
-async function loadTrades(userId: string) {
+/**
+ * Dönem filtresi SQL'e taşındı.
+ *
+ * Sorgu eskiden koşulsuz `take: 200` yapıyor, istatistikler de JS'te o 200
+ * satır üstünde hesaplanıyordu — sayfadaki "tümü" seçeneği sessizce yalan
+ * söylüyordu. Sınır artık dönemin kendisi; üst sınır yalnızca kaza koruması.
+ */
+async function loadTrades(userId: string, since: Date | null) {
   return prisma.trade.findMany({
-    where: { userId },
+    where: { userId, ...(since ? { date: { gte: since } } : {}) },
     orderBy: { date: "desc" },
-    take: 200,
+    take: 5000,
     select: {
       id: true,
       date: true,
@@ -43,17 +54,6 @@ function avgR(trades: Trade[]) {
   const active = trades.filter((t) => t.rResult != null);
   if (!active.length) return null;
   return (active.reduce((s, t) => s + (t.rResult ?? 0), 0) / active.length).toFixed(2);
-}
-
-function maxDrawdownR(chronoRCurve: { cumR: number }[]): number {
-  let peak = -Infinity;
-  let dd = 0;
-  for (const p of chronoRCurve) {
-    if (p.cumR > peak) peak = p.cumR;
-    const cur = peak - p.cumR;
-    if (cur > dd) dd = cur;
-  }
-  return dd;
 }
 
 type Period = "all" | "week" | "month" | "30d" | "90d";
@@ -109,7 +109,7 @@ export default async function AnalyticsPage({
       <div className="max-w-4xl mx-auto">
         <div className="rounded-xl border flex flex-col items-center justify-center py-16 gap-3"
           style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>No trades yet. Log your first trade to see analytics.</p>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Henüz işlem yok. Analiz için önce bir işlem kaydet ya da broker CSV’si içe aktar.</p>
           <Link href="/journal/new" className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "#fff" }}>
             Log trade
           </Link>
@@ -118,13 +118,29 @@ export default async function AnalyticsPage({
     );
   }
 
-  const trades = await loadTrades(user.id);
-  if (trades.length === 0) {
+  const pStart = periodStart(period);
+
+  // Gerçek broker pozisyonları — manuel günlükten bağımsız. Analytics bugüne
+  // kadar yalnızca `Trade` okuyordu, yani içe aktarılan gerçek P&L'e kördü.
+  const [trades, brokerTrades] = await Promise.all([
+    loadTrades(user.id, pStart),
+    prisma.brokerTrade.findMany({
+      where: { userId: user.id, ...(pStart ? { exitTime: { gte: pStart } } : {}) },
+      // entryTime de cekiliyor: "kayiptan sonra acilan islem" olcumu acilis
+      // anina bakmadan dogru olamaz (bkz. lib/risk/performance.ts).
+      select: { netPnl: true, exitTime: true, entryTime: true },
+    }),
+  ]);
+
+  const perf = computePerformance(brokerTrades);
+  const afterLoss = computeAfterLoss(brokerTrades);
+
+  if (trades.length === 0 && perf.count === 0) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="rounded-xl border flex flex-col items-center justify-center py-16 gap-3"
           style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
-          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>No trades yet. Log your first trade to see analytics.</p>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Henüz işlem yok. Analiz için önce bir işlem kaydet ya da broker CSV’si içe aktar.</p>
           <Link href="/journal/new" className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "var(--color-accent)", color: "#fff" }}>
             Log trade
           </Link>
@@ -133,9 +149,8 @@ export default async function AnalyticsPage({
     );
   }
 
-  // ── Period filter ──
-  const pStart = periodStart(period);
-  const ft = pStart ? trades.filter((t) => new Date(t.date) >= pStart) : trades;
+  // Dönem filtresi sorguda uygulandı; burada yeniden süzmeye gerek yok.
+  const ft = trades;
 
   // ── Overall stats (filtered) ──
   const wr = winRate(ft);
@@ -272,11 +287,24 @@ export default async function AnalyticsPage({
         );
       })()}
 
-      {/* Overall stats row */}
+      {/* Overall stats row.
+          Bu satirin tamami MANUEL journal kayitlarindan hesaplanir. Broker'dan
+          ice aktarilan gercek pozisyonlar asagidaki "Gercek sonuclar" panelinde.
+          Etiket olmadan, yalnizca broker verisi yukleyen bir kullanici bu
+          kartlari kendi gercek sonucu saniyordu. */}
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          Manuel günlük
+        </h2>
+        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          {ft.length} kayıt · kendi girdiğin plan ve sonuçlar
+          {perf.count > 0 && ` · ${perf.count} içe aktarılmış pozisyon ayrıca aşağıda`}
+        </span>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Win Rate" value={wr != null ? `${wr}%` : null} sub={`${active.length} trade`} />
         <StatCard label="Avg R" value={ar} sub={`Toplam: ${totalR >= 0 ? "+" : ""}${totalR.toFixed(1)}R`} />
-        <StatCard label="Net P&L" value={`${totalPnl >= 0 ? "+" : ""}$${Math.abs(totalPnl).toFixed(0)}`} sub={`${ft.length} toplam trade`} />
+        <StatCard label="Net P&L" value={formatUsd(totalPnl, { decimals: 0, signed: true })} sub={`${ft.length} toplam trade`} />
         <StatCard
           label="Max Drawdown"
           value={rCurve.length > 0 ? `${mdd.toFixed(1)}R` : null}
@@ -284,6 +312,11 @@ export default async function AnalyticsPage({
           valueColor={mdd > 0 ? "#ef4444" : undefined}
         />
       </div>
+
+      {/* Gercek broker sonuclari. Panel hesaplaniyor ve import ediliyordu ama
+          JSX'e hic konmamisti; ana KPI'lar manuel veriden geldigi icin ice
+          aktarilmis gercek P&L hicbir yerde gorunmuyordu. */}
+      <DiagnosticsPanel perf={perf} afterLoss={afterLoss} />
 
       {/* Cumulative R chart */}
       <div className="rounded-xl border p-5" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-bg-border)" }}>
@@ -304,15 +337,15 @@ export default async function AnalyticsPage({
             P&L Takvimi
           </h3>
           <div className="flex items-center gap-3">
-            <Link href={prevHmLink} className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
-              <ArrowLeft size={14} />
+            <Link href={prevHmLink} aria-label="Önceki ay" className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
+              <ArrowLeft size={14} aria-hidden="true" />
             </Link>
             <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
               {monthNames[hmMonth - 1]} {hmYear}
             </span>
             {!isCurrentMonth && (
-              <Link href={nextHmLink} className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
-                <ArrowRight size={14} />
+              <Link href={nextHmLink} aria-label="Sonraki ay" className="p-1 rounded hover:bg-white/5" style={{ color: "var(--color-text-muted)" }}>
+                <ArrowRight size={14} aria-hidden="true" />
               </Link>
             )}
           </div>
@@ -347,7 +380,7 @@ export default async function AnalyticsPage({
                     {row.ar != null ? `${parseFloat(row.ar) >= 0 ? "+" : ""}${row.ar}R` : "—"}
                   </td>
                   <td className="py-2 px-3 text-right font-medium" style={{ color: row.totalPnl >= 0 ? "#34c97e" : "#ef4444" }}>
-                    {row.totalPnl >= 0 ? "+" : ""}${Math.abs(row.totalPnl).toFixed(0)}
+                    {formatUsd(row.totalPnl, { decimals: 0, signed: true })}
                   </td>
                   <td className="py-2 px-3 text-right" style={{ color: "var(--color-text-muted)" }}>
                     <span style={{ color: "var(--color-long)" }}>{row.longs}L</span>

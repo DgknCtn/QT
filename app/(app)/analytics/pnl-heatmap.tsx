@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { formatUsd } from "@/lib/money";
 
 interface HeatmapTrade {
   id: string;
@@ -28,7 +29,7 @@ interface Props {
 }
 
 function fmt$(n: number) {
-  return `${n >= 0 ? "+" : ""}$${Math.abs(n).toFixed(0)}`;
+  return formatUsd(n, { decimals: 0, signed: true });
 }
 
 export function PnlHeatmap({ days, year, month }: Props) {

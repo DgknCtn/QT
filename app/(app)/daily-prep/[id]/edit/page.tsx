@@ -15,7 +15,7 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
   const prep = await prisma.dailyPrep.findFirst({ where: { id, userId: user.id } });
   if (!prep) notFound();
 
-  const calendarEvents = await getCalendarEventsForDate(user.id, new Date(prep.date));
+  const calendarEvents = await getCalendarEventsForDate(new Date(prep.date));
 
   const trueOpens = (prep.trueOpenSummary as Record<string, TrueOpenEntry> | null) ?? {
     TYO:  { price: "", position: "", interpretation: "", notes: "" },
@@ -99,6 +99,7 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
       mainDol:     String(entryRaw?.mainDol ?? ""),
       riskPercent: String(entryRaw?.riskPercent ?? ""),
       riskUsd:     String(entryRaw?.riskUsd ?? ""),
+      plannedEntryTime: String(entryRaw?.plannedEntryTime ?? ""),
     },
     goNoGoStatus: prep.goNoGoStatus ?? "",
     goNoGoReason: prep.goNoGoReason ?? "",
@@ -122,6 +123,7 @@ export default async function EditPrepPage({ params }: { params: Promise<{ id: s
         calendarEvents={calendarEvents}
         initialData={initialData}
         prepId={id}
+        userId={user.id}
       />
     </div>
   );

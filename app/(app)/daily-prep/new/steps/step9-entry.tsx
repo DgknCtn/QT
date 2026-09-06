@@ -142,6 +142,17 @@ export function Step9Entry({ data, update }: Props) {
           <label className="step-label">Risk (USD)</label>
           <input type="number" step="1" min="0" value={entry.riskUsd} onChange={(e) => upd(data, update, "riskUsd", e.target.value)} placeholder="100" className="field-input w-28" />
         </div>
+        <div>
+          <label className="step-label">Planlanan giriş saati (ET)</label>
+          {/* Haber engeli bunu kullanir: etiket degil, girisle haber
+              arasindaki gercek mesafe karar verir. */}
+          <input
+            type="time"
+            value={entry.plannedEntryTime}
+            onChange={(e) => upd(data, update, "plannedEntryTime", e.target.value)}
+            className="field-input w-28"
+          />
+        </div>
         <div className="pb-1">
           <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>Est. RR (to TP1)</p>
           <p className="text-lg font-bold" style={{ color: rrDisplay === "—" ? "var(--color-text-muted)" : "var(--color-success)" }}>

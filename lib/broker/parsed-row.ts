@@ -20,6 +20,21 @@ export type ParsedTradeRow = {
   commission: number | null;
   fees: number | null;
   netPnl: number | null;
+  /**
+   * Quote currency (USDT/USD) disinda odenmis, bu yuzden netPnl'den
+   * dusulmemis komisyonlar: `{ BNB: 0.0041 }`.
+   *
+   * Eskiden BNB cinsinden bir fee dogrudan USDT karindan cikariliyordu —
+   * birim olarak gecersiz bir islem. Artik miktar ve para birimi ayri
+   * korunuyor; kur donusumu olmadan netPnl'e karistirilmiyor.
+   */
+  uncountedFees?: Record<string, number>;
+  /**
+   * netPnl bilinen maliyetlerin tamamini icermiyor (donusturulemeyen komisyon,
+   * eksik funding verisi...). Arayuz bunu rozet olarak gostermeli: "sonuc
+   * kesin" ile "sonuc yaklasik" ayri seylerdir.
+   */
+  costDataIncomplete?: boolean;
   externalRef: string;
   /** Broker P&L vermediği için kullanıcıdan beklenen durum (Tradovate). */
   needsManualPnl: boolean;

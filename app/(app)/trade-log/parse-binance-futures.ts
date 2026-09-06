@@ -5,6 +5,9 @@ import { resolveQuarter, type QIndex } from "@/lib/market-clock/quarters";
 import { toBaseAsset } from "@/lib/broker/symbols";
 import type { ParsedTradeRow, ParseResult } from "@/lib/broker/parsed-row";
 
+/** Binance USD-M futures'ta P&L ve bakiye bu birimde tutulur. */
+const QUOTE_CURRENCY = "USDT";
+
 // Testler tek yerden import edebilsin diye yeniden dışa veriliyor; asıl tanım
 // client tarafından da kullanıldığı için ayrı dosyada.
 export { guessUtcOffsetFromFilename } from "@/lib/broker/utc-offset";
@@ -137,7 +140,9 @@ export function parseBinanceFuturesCsv(
   if (badRows > 0) warnings.push(`${badRows} satır okunamadı ve atlandı.`);
   if (nonUsdtFeeAssets.size > 0) {
     warnings.push(
-      `Bazı fee'ler USDT dışında ödenmiş (${[...nonUsdtFeeAssets].join(", ")}) — o satırlarda net P&L eksik hesaplanır.`
+      `Bazı fee'ler USDT dışında ödenmiş (${[...nonUsdtFeeAssets].join(", ")}). ` +
+      `Kur bilgisi olmadığı için bu tutarlar net P&L'den düşülmedi; ilgili ` +
+      `satırlar "eksik maliyet verisi" olarak işaretlendi.`
     );
   }
   if (fills.length === 0) {
@@ -202,7 +207,22 @@ function buildRow(cycle: BinanceFill[]): ParsedTradeRow {
 
   // Binance kâr/zararı kendisi realize eder; kontrat çarpanı tahminine gerek yok.
   const grossPnl = cycle.reduce((s, f) => s + f.realizedProfit, 0);
-  const fees = cycle.reduce((s, f) => s + f.fee, 0);
+
+  // Komisyonlar para birimine gore ayriliyor. Yalnizca quote currency ile
+  // ayni olanlar netPnl'den dusulebilir; BNB gibi baska bir varlikta odenmis
+  // bir fee'yi USDT karindan cikarmak birim olarak gecersizdir. Kur donusumu
+  // olmadigi icin bu satirlar "eksik maliyet verisi" olarak isaretleniyor.
+  const feesByAsset: Record<string, number> = {};
+  for (const f of cycle) {
+    if (!f.fee) continue;
+    const asset = f.feeAsset || QUOTE_CURRENCY;
+    feesByAsset[asset] = (feesByAsset[asset] ?? 0) + f.fee;
+  }
+  const fees = feesByAsset[QUOTE_CURRENCY] ?? 0;
+  const uncountedFees = Object.fromEntries(
+    Object.entries(feesByAsset).filter(([asset]) => asset !== QUOTE_CURRENCY)
+  );
+  const hasUncounted = Object.keys(uncountedFees).length > 0;
 
   // Pozisyonun açıldığı andaki QT konumu. resolveQuarter hafta sonu ayrımı
   // yapmaz — kripto 7/24 işlem gördüğü için burada istediğimiz de bu.
@@ -232,6 +252,10 @@ function buildRow(cycle: BinanceFill[]): ParsedTradeRow {
     commission: null, // Binance tek bir fee kolonu verir
     fees: fees || null,
     netPnl: grossPnl - fees,
+    ...(hasUncounted ? { uncountedFees } : {}),
+    // Binance bu export'ta funding vermiyor; perp pozisyonlarinda net sonuc
+    // her halukarda eksik maliyet iceriyor.
+    costDataIncomplete: true,
     externalRef,
     needsManualPnl: false,
     fundingFee: null, // Binance funding'i bu export'ta vermiyor

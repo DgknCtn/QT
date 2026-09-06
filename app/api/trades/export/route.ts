@@ -30,7 +30,12 @@ export async function GET() {
     const positives = t.tags.filter((tt) => tt.tag.category === "POSITIVE").map((tt) => tt.tag.name).join("; ");
 
     const esc = (v: unknown) => {
-      const s = v == null ? "" : String(v);
+      let s = v == null ? "" : String(v);
+      // CSV formula injection: Excel/Sheets `=`, `+`, `-`, `@` veya bir kontrol
+      // karakteriyle baslayan hucreyi FORMUL olarak calistirir. Journal notlari
+      // disaridan kopyalanabildigi icin bu icerik kullanicinin kendi verisi
+      // olmayabilir. Tek tirnak oneki hucreyi metne sabitler (OWASP).
+      if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
       return s.includes(",") || s.includes('"') || s.includes("\n")
         ? `"${s.replace(/"/g, '""')}"`
         : s;

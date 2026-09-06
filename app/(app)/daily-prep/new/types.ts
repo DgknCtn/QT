@@ -97,6 +97,13 @@ export type PrepFormData = {
     mainDol: string;
     riskPercent: string;
     riskUsd: string;
+    /**
+     * Planlanan giris saati (HH:mm, piyasa saati). Haber no-trade penceresinin
+     * gercek bir zaman penceresi olarak degerlendirilebilmesi icin gerekli:
+     * eskiden yalnizca haberin etiketi engel uretiyordu, girisin habere
+     * uzakligi hic olculmuyordu.
+     */
+    plannedEntryTime: string;
   };
   // Step 10
   goNoGoStatus: string;
@@ -199,6 +206,7 @@ export function createEmptyPrepForm(): PrepFormData {
       mainDol: "",
       riskPercent: "",
       riskUsd: "",
+      plannedEntryTime: "",
     },
     // Step 10
     goNoGoStatus: "",

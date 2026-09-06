@@ -1,6 +1,7 @@
 "use client";
 
 import type { PrepFormData } from "../types";
+import { evaluateGoBlockers } from "@/lib/prep/go-rules";
 import { CheckCircle2, XCircle, Clock, AlertCircle, MinusCircle } from "lucide-react";
 
 const DECISIONS = [
@@ -18,60 +19,6 @@ type Props = {
   saving: boolean;
 };
 
-function premiumDiscountConflict(data: PrepFormData): string | null {
-  const entries = Object.values(data.trueOpens ?? {}).filter(
-    (t) => t.price && t.price.trim() !== "" && (t.position === "ABOVE" || t.position === "BELOW")
-  );
-  if (entries.length === 0) return null;
-  const allAbove = entries.every((t) => t.position === "ABOVE"); // price above all TOs → premium
-  const allBelow = entries.every((t) => t.position === "BELOW"); // price below all TOs → discount
-  if (data.htfBias === "LONG" && allAbove)
-    return "Long fikri premium bağlamla çelişiyor (fiyat tüm True Open'ların üstünde). Açıkla ya da NO-GO.";
-  if (data.htfBias === "SHORT" && allBelow)
-    return "Short fikri discount bağlamla çelişiyor (fiyat tüm True Open'ların altında). Açıkla ya da NO-GO.";
-  return null;
-}
-
-function noTradeWindowBlock(data: PrepFormData): string | null {
-  const willEnter = data.entry.entryModel && data.entry.entryModel !== "NO_ENTRY";
-  if (!willEnter) return null;
-  const blocking = (data.newsEvents ?? []).find((e) => e.riskTag === "NO_TRADE_WINDOW");
-  if (blocking) return `Haber no-trade penceresinde işlem (${blocking.eventName}). Bu hard NO-GO.`;
-  return null;
-}
-
-function checkHardBlocks(data: PrepFormData): string[] {
-  const blocks: string[] = [];
-  if (!data.htfBias || !data.htfBiasExplanation) blocks.push("HTF narrative incomplete");
-  if (!data.entry.stopPrice && data.entry.entryModel && data.entry.entryModel !== "NO_ENTRY")
-    blocks.push("No stop defined");
-  if (!data.entry.riskPercent && data.entry.entryModel && data.entry.entryModel !== "NO_ENTRY")
-    blocks.push("No risk % defined");
-  if (data.ssmt.formed === "NO" && data.htfBias !== "WAIT" && data.htfBias !== "NEUTRAL")
-    blocks.push("No SSMT / crack on directional idea (reversal risk)");
-  const pd = premiumDiscountConflict(data);
-  if (pd) blocks.push(pd);
-  const ntw = noTradeWindowBlock(data);
-  if (ntw) blocks.push(ntw);
-  return blocks;
-}
-
-function checkSoftWarnings(data: PrepFormData): string[] {
-  const warnings: string[] = [];
-  if (!data.confirmation.confirmationType) warnings.push("No confirmation type selected");
-  if (data.dfr.dfrType && !data.dfr.dfrHigh) warnings.push("DFR type set but no levels entered");
-  if (!data.active90mCycle) warnings.push("90m quarter not selected");
-  if (data.ssmt.formed === "YES") {
-    const behaviors = [data.ssmt.assetABehavior, data.ssmt.assetBBehavior, data.ssmt.assetCBehavior];
-    if (behaviors.some((b) => !b || b.trim() === "")) {
-      warnings.push("Triad korelasyonu eksik (üç asset davranışı işaretlenmemiş)");
-    }
-  }
-  const highRisk = (data.newsEvents ?? []).find((e) => e.riskTag === "HIGH_RISK" || e.impact === "HIGH");
-  if (highRisk) warnings.push(`Yüksek etkili haber var (${highRisk.eventName}) — zamanlamayı gözden geçir`);
-  return warnings;
-}
-
 function buildSummary(data: PrepFormData): string {
   const bias = data.htfBias || "unknown";
   const cycle = data.activeCycleWeekly ? data.activeCycleWeekly.replace(/_/g, " ") : "unknown cycle";
@@ -87,10 +34,10 @@ function buildSummary(data: PrepFormData): string {
 }
 
 export function Step10GoNoGo({ data, update, onSave, saving }: Props) {
-  const hardBlocks = checkHardBlocks(data);
-  const softWarnings = checkSoftWarnings(data);
+  // Kurallar lib/prep/go-rules.ts'te; sunucu kaydetmeden once ayni fonksiyonu
+  // calistiriyor, boylece buradaki kilit ile kayit kurali ayrisamiyor.
+  const { hardBlocks, softWarnings, canGo } = evaluateGoBlockers(data);
   const summary = buildSummary(data);
-  const canGo = hardBlocks.length === 0;
 
   return (
     <div className="space-y-4 pt-3">
@@ -138,7 +85,7 @@ export function Step10GoNoGo({ data, update, onSave, saving }: Props) {
                 onClick={() => update({ goNoGoStatus: value })}
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-semibold transition-colors disabled:opacity-30"
                 style={{
-                  background: selected ? `${color}22` : "var(--color-bg-surface)",
+                  background: selected ? `color-mix(in srgb, ${color} 13%, transparent)` : "var(--color-bg-surface)",
                   borderColor: selected ? color : "var(--color-bg-border)",
                   color: selected ? color : "var(--color-text-muted)",
                 }}
@@ -181,14 +128,20 @@ export function Step10GoNoGo({ data, update, onSave, saving }: Props) {
       <button
         type="button"
         onClick={onSave}
-        disabled={saving || !data.goNoGoStatus}
+        disabled={saving || !data.goNoGoStatus || (data.goNoGoStatus === "GO" && !canGo)}
         className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition-opacity"
         style={{
           background: data.goNoGoStatus === "GO" ? "var(--color-go)" : data.goNoGoStatus === "NO_GO" ? "var(--color-nogo)" : "var(--color-accent)",
           color: "#fff",
         }}
       >
-        {saving ? "Saving…" : data.goNoGoStatus ? `Save with ${data.goNoGoStatus.replace("_", "-")}` : "Select a decision first"}
+        {saving
+          ? "Saving…"
+          : data.goNoGoStatus === "GO" && !canGo
+            ? "GO artık geçerli değil — önce blokları gider"
+            : data.goNoGoStatus
+              ? `Save with ${data.goNoGoStatus.replace("_", "-")}`
+              : "Select a decision first"}
       </button>
     </div>
   );

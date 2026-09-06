@@ -1,5 +1,29 @@
-const CACHE = "qt-v2";
+const CACHE = "qt-v3";
 const OFFLINE_URL = "/offline";
+
+/**
+ * Offline veri politikasi (acikca yazilmistir, cunku sessiz varsayimi bir
+ * gizlilik sorunu uretmisti):
+ *
+ * Cache YALNIZCA kullanicidan bagimsiz statik varliklari tutar — logo, offline
+ * ekrani, /public altindaki dosyalar. Kimlik dogrulamali sayfa yanitlari
+ * (dashboard, journal, prep...) HIC cache'lenmez.
+ *
+ * Sebep: cache tek ve ortak. Once her basarili "basic" yanit yaziliyordu, yani
+ * ortak bir cihazda ikinci hesap, baglanti koptugunda birincinin daha once
+ * goruntuledigi sayfayi geri servis edilmis halde gorebiliyordu. Cikista da
+ * temizlenmiyordu.
+ *
+ * Cevrimdisi navigasyonda artik kullaniciya ait icerik degil, /offline ekrani
+ * gosterilir. Bayat bir sayfayi guncel sanmak, hicbir sey gormemekten kotudur.
+ */
+const CACHEABLE_PATHS = [OFFLINE_URL];
+
+/** Kullanicidan bagimsiz statik varlik mi? */
+function isPublicAsset(url) {
+  if (CACHEABLE_PATHS.includes(url.pathname)) return true;
+  return /\.(png|jpg|jpeg|svg|webp|ico|woff2?|ttf|css)$/i.test(url.pathname);
+}
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -27,20 +51,26 @@ self.addEventListener("fetch", (e) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/")) return;
 
+  const cacheable = isPublicAsset(url);
+
   e.respondWith(
     fetch(request)
       .then((res) => {
-        if (res.ok && res.type === "basic") {
+        // Yalnizca statik varliklar yazilir; kimlik dogrulamali sayfa yanitlari
+        // asla cache'e girmez.
+        if (cacheable && res.ok && res.type === "basic") {
           const clone = res.clone();
           caches.open(CACHE).then((c) => c.put(request, clone));
         }
         return res;
       })
       .catch(async () => {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        // A navigation with nothing cached would otherwise show the browser's
-        // own error page; serve our offline screen instead.
+        if (cacheable) {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+        }
+        // Cevrimdisi navigasyon: kullaniciya ait bayat sayfa yerine offline
+        // ekrani. Tarayicinin kendi hata sayfasindan da iyi.
         if (request.mode === "navigate") {
           const offline = await caches.match(OFFLINE_URL);
           if (offline) return offline;

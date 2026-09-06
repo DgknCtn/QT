@@ -11,12 +11,19 @@ const NOW = Date.UTC(2026, 7, 16, 12, 0, 0);
 
 describe("prepDraftKey", () => {
   it("yeni prep ile düzenlenen prep farklı anahtar kullanır", () => {
-    expect(prepDraftKey()).toBe("qt:prep-draft:new");
-    expect(prepDraftKey("abc123")).toBe("qt:prep-draft:abc123");
+    expect(prepDraftKey("u1")).toBe("qt:prep-draft:u1:new");
+    expect(prepDraftKey("u1", "abc123")).toBe("qt:prep-draft:u1:abc123");
   });
 
   it("iki farklı prep'in anahtarı çakışmaz", () => {
-    expect(prepDraftKey("abc")).not.toBe(prepDraftKey("def"));
+    expect(prepDraftKey("u1", "abc")).not.toBe(prepDraftKey("u1", "def"));
+  });
+
+  it("aynı cihazdaki iki kullanıcının taslağı çakışmaz", () => {
+    // Ortak cihaz senaryosu: anahtar kullanıcıyı içermediğinde ikinci kişi
+    // birincinin yarım hazırlığını "kurtarılacak taslak" olarak görüyordu.
+    expect(prepDraftKey("u1")).not.toBe(prepDraftKey("u2"));
+    expect(prepDraftKey("u1", "abc")).not.toBe(prepDraftKey("u2", "abc"));
   });
 });
 

@@ -30,12 +30,38 @@ export type PrepDraft = {
   data: PrepFormData;
 };
 
+/** Butun taslak anahtarlarinin ortak oneki — cikista toplu temizlik icin. */
+export const PREP_DRAFT_PREFIX = "qt:prep-draft:";
+
 /**
  * Yeni prep ile her bir düzenlenen prep ayrı anahtar kullanır — iki farklı
  * prep'in taslağı asla birbirine karışmaz.
+ *
+ * Anahtar kullanıcı kimliğini de içerir. İçermediğinde, ortak bir cihazda
+ * hesap değiştiren iki kişiden ikincisi birincinin yarım kalmış hazırlığını
+ * "kurtarılacak taslak" olarak görüyordu — localStorage oturumdan bağımsız
+ * yaşadığı için çıkış yapmak da bunu temizlemiyordu.
  */
-export function prepDraftKey(prepId?: string): string {
-  return prepId ? `qt:prep-draft:${prepId}` : "qt:prep-draft:new";
+export function prepDraftKey(userId: string, prepId?: string): string {
+  return `${PREP_DRAFT_PREFIX}${userId}:${prepId ?? "new"}`;
+}
+
+/**
+ * Cihazdaki tüm prep taslaklarını siler. Çıkışta çağrılır: anahtarlar artık
+ * kullanıcıya göre ayrı olsa da, veriyi oturum bitince cihazda bırakmamak
+ * ayrı bir gerekliliktir.
+ */
+export function clearAllPrepDrafts(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(PREP_DRAFT_PREFIX)) keys.push(k);
+    }
+    for (const k of keys) localStorage.removeItem(k);
+  } catch {
+    // Private mode / quota: okuyamiyorsak silecek bir sey de yoktur.
+  }
 }
 
 export function serializeDraft(data: PrepFormData, now = Date.now()): string {

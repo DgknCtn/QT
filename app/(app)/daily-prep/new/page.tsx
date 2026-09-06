@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PrepWizard } from "./prep-wizard";
 import { getCalendarEventsForDate, getLastPrepCarryOver, getTrueOpenLevels } from "./actions";
@@ -12,9 +13,10 @@ export default async function NewPrepPage({
   const { from } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const [calendarEvents, carryOver, trueOpenLevels] = await Promise.all([
-    getCalendarEventsForDate(user!.id, new Date()),
+    getCalendarEventsForDate(new Date()),
     // `?from=last` ile gelindiyse alanlar hazır dolu açılır; her hâlükârda
     // çekilir ki sihirbaz "Son prep'ten doldur" düğmesini gösterebilsin.
     getLastPrepCarryOver(),
@@ -36,6 +38,7 @@ export default async function NewPrepPage({
         carryOver={carryOver}
         applyCarryOverOnLoad={from === "last"}
         trueOpenLevels={trueOpenLevels}
+        userId={user.id}
       />
     </div>
   );
